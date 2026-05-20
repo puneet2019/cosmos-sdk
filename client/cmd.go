@@ -19,6 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // ClientContextKey defines the context key used to retrieve a client.Context from
@@ -109,6 +110,11 @@ func ReadPersistentCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Cont
 		dryRun, _ := flagSet.GetBool(flags.FlagDryRun)
 		clientCtx = clientCtx.WithSimulation(dryRun)
 	}
+	
+	if !clientCtx.Simulate || flagSet.Changed(flags.FlagPrintEIP712MsgType) {
+		printEIP712, _ := flagSet.GetBool(flags.FlagPrintEIP712MsgType)
+		clientCtx = clientCtx.WithSimulation(printEIP712).WithPrintEIP712MsgType(printEIP712)
+	}
 
 	if clientCtx.KeyringDir == "" || flagSet.Changed(flags.FlagKeyringDir) {
 		keyringDir, _ := flagSet.GetString(flags.FlagKeyringDir)
@@ -151,6 +157,20 @@ func ReadPersistentCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Cont
 			}
 
 			clientCtx = clientCtx.WithClient(client)
+		}
+	}
+	
+	if clientCtx.EvmClient == nil || flagSet.Changed(flags.FlagEvmNode) {
+		rpcURI, _ := flagSet.GetString(flags.FlagEvmNode)
+		if rpcURI != "" {
+			clientCtx = clientCtx.WithEvmNodeURI(rpcURI)
+
+			client, err := ethclient.Dial(rpcURI)
+			if err != nil {
+				return clientCtx, err
+			}
+
+			clientCtx = clientCtx.WithEvmClient(client)
 		}
 	}
 
@@ -253,7 +273,7 @@ func readTxCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, err
 		payer, _ := flagSet.GetString(flags.FlagFeePayer)
 
 		if payer != "" {
-			payerAcc, err := sdk.AccAddressFromBech32(payer)
+			payerAcc, err := sdk.AccAddressFromHexUnsafe(payer)
 			if err != nil {
 				return clientCtx, err
 			}
@@ -266,7 +286,7 @@ func readTxCommandFlags(clientCtx Context, flagSet *pflag.FlagSet) (Context, err
 		granter, _ := flagSet.GetString(flags.FlagFeeGranter)
 
 		if granter != "" {
-			granterAcc, err := sdk.AccAddressFromBech32(granter)
+			granterAcc, err := sdk.AccAddressFromHexUnsafe(granter)
 			if err != nil {
 				return clientCtx, err
 			}

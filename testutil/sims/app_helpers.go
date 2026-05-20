@@ -15,13 +15,15 @@ import (
 	"cosmossdk.io/depinject"
 	sdkmath "cosmossdk.io/math"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
+	"github.com/cosmos/cosmos-sdk/testutil"
 	"github.com/cosmos/cosmos-sdk/testutil/mock"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -37,6 +39,7 @@ var DefaultConsensusParams = &cmtproto.ConsensusParams{
 	Block: &cmtproto.BlockParams{
 		MaxBytes: 200000,
 		MaxGas:   100_000_000,
+		MaxTxs:   2000,
 	},
 	Evidence: &cmtproto.EvidenceParams{
 		MaxAgeNumBlocks: 302400,
@@ -83,7 +86,7 @@ type StartupConfig struct {
 }
 
 func DefaultStartUpConfig() StartupConfig {
-	priv := secp256k1.GenPrivKey()
+	priv, _ := ethsecp256k1.GenPrivKey()
 	ba := authtypes.NewBaseAccount(priv.PubKey().Address().Bytes(), priv.PubKey(), 0, 0)
 	ga := GenesisAccount{ba, sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdkmath.NewInt(100000000000000)))}
 	return StartupConfig{
@@ -91,6 +94,7 @@ func DefaultStartUpConfig() StartupConfig {
 		AtGenesis:       false,
 		GenesisAccounts: []GenesisAccount{ga},
 		DB:              dbm.NewMemDB(),
+		BaseAppOption:   baseapp.SetChainID(testutil.DefaultChainId),
 	}
 }
 
@@ -189,6 +193,7 @@ func SetupWithConfiguration(appConfig depinject.Config, startupConfig StartupCon
 
 	// init chain will set the validator set and initialize the genesis accounts
 	_, err = app.InitChain(&abci.RequestInitChain{
+		ChainId:         app.ChainID(),
 		Validators:      []abci.ValidatorUpdate{},
 		ConsensusParams: DefaultConsensusParams,
 		AppStateBytes:   stateBytes,
@@ -240,7 +245,7 @@ func GenesisStateWithValSet(
 		}
 
 		validator := stakingtypes.Validator{
-			OperatorAddress:   sdk.ValAddress(val.Address).String(),
+			OperatorAddress:   sdk.AccAddress(val.Address).String(),
 			ConsensusPubkey:   pkAny,
 			Jailed:            false,
 			Status:            stakingtypes.Bonded,
@@ -253,7 +258,7 @@ func GenesisStateWithValSet(
 			MinSelfDelegation: sdkmath.ZeroInt(),
 		}
 		validators = append(validators, validator)
-		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress().String(), sdk.ValAddress(val.Address).String(), sdkmath.LegacyOneDec()))
+		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress().String(), sdk.AccAddress(val.Address).String(), sdkmath.LegacyOneDec()))
 
 	}
 

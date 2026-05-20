@@ -49,6 +49,8 @@ The pass backend requires GnuPG: https://gnupg.org/
 		RenameKeyCommand(),
 		ParseKeyStringCommand(),
 		MigrateCommand(),
+		SignMsgKeysCmd(),
+		VerifySignatureCmd(),
 	)
 
 	cmd.PersistentFlags().String(flags.FlagOutput, "text", "Output format (text|json)")

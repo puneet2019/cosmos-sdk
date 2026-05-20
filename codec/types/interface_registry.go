@@ -124,10 +124,9 @@ type interfaceMap = map[string]reflect.Type
 // NewInterfaceRegistry returns a new InterfaceRegistry
 func NewInterfaceRegistry() InterfaceRegistry {
 	registry, err := NewInterfaceRegistryWithOptions(InterfaceRegistryOptions{
-		ProtoFiles: proto.HybridResolver,
+		ProtoFiles:     proto.HybridResolver,
 		SigningOptions: signing.Options{
-			AddressCodec:          failingAddressCodec{},
-			ValidatorAddressCodec: failingAddressCodec{},
+			AddressCodec: failingAddressCodec{},
 		},
 	})
 	if err != nil {

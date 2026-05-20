@@ -19,6 +19,7 @@ Flags:
       --duration duration                                                    
       --durations duration (repeated)                                        
       --enums Enum (unspecified | one | two | five | neg-three) (repeated)   
+      --evm-node string                                                      <host>:<port> to EVM RPC interface for this chain (default "http://localhost:8545")
       --grpc-addr string                                                     the gRPC endpoint to use for this chain
       --grpc-insecure                                                        allow gRPC over insecure channels, if not the server must use TLS
       --height int                                                           Use a specific height to query state at (this can error if the node is pruning state)

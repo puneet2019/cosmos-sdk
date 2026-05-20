@@ -338,6 +338,7 @@ func AddCommands(rootCmd *cobra.Command, defaultNodeHome string, appCreator type
 		ExportCmd(appExport, defaultNodeHome),
 		version.NewVersionCommand(),
 		NewRollbackCmd(appCreator, defaultNodeHome),
+		NewMigrateStoreCmd(appCreator, defaultNodeHome),
 		ModuleHashByHeightQuery(appCreator),
 	)
 }
@@ -368,6 +369,7 @@ func AddCommandsWithStartCmdOptions(rootCmd *cobra.Command, defaultNodeHome stri
 		ExportCmd(appExport, defaultNodeHome),
 		version.NewVersionCommand(),
 		NewRollbackCmd(appCreator, defaultNodeHome),
+		NewMigrateStoreCmd(appCreator, defaultNodeHome),
 	)
 }
 
@@ -485,6 +487,11 @@ func openDB(rootDir string, backendType dbm.BackendType) (dbm.DB, error) {
 	return dbm.NewDB("application", backendType, dataDir)
 }
 
+func openDBWithDataDir(rootDir, subDir string, backendType dbm.BackendType) (dbm.DB, error) {
+	dataDir := filepath.Join(rootDir, subDir)
+	return dbm.NewDB("application", backendType, dataDir)
+}
+
 func openTraceWriter(traceWriterFile string) (w io.WriteCloser, err error) {
 	if traceWriterFile == "" {
 		return
@@ -551,6 +558,7 @@ func DefaultBaseappOptions(appOpts types.AppOptions) []func(*baseapp.BaseApp) {
 
 	return []func(*baseapp.BaseApp){
 		baseapp.SetPruning(pruningOpts),
+		baseapp.SetEventing(cast.ToString(appOpts.Get(FlagEventing))),
 		baseapp.SetMinGasPrices(cast.ToString(appOpts.Get(FlagMinGasPrices))),
 		baseapp.SetHaltHeight(cast.ToUint64(appOpts.Get(FlagHaltHeight))),
 		baseapp.SetHaltTime(cast.ToUint64(appOpts.Get(FlagHaltTime))),
@@ -563,6 +571,8 @@ func DefaultBaseappOptions(appOpts types.AppOptions) []func(*baseapp.BaseApp) {
 		baseapp.SetIAVLDisableFastNode(cast.ToBool(appOpts.Get(FlagDisableIAVLFastNode))),
 		defaultMempool,
 		baseapp.SetChainID(chainID),
+		baseapp.SetEnableUnsafeQuery(cast.ToBool(appOpts.Get(FlagEnableUnsafeQuery))),
+		baseapp.SetEnablePlainStore(cast.ToBool(appOpts.Get(FlagEnablePlainStore))),
 		baseapp.SetQueryGasLimit(cast.ToUint64(appOpts.Get(FlagQueryGasLimit))),
 	}
 }

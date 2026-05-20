@@ -48,7 +48,7 @@ var bankAutoCLI = &autocliv1.ServiceCommandDescriptor{
 func TestMsg(t *testing.T) {
 	fixture := initFixture(t)
 	out, err := runCmd(fixture, buildModuleMsgCommand, "send",
-		"cosmos1y74p8wyy4enfhfn342njve6cjmj5c8dtl6emdk", "cosmos1y74p8wyy4enfhfn342njve6cjmj5c8dtl6emdk", "1foo",
+		"0x27Aa13b884ae669Ba671AAa726675896E54c1DAB", "0x27Aa13b884ae669Ba671AAa726675896E54c1DAB", "1foo",
 		"--generate-only",
 		"--output", "json",
 	)
@@ -67,7 +67,7 @@ func TestMsg(t *testing.T) {
 		},
 		EnhanceCustomCommand: true,
 	}), "send",
-		"cosmos1y74p8wyy4enfhfn342njve6cjmj5c8dtl6emdk", "cosmos1y74p8wyy4enfhfn342njve6cjmj5c8dtl6emdk", "1foo",
+		"0x27Aa13b884ae669Ba671AAa726675896E54c1DAB", "0x27Aa13b884ae669Ba671AAa726675896E54c1DAB", "1foo",
 		"--generate-only",
 		"--output", "json",
 	)
@@ -87,8 +87,8 @@ func TestMsg(t *testing.T) {
 		},
 		EnhanceCustomCommand: true,
 	}), "send",
-		"cosmos1y74p8wyy4enfhfn342njve6cjmj5c8dtl6emdk", "1foo",
-		"--from", "cosmos1y74p8wyy4enfhfn342njve6cjmj5c8dtl6emdk",
+		"0x27Aa13b884ae669Ba671AAa726675896E54c1DAB", "1foo",
+		"--from", "0x27Aa13b884ae669Ba671AAa726675896E54c1DAB",
 		"--generate-only",
 		"--output", "json",
 	)
@@ -110,8 +110,8 @@ func TestMsg(t *testing.T) {
 		},
 		EnhanceCustomCommand: true,
 	}), "send",
-		"cosmos1y74p8wyy4enfhfn342njve6cjmj5c8dtl6emdk", "1foo",
-		"--sender", "cosmos1y74p8wyy4enfhfn342njve6cjmj5c8dtl6emdk",
+		"0x27Aa13b884ae669Ba671AAa726675896E54c1DAB", "1foo",
+		"--sender", "0x27Aa13b884ae669Ba671AAa726675896E54c1DAB",
 		"--generate-only",
 		"--output", "json",
 	)

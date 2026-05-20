@@ -16,6 +16,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const DefaultChainId = "moca_1000000-1"
+
 // DefaultContext creates a sdk.Context with a fresh MemDB that can be used in tests.
 func DefaultContext(key, tkey storetypes.StoreKey) sdk.Context {
 	db := dbm.NewMemDB()
@@ -26,7 +28,7 @@ func DefaultContext(key, tkey storetypes.StoreKey) sdk.Context {
 	if err != nil {
 		panic(err)
 	}
-	ctx := sdk.NewContext(cms, cmtproto.Header{}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(cms, cmtproto.Header{ChainID: DefaultChainId}, false, log.NewNopLogger())
 
 	return ctx
 }
@@ -58,7 +60,7 @@ func DefaultContextWithKeys(
 		panic(err)
 	}
 
-	return sdk.NewContext(cms, cmtproto.Header{}, false, log.NewNopLogger())
+	return sdk.NewContext(cms, cmtproto.Header{ChainID: DefaultChainId}, false, log.NewNopLogger())
 }
 
 type TestContext struct {
@@ -75,7 +77,7 @@ func DefaultContextWithDB(t testing.TB, key, tkey storetypes.StoreKey) TestConte
 	err := cms.LoadLatestVersion()
 	assert.NoError(t, err)
 
-	ctx := sdk.NewContext(cms, cmtproto.Header{Time: time.Now()}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(cms, cmtproto.Header{ChainID: DefaultChainId, Time: time.Now()}, false, log.NewNopLogger())
 
 	return TestContext{ctx, db, cms}
 }

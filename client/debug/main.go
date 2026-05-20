@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
@@ -17,7 +18,6 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	legacybech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" //nolint:staticcheck // we do old keys, they're keys after all.
-	"github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/version"
 )
 
@@ -195,7 +195,7 @@ func PubkeyRawCmd() *cobra.Command {
 			}
 			pubkeyType = strings.ToLower(pubkeyType)
 			if pubkeyType != "secp256k1" && pubkeyType != ed {
-				return errorsmod.Wrapf(errors.ErrInvalidType, "invalid pubkey type, expected oneof ed25519 or secp256k1")
+				return errorsmod.Wrapf(sdkerrors.ErrInvalidType, "invalid pubkey type, expected oneof ed25519 or secp256k1")
 			}
 
 			pk, err := getPubKeyFromRawString(args[0], pubkeyType)
@@ -249,7 +249,7 @@ func AddrCmd() *cobra.Command {
 		Long: fmt.Sprintf(`Convert an address between hex encoding and bech32.
 
 Example:
-$ %s debug addr cosmos1e0jnq2sun3dzjh8p2xq95kk0expwmd7shwjpfg
+$ %s debug addr 0xcBe5302A1C9c5a295CE151805a5acfC982EDB7d0
 			`, version.AppName),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -261,9 +261,9 @@ $ %s debug addr cosmos1e0jnq2sun3dzjh8p2xq95kk0expwmd7shwjpfg
 			)
 			decodeFns := []func(text string) ([]byte, error){
 				hex.DecodeString,
-				func(text string) ([]byte, error) { return sdk.AccAddressFromBech32(text) },
-				func(text string) ([]byte, error) { return sdk.ValAddressFromBech32(text) },
-				func(text string) ([]byte, error) { return sdk.ConsAddressFromBech32(text) },
+				func(text string) ([]byte, error) { return sdk.AccAddressFromHexUnsafe(text) },
+				func(text string) ([]byte, error) { return sdk.AccAddressFromHexUnsafe(text) },
+				func(text string) ([]byte, error) { return sdk.AccAddressFromHexUnsafe(text) },
 			}
 			errs := make([]any, 0, len(decodeFns))
 			for _, fn := range decodeFns {
@@ -288,9 +288,9 @@ $ %s debug addr cosmos1e0jnq2sun3dzjh8p2xq95kk0expwmd7shwjpfg
 
 			cmd.Println("Address:", addr)
 			cmd.Printf("Address (hex): %X\n", addr)
-			cmd.Printf("Bech32 Acc: %s\n", sdk.AccAddress(addr))
-			cmd.Printf("Bech32 Val: %s\n", sdk.ValAddress(addr))
-			cmd.Printf("Bech32 Con: %s\n", sdk.ConsAddress(addr))
+			cmd.Printf("Hex Acc: %s\n", sdk.AccAddress(addr))
+			cmd.Printf("Hex Val: %s\n", sdk.AccAddress(addr))
+			cmd.Printf("Hex Con: %s\n", sdk.AccAddress(addr))
 			return nil
 		},
 	}

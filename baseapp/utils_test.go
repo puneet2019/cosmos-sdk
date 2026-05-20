@@ -20,7 +20,6 @@ import (
 
 	runtimev1alpha1 "cosmossdk.io/api/cosmos/app/runtime/v1alpha1"
 	appv1alpha1 "cosmossdk.io/api/cosmos/app/v1alpha1"
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/appconfig"
 	"cosmossdk.io/depinject"
 	errorsmod "cosmossdk.io/errors"
@@ -31,7 +30,6 @@ import (
 	baseapptestutil "github.com/cosmos/cosmos-sdk/baseapp/testutil"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil/mock"
@@ -45,6 +43,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/signing"
 	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	_ "github.com/cosmos/cosmos-sdk/x/authz/module"
 	_ "github.com/cosmos/cosmos-sdk/x/bank"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	_ "github.com/cosmos/cosmos-sdk/x/consensus"
@@ -88,14 +87,11 @@ func GenesisStateWithSingleValidator(t *testing.T, codec codec.Codec, builder *r
 
 func makeMinimalConfig() depinject.Config {
 	var (
-		mempoolOpt            = baseapp.SetMempool(mempool.NewSenderNonceMempool())
-		addressCodec          = func() address.Codec { return addresscodec.NewBech32Codec("cosmos") }
-		validatorAddressCodec = func() runtime.ValidatorAddressCodec { return addresscodec.NewBech32Codec("cosmosvaloper") }
-		consensusAddressCodec = func() runtime.ConsensusAddressCodec { return addresscodec.NewBech32Codec("cosmosvalcons") }
+		mempoolOpt = baseapp.SetMempool(mempool.NewSenderNonceMempool())
 	)
 
 	return depinject.Configs(
-		depinject.Supply(mempoolOpt, addressCodec, validatorAddressCodec, consensusAddressCodec),
+		depinject.Supply(mempoolOpt),
 		appconfig.Compose(&appv1alpha1.Config{
 			Modules: []*appv1alpha1.ModuleConfig{
 				{

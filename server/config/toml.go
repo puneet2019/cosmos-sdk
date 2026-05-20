@@ -35,6 +35,10 @@ pruning = "{{ .BaseConfig.Pruning }}"
 pruning-keep-recent = "{{ .BaseConfig.PruningKeepRecent }}"
 pruning-interval = "{{ .BaseConfig.PruningInterval }}"
 
+# everything: all events will be emitted
+# nothing: no events will be emitted.
+eventing = "{{ .BaseConfig.Eventing }}"
+
 # HaltHeight contains a non-zero block height at which a node will gracefully
 # halt and shutdown that can be used to assist upgrades and testing.
 #
@@ -85,6 +89,16 @@ iavl-disable-fastnode = {{ .BaseConfig.IAVLDisableFastNode }}
 # An empty string indicates that a fallback will be used.
 # The fallback is the db_backend value set in CometBFT's config.toml.
 app-db-backend = "{{ .BaseConfig.AppDBBackend }}"
+
+# EnableUnsafeQuery enables or disables the unsafe queries.
+# Default is false.
+enable-unsafe-query = "{{ .BaseConfig.EnableUnsafeQuery }}"
+
+# EnablePlainStore enables or disables the plain store. If it is true, then plain store will be used, not IAVL store.
+# Do not enable it on validator nodes or other nodes which require high security level.
+# If you enable it, please also enable skip_app_hash config in config.toml file.
+# Default is false.
+enable-plain-store = "{{ .BaseConfig.EnablePlainStore }}"
 
 ###############################################################################
 ###                         Telemetry Configuration                         ###
@@ -190,8 +204,13 @@ max-send-msg-size = "{{ .GRPC.MaxSendMsgSize }}"
 
 # GRPCWebEnable defines if the gRPC-web should be enabled.
 # NOTE: gRPC must also be enabled, otherwise, this configuration is a no-op.
-# NOTE: gRPC-Web uses the same address as the API server.
 enable = {{ .GRPCWeb.Enable }}
+
+# Address defines the gRPC-web server address to bind to.
+address = "{{ .GRPCWeb.Address }}"
+
+# EnableUnsafeCORS defines if CORS should be enabled (unsafe - use it at your own risk).
+enable-unsafe-cors = {{ .GRPCWeb.EnableUnsafeCORS }}
 
 ###############################################################################
 ###                        State Sync Configuration                         ###

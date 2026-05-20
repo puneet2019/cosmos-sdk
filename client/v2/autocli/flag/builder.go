@@ -18,9 +18,6 @@ import (
 	msgv1 "cosmossdk.io/api/cosmos/msg/v1"
 	"cosmossdk.io/client/v2/internal/flags"
 	"cosmossdk.io/client/v2/internal/util"
-	"cosmossdk.io/core/address"
-
-	"github.com/cosmos/cosmos-sdk/runtime"
 )
 
 const (
@@ -48,11 +45,6 @@ type Builder struct {
 
 	messageFlagTypes map[protoreflect.FullName]Type
 	scalarFlagTypes  map[string]Type
-
-	// Address Codecs are the address codecs to use for client/v2.
-	AddressCodec          address.Codec
-	ValidatorAddressCodec runtime.ValidatorAddressCodec
-	ConsensusAddressCodec runtime.ConsensusAddressCodec
 }
 
 func (b *Builder) init() {
@@ -77,18 +69,6 @@ func (b *Builder) init() {
 // It returns an error if any of the required fields are missing.
 // If the keyring is nil, it will be set to a no keyring.
 func (b *Builder) ValidateAndComplete() error {
-	if b.AddressCodec == nil {
-		return errors.New("address codec is required in flag builder")
-	}
-
-	if b.ValidatorAddressCodec == nil {
-		return errors.New("validator address codec is required in flag builder")
-	}
-
-	if b.ConsensusAddressCodec == nil {
-		return errors.New("consensus address codec is required in flag builder")
-	}
-
 	if b.TypeResolver == nil {
 		return errors.New("type resolver is required in flag builder")
 	}

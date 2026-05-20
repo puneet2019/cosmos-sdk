@@ -22,6 +22,9 @@ const (
 	// DefaultGRPCAddress defines the default address to bind the gRPC server to.
 	DefaultGRPCAddress = "localhost:9090"
 
+	// DefaultGRPCWebAddress defines the default address to bind the gRPC-web server to.
+	DefaultGRPCWebAddress = "localhost:9091"
+
 	// DefaultGRPCMaxRecvMsgSize defines the default gRPC max message size in
 	// bytes the server can receive.
 	DefaultGRPCMaxRecvMsgSize = 1024 * 1024 * 10
@@ -45,6 +48,8 @@ type BaseConfig struct {
 	Pruning           string `mapstructure:"pruning"`
 	PruningKeepRecent string `mapstructure:"pruning-keep-recent"`
 	PruningInterval   string `mapstructure:"pruning-interval"`
+
+	Eventing string `mapstructure:"eventing"`
 
 	// HaltHeight contains a non-zero block height at which a node will gracefully
 	// halt and shutdown that can be used to assist upgrades and testing.
@@ -91,6 +96,12 @@ type BaseConfig struct {
 	// AppDBBackend defines the type of Database to use for the application and snapshots databases.
 	// An empty string indicates that the CometBFT config's DBBackend value should be used.
 	AppDBBackend string `mapstructure:"app-db-backend"`
+
+	// EnableUnsafeQuery enable/disable unsafe query apis.
+	EnableUnsafeQuery bool `mapstructure:"enable-unsafe-query"`
+
+	// EnablePlainStore enable/disable plain db store without iavl.
+	EnablePlainStore bool `mapstructure:"enable-plain-store"`
 }
 
 // APIConfig defines the API listener configuration.
@@ -145,6 +156,12 @@ type GRPCConfig struct {
 type GRPCWebConfig struct {
 	// Enable defines if the gRPC-web should be enabled.
 	Enable bool `mapstructure:"enable"`
+
+	// Address defines the gRPC-web server to listen on
+	Address string `mapstructure:"address"`
+
+	// EnableUnsafeCORS defines if CORS should be enabled (unsafe - use it at your own risk)
+	EnableUnsafeCORS bool `mapstructure:"enable-unsafe-cors"`
 }
 
 // StateSyncConfig defines the state sync snapshot configuration.
@@ -225,11 +242,14 @@ func DefaultConfig() *Config {
 			Pruning:             pruningtypes.PruningOptionDefault,
 			PruningKeepRecent:   "0",
 			PruningInterval:     "0",
+			Eventing:            sdk.EventingOptionEverything,
 			MinRetainBlocks:     0,
 			IndexEvents:         make([]string, 0),
 			IAVLCacheSize:       781250,
 			IAVLDisableFastNode: false,
 			AppDBBackend:        "",
+			EnableUnsafeQuery:   false,
+			EnablePlainStore:    false,
 		},
 		Telemetry: telemetry.Config{
 			Enabled:      false,
@@ -250,7 +270,8 @@ func DefaultConfig() *Config {
 			MaxSendMsgSize: DefaultGRPCMaxSendMsgSize,
 		},
 		GRPCWeb: GRPCWebConfig{
-			Enable: true,
+			Enable:  true,
+			Address: DefaultGRPCWebAddress,
 		},
 		StateSync: StateSyncConfig{
 			SnapshotInterval:   0,

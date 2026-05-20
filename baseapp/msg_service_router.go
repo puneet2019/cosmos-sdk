@@ -181,6 +181,12 @@ func (msr *MsgServiceRouter) registerMsgServiceHandler(sd *grpc.ServiceDesc, met
 			}
 		}
 
+		if runtimeReq, ok := msg.(sdk.MsgWithRuntimeValidation); ok {
+			if err := runtimeReq.ValidateRuntime(ctx); err != nil {
+				return nil, err
+			}
+		}
+
 		if msr.circuitBreaker != nil {
 			msgURL := sdk.MsgTypeURL(msg)
 			isAllowed, err := msr.circuitBreaker.IsAllowed(ctx, msgURL)

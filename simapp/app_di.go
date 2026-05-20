@@ -83,7 +83,6 @@ type SimApp struct {
 	NFTKeeper             nftkeeper.Keeper
 	ConsensusParamsKeeper consensuskeeper.Keeper
 	CircuitKeeper         circuitkeeper.Keeper
-
 	// simulation manager
 	sm *module.SimulationManager
 }

@@ -7,7 +7,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"cosmossdk.io/client/v2/autocli/keyring"
-	"cosmossdk.io/core/address"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -15,12 +14,13 @@ import (
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdkkeyring "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type addressStringType struct{}
 
 func (a addressStringType) NewValue(ctx *context.Context, b *Builder) Value {
-	return &addressValue{addressCodec: b.AddressCodec, ctx: ctx}
+	return &addressValue{ctx: ctx}
 }
 
 func (a addressStringType) DefaultValue() string {
@@ -30,7 +30,7 @@ func (a addressStringType) DefaultValue() string {
 type validatorAddressStringType struct{}
 
 func (a validatorAddressStringType) NewValue(ctx *context.Context, b *Builder) Value {
-	return &addressValue{addressCodec: b.ValidatorAddressCodec, ctx: ctx}
+	return &addressValue{ctx: ctx}
 }
 
 func (a validatorAddressStringType) DefaultValue() string {
@@ -38,8 +38,7 @@ func (a validatorAddressStringType) DefaultValue() string {
 }
 
 type addressValue struct {
-	ctx          *context.Context
-	addressCodec address.Codec
+	ctx *context.Context
 
 	value string
 }
@@ -58,16 +57,13 @@ func (a *addressValue) Set(s string) error {
 	keyring := getKeyringFromCtx(a.ctx)
 	addr, err := keyring.LookupAddressByKeyName(s)
 	if err == nil {
-		addrStr, err := a.addressCodec.BytesToString(addr)
-		if err != nil {
-			return fmt.Errorf("invalid account address got from keyring: %w", err)
-		}
+		addrStr := sdk.AccAddress(addr).String()
 
 		a.value = addrStr
 		return nil
 	}
 
-	_, err = a.addressCodec.StringToBytes(s)
+	_, err = sdk.AccAddressFromHexUnsafe(s)
 	if err != nil {
 		return fmt.Errorf("invalid account address or key name: %w", err)
 	}
@@ -86,8 +82,7 @@ type consensusAddressStringType struct{}
 func (a consensusAddressStringType) NewValue(ctx *context.Context, b *Builder) Value {
 	return &consensusAddressValue{
 		addressValue: addressValue{
-			addressCodec: b.ConsensusAddressCodec,
-			ctx:          ctx,
+			ctx: ctx,
 		},
 	}
 }
@@ -113,16 +108,13 @@ func (a *consensusAddressValue) Set(s string) error {
 	keyring := getKeyringFromCtx(a.ctx)
 	addr, err := keyring.LookupAddressByKeyName(s)
 	if err == nil {
-		addrStr, err := a.addressCodec.BytesToString(addr)
-		if err != nil {
-			return fmt.Errorf("invalid consensus address got from keyring: %w", err)
-		}
+		addrStr := sdk.AccAddress(addr).String()
 
 		a.value = addrStr
 		return nil
 	}
 
-	_, err = a.addressCodec.StringToBytes(s)
+	_, err = sdk.AccAddressFromHexUnsafe(s)
 	if err == nil {
 		a.value = s
 		return nil
@@ -139,10 +131,7 @@ func (a *consensusAddressValue) Set(s string) error {
 		return fmt.Errorf("input isn't a pubkey (%w) or is an invalid account address (%w)", err, err2)
 	}
 
-	a.value, err = a.addressCodec.BytesToString(pk.Address())
-	if err != nil {
-		return fmt.Errorf("invalid pubkey address: %w", err)
-	}
+	a.value = sdk.AccAddress(pk.Address()).String()
 
 	return nil
 }

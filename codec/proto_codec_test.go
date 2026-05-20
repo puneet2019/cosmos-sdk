@@ -179,11 +179,8 @@ func BenchmarkProtoCodecMarshalLengthPrefixed(b *testing.B) {
 
 func TestGetSigners(t *testing.T) {
 	interfaceRegistry, err := types.NewInterfaceRegistryWithOptions(types.InterfaceRegistryOptions{
-		SigningOptions: signing.Options{
-			AddressCodec:          testAddressCodec{},
-			ValidatorAddressCodec: testAddressCodec{},
-		},
-		ProtoFiles: protoregistry.GlobalFiles,
+		SigningOptions: signing.Options{},
+		ProtoFiles:     protoregistry.GlobalFiles,
 	})
 	require.NoError(t, err)
 	cdc := codec.NewProtoCodec(interfaceRegistry)
@@ -201,27 +198,17 @@ func TestGetSigners(t *testing.T) {
 
 	signers, msgSendV2Copy, err := cdc.GetMsgV1Signers(msgSendV1)
 	require.NoError(t, err)
-	require.Equal(t, [][]byte{testAddr}, signers)
+	require.Equal(t, [][]byte{sdk.MustAccAddressFromHex(testAddrStr)}, signers)
 	require.True(t, protov2.Equal(msgSendV2, msgSendV2Copy))
 
 	signers, err = cdc.GetMsgV2Signers(msgSendV2)
 	require.NoError(t, err)
-	require.Equal(t, [][]byte{testAddr}, signers)
+	require.Equal(t, [][]byte{sdk.MustAccAddressFromHex(testAddrStr)}, signers)
 
 	msgSendAny, err := types.NewAnyWithValue(msgSendV1)
 	require.NoError(t, err)
 	signers, msgSendV2Copy, err = cdc.GetMsgAnySigners(msgSendAny)
 	require.NoError(t, err)
-	require.Equal(t, [][]byte{testAddr}, signers)
+	require.Equal(t, [][]byte{sdk.MustAccAddressFromHex(testAddrStr)}, signers)
 	require.True(t, protov2.Equal(msgSendV2, msgSendV2Copy))
-}
-
-type testAddressCodec struct{}
-
-func (t testAddressCodec) StringToBytes(text string) ([]byte, error) {
-	return sdk.AccAddressFromBech32(text)
-}
-
-func (t testAddressCodec) BytesToString(bz []byte) (string, error) {
-	return sdk.AccAddress(bz).String(), nil
 }

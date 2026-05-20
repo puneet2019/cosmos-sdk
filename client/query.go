@@ -8,6 +8,7 @@ import (
 	"github.com/cockroachdb/errors"
 	abci "github.com/cometbft/cometbft/abci/types"
 	rpcclient "github.com/cometbft/cometbft/rpc/client"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -25,6 +26,16 @@ func (ctx Context) GetNode() (CometRPC, error) {
 	}
 
 	return ctx.Client, nil
+}
+
+// GetEvmNode returns an RPC client. If the context's client is not defined, an
+// error is returned.
+func (ctx Context) GetEvmNode() (*ethclient.Client, error) {
+	if ctx.EvmClient == nil {
+		return nil, errors.New("no RPC client is defined in offline mode")
+	}
+
+	return ctx.EvmClient, nil
 }
 
 // Query performs a query to a CometBFT node with the provided path.

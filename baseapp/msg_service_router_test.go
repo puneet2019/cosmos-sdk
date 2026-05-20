@@ -11,10 +11,12 @@ import (
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/log"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
+	sdktestutil "github.com/cosmos/cosmos-sdk/testutil"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
@@ -122,7 +124,7 @@ func TestHybridHandlerByMsgName(t *testing.T) {
 }
 
 func TestMsgService(t *testing.T) {
-	priv, _, _ := testdata.KeyTestPubAddr()
+	priv, _, _ := testdata.KeyTestPubAddrEthSecp256k1(t)
 
 	var (
 		appBuilder        *runtime.AppBuilder
@@ -135,7 +137,7 @@ func TestMsgService(t *testing.T) {
 			depinject.Supply(log.NewNopLogger()),
 		), &appBuilder, &cdc, &interfaceRegistry)
 	require.NoError(t, err)
-	app := appBuilder.Build(dbm.NewMemDB(), nil)
+	app := appBuilder.Build(dbm.NewMemDB(), nil, baseapp.SetChainID(sdktestutil.DefaultChainId))
 
 	// patch in TxConfig instead of using an output from x/auth/tx
 	txConfig := authtx.NewTxConfig(cdc, authtx.DefaultSignModes)
@@ -153,7 +155,7 @@ func TestMsgService(t *testing.T) {
 	_, err = app.FinalizeBlock(&abci.RequestFinalizeBlock{Height: 1})
 	require.NoError(t, err)
 
-	_, _, addr := testdata.KeyTestPubAddr()
+	_, _, addr := testdata.KeyTestPubAddrEthSecp256k1(t)
 	msg := testdata.MsgCreateDog{
 		Dog:   &testdata.Dog{Name: "Spot"},
 		Owner: addr.String(),
@@ -181,7 +183,7 @@ func TestMsgService(t *testing.T) {
 
 	// Second round: all signer infos are set, so each signer can sign.
 	signerData := authsigning.SignerData{
-		ChainID:       "test",
+		ChainID:       sdktestutil.DefaultChainId,
 		AccountNumber: 0,
 		Sequence:      0,
 		PubKey:        priv.PubKey(),

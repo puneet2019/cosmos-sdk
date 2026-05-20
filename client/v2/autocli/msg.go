@@ -15,6 +15,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // BuildMsgCommand builds the msg commands for all the provided modules. If a custom command is provided for a
@@ -121,26 +122,11 @@ func (b *Builder) BuildMsgMethodCommand(descriptor protoreflect.MethodDescriptor
 		clientCtx = clientCtx.WithOutput(cmd.OutOrStdout())
 
 		fd := input.Descriptor().Fields().ByName(protoreflect.Name(flag.GetSignerFieldName(input.Descriptor())))
-		addressCodec := b.Builder.AddressCodec
 
 		// set signer to signer field if empty
 		if addr := input.Get(fd).String(); addr == "" {
-			scalarType, ok := flag.GetScalarType(fd)
-			if ok {
-				// override address codec if validator or consensus address
-				switch scalarType {
-				case flag.ValidatorAddressStringScalarType:
-					addressCodec = b.Builder.ValidatorAddressCodec
-				case flag.ConsensusAddressStringScalarType:
-					addressCodec = b.Builder.ConsensusAddressCodec
-				}
-			}
-
 			signerFromFlag := clientCtx.GetFromAddress()
-			signer, err := addressCodec.BytesToString(signerFromFlag.Bytes())
-			if err != nil {
-				return fmt.Errorf("failed to set signer on message, got %v: %w", signerFromFlag, err)
-			}
+			signer := sdk.AccAddress(signerFromFlag.Bytes()).String()
 
 			input.Set(fd, protoreflect.ValueOfString(signer))
 		}

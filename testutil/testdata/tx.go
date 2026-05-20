@@ -6,6 +6,7 @@ import (
 	"gotest.tools/v3/assert"
 	"pgregory.net/rapid"
 
+	"github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256r1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
@@ -43,10 +44,21 @@ func KeyTestPubAddr() (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) 
 	return key, pub, addr
 }
 
-// KeyTestPubAddr generates a new secp256r1 keypair.
+// KeyTestPubAddrSecp256R1 generates a new secp256r1 keypair.
 func KeyTestPubAddrSecp256R1(t *testing.T) (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) {
 	key, err := secp256r1.GenPrivKey()
 	assert.NilError(t, err)
+	pub := key.PubKey()
+	addr := sdk.AccAddress(pub.Address())
+	return key, pub, addr
+}
+
+// KeyTestPubAddrEthSecp256k1 generates a new eth_secp256k1 keypair.
+func KeyTestPubAddrEthSecp256k1(t *testing.T) (cryptotypes.PrivKey, cryptotypes.PubKey, sdk.AccAddress) {
+	key, err := ethsecp256k1.GenPrivKey()
+	if t != nil {
+		assert.NilError(t, err)
+	}
 	pub := key.PubKey()
 	addr := sdk.AccAddress(pub.Address())
 	return key, pub, addr
@@ -80,7 +92,7 @@ var _ sdk.Msg = (*TestMsg)(nil)
 func (msg *TestMsg) GetSigners() []sdk.AccAddress {
 	signers := make([]sdk.AccAddress, 0, len(msg.Signers))
 	for _, addr := range msg.Signers {
-		a, _ := sdk.AccAddressFromBech32(addr)
+		a, _ := sdk.AccAddressFromHexUnsafe(addr)
 		signers = append(signers, a)
 	}
 	return signers
@@ -88,7 +100,7 @@ func (msg *TestMsg) GetSigners() []sdk.AccAddress {
 
 func (msg *TestMsg) ValidateBasic() error {
 	for _, addr := range msg.Signers {
-		if _, err := sdk.AccAddressFromBech32(addr); err != nil {
+		if _, err := sdk.AccAddressFromHexUnsafe(addr); err != nil {
 			return sdkerrors.ErrInvalidAddress.Wrapf("invalid signer address: %s", err)
 		}
 	}

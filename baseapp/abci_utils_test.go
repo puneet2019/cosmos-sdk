@@ -491,7 +491,7 @@ func (s *ABCIUtilsTestSuite) TestDefaultProposalHandler_NoOpMempoolTxSelection()
 	tx := builder.GetTx()
 	txBz, err := txConfig.TxEncoder()(tx)
 	s.Require().NoError(err)
-	s.Require().Len(txBz, 152)
+	s.Require().Len(txBz, 149) // 152
 
 	testCases := map[string]struct {
 		ctx         sdk.Context

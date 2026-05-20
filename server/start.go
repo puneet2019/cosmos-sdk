@@ -46,6 +46,7 @@ import (
 	servercmtlog "github.com/cosmos/cosmos-sdk/server/log"
 	"github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/mempool"
 	"github.com/cosmos/cosmos-sdk/version"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
@@ -70,11 +71,15 @@ const (
 	FlagPruning             = "pruning"
 	FlagPruningKeepRecent   = "pruning-keep-recent"
 	FlagPruningInterval     = "pruning-interval"
+	FlagEventing            = "eventing"
 	FlagIndexEvents         = "index-events"
 	FlagMinRetainBlocks     = "min-retain-blocks"
 	FlagIAVLCacheSize       = "iavl-cache-size"
 	FlagDisableIAVLFastNode = "iavl-disable-fastnode"
 	FlagShutdownGrace       = "shutdown-grace"
+
+	FlagEnableUnsafeQuery = "enable-unsafe-query"
+	FlagEnablePlainStore  = "enable-plain-store"
 
 	// state sync-related flags
 	FlagStateSyncSnapshotInterval   = "state-sync.snapshot-interval"
@@ -980,6 +985,9 @@ func addStartNodeFlags(cmd *cobra.Command, opts StartCmdOptions) {
 	cmd.Flags().Uint64(FlagPruningInterval, 0, "Height interval at which pruned heights are removed from disk (ignored if pruning is not 'custom')")
 	cmd.Flags().Uint(FlagInvCheckPeriod, 0, "Assert registered invariants every N blocks")
 	cmd.Flags().Uint64(FlagMinRetainBlocks, 0, "Minimum block height offset during ABCI commit to prune CometBFT blocks")
+	cmd.Flags().String(FlagEventing, sdk.EventingOptionEverything, "Eventing strategy (everything|nothing)")
+	cmd.Flags().Bool(FlagEnableUnsafeQuery, false, "Define if unsafe query should be enabled (unsafe - use it at your own risk)")
+
 	cmd.Flags().Bool(FlagAPIEnable, false, "Define if the API server should be enabled")
 	cmd.Flags().Bool(FlagAPISwagger, false, "Define if swagger documentation should automatically be registered (Note: the API must also be enabled)")
 	cmd.Flags().String(FlagAPIAddress, serverconfig.DefaultAPIAddress, "the API server address to listen on")

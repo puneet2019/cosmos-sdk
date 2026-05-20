@@ -9,11 +9,11 @@ import (
 
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 )
@@ -114,31 +114,28 @@ func TestAddr(addr, bech string) (sdk.AccAddress, error) {
 	if err != nil {
 		return nil, err
 	}
-	bechexpected := res.String()
-	if bech != bechexpected {
+	expected := res.String()
+	if bech != expected {
 		return nil, fmt.Errorf("bech encoding doesn't match reference")
 	}
 
-	bechres, err := sdk.AccAddressFromBech32(bech)
+	hexres, err := sdk.AccAddressFromHexUnsafe(bech)
 	if err != nil {
 		return nil, err
 	}
-	if !bytes.Equal(bechres, res) {
+	if !bytes.Equal(hexres, res) {
 		return nil, err
 	}
 
 	return res, nil
 }
 
-// ConvertAddrsToValAddrs converts the provided addresses to ValAddress.
-func ConvertAddrsToValAddrs(addrs []sdk.AccAddress) []sdk.ValAddress {
-	valAddrs := make([]sdk.ValAddress, len(addrs))
+// CopyAddrs copies a slice of sdk.AccAddress.
+func CopyAddrs(addrs []sdk.AccAddress) []sdk.AccAddress {
+	newAddrs := make([]sdk.AccAddress, len(addrs))
+	copy(newAddrs, addrs)
 
-	for i, addr := range addrs {
-		valAddrs[i] = sdk.ValAddress(addr)
-	}
-
-	return valAddrs
+	return newAddrs
 }
 
 // CreateTestPubKeys returns a total of numPubKeys public keys in ascending order.

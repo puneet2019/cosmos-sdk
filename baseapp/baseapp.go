@@ -23,6 +23,7 @@ import (
 	storemetrics "cosmossdk.io/store/metrics"
 	"cosmossdk.io/store/snapshots"
 	storetypes "cosmossdk.io/store/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/baseapp/oe"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -30,7 +31,6 @@ import (
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/mempool"
 )
 
@@ -68,6 +68,7 @@ type BaseApp struct {
 	qms               storetypes.MultiStore       // Optional alternative multistore for querying only.
 	storeLoader       StoreLoader                 // function to handle store loading, may be overridden with SetStoreLoader()
 	grpcQueryRouter   *GRPCQueryRouter            // router for redirecting gRPC query calls
+	ethQueryRouter    *EthQueryRouter             // router for redirecting eth query calls
 	msgServiceRouter  *MsgServiceRouter           // router for redirecting Msg service messages
 	interfaceRegistry codectypes.InterfaceRegistry
 	txDecoder         sdk.TxDecoder // unmarshal []byte into sdk.Tx
@@ -153,7 +154,7 @@ type BaseApp struct {
 	// ResponseCommit.RetainHeight value during ABCI Commit. A value of 0 indicates
 	// that no blocks should be pruned.
 	//
-	// Note: CometBFT block pruning is dependant on this parameter in conjunction
+	// Note: CometBFT block pruning is dependent on this parameter in conjunction
 	// with the unbonding (safety threshold) period, state pruning and state sync
 	// snapshot parameters to determine the correct minimum value of
 	// ResponseCommit.RetainHeight.
@@ -194,6 +195,12 @@ type BaseApp struct {
 	//
 	// SAFETY: it's safe to do if validators validate the total gas wanted in the `ProcessProposal`, which is the case in the default handler.
 	disableBlockGasMeter bool
+
+	// enableUnsafeQuery defines whether the unsafe queries will be enabled or not
+	enableUnsafeQuery bool
+
+	// enablePlainStore defines whether uses plain db store type or not
+	enablePlainStore bool
 }
 
 // NewBaseApp returns a reference to an initialized BaseApp. It accepts a
@@ -209,6 +216,7 @@ func NewBaseApp(
 		cms:              store.NewCommitMultiStore(db, logger, storemetrics.NewNoOpMetrics()), // by default we use a no-op metric gather in store
 		storeLoader:      DefaultStoreLoader,
 		grpcQueryRouter:  NewGRPCQueryRouter(),
+		ethQueryRouter:   NewEthQueryRouter(),
 		msgServiceRouter: NewMsgServiceRouter(),
 		txDecoder:        txDecoder,
 		fauxMerkleMode:   false,
@@ -282,13 +290,21 @@ func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgService
 // GRPCQueryRouter returns the GRPCQueryRouter of a BaseApp.
 func (app *BaseApp) GRPCQueryRouter() *GRPCQueryRouter { return app.grpcQueryRouter }
 
+// EthQueryRouter returns the EthQueryRouter of a BaseApp.
+func (app *BaseApp) EthQueryRouter() *EthQueryRouter { return app.ethQueryRouter }
+
+// SetEthQueryRouter sets the EthQueryRouter of a BaseApp.
+func (app *BaseApp) SetEthQueryRouter(ethQueryRouter *EthQueryRouter) {
+	app.ethQueryRouter = ethQueryRouter
+}
+
 // MountStores mounts all IAVL or DB stores to the provided keys in the BaseApp
 // multistore.
 func (app *BaseApp) MountStores(keys ...storetypes.StoreKey) {
 	for _, key := range keys {
 		switch key.(type) {
 		case *storetypes.KVStoreKey:
-			if !app.fauxMerkleMode {
+			if app.IsIavlStore() {
 				app.MountStore(key, storetypes.StoreTypeIAVL)
 			} else {
 				// StoreTypeDB doesn't do anything upon commit, and it doesn't
@@ -312,7 +328,7 @@ func (app *BaseApp) MountStores(keys ...storetypes.StoreKey) {
 // BaseApp multistore.
 func (app *BaseApp) MountKVStores(keys map[string]*storetypes.KVStoreKey) {
 	for _, key := range keys {
-		if !app.fauxMerkleMode {
+		if app.IsIavlStore() {
 			app.MountStore(key, storetypes.StoreTypeIAVL)
 		} else {
 			// StoreTypeDB doesn't do anything upon commit, and it doesn't
@@ -473,8 +489,11 @@ func (app *BaseApp) Seal() { app.sealed = true }
 // IsSealed returns true if the BaseApp is sealed and false otherwise.
 func (app *BaseApp) IsSealed() bool { return app.sealed }
 
+// IsIavlStore returns whether IAVL store is used.
+func (app *BaseApp) IsIavlStore() bool { return !app.enablePlainStore && !app.fauxMerkleMode }
+
 // setState sets the BaseApp's state for the corresponding mode with a branched
-// multi-store (i.e. a CacheMultiStore) and a new Context with the same
+// multi-store (i.e., a CacheMultiStore) and a new Context with the same
 // multi-store branch, and provided header.
 func (app *BaseApp) setState(mode execMode, h cmtproto.Header) {
 	ms := app.cms.CacheMultiStore()
@@ -630,6 +649,23 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 	return nil
 }
 
+// validateRuntimeTxMsgs executes basic runtime validator calls for messages.
+func validateRuntimeTxMsgs(ctx sdk.Context, msgs []sdk.Msg) error {
+	if len(msgs) == 0 {
+		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "must contain at least one message")
+	}
+
+	for _, msg := range msgs {
+		if runtimeMsg, ok := msg.(sdk.MsgWithRuntimeValidation); ok {
+			if err := runtimeMsg.ValidateRuntime(ctx); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func (app *BaseApp) getState(mode execMode) *state {
 	switch mode {
 	case execModeFinalize:
@@ -644,6 +680,10 @@ func (app *BaseApp) getState(mode execMode) *state {
 	default:
 		return app.checkState
 	}
+}
+
+func (app *BaseApp) GetCheckState() *state {
+	return app.checkState
 }
 
 func (app *BaseApp) getBlockGasMeter(ctx sdk.Context) storetypes.GasMeter {
@@ -743,7 +783,7 @@ func (app *BaseApp) beginBlock(_ *abci.RequestFinalizeBlock) (sdk.BeginBlock, er
 		for i, event := range resp.Events {
 			resp.Events[i].Attributes = append(
 				event.Attributes,
-				abci.EventAttribute{Key: "mode", Value: "BeginBlock"},
+				abci.EventAttribute{Key: "mode", Value: `"BeginBlock"`},
 			)
 		}
 
@@ -764,6 +804,7 @@ func (app *BaseApp) deliverTx(tx []byte) *abci.ExecTxResult {
 		telemetry.IncrCounter(1, "tx", resultStr)
 		telemetry.SetGauge(float32(gInfo.GasUsed), "tx", "gas", "used")
 		telemetry.SetGauge(float32(gInfo.GasWanted), "tx", "gas", "wanted")
+		telemetry.SetGauge(float32(gInfo.GasWanted), "tx", "gas", "rwused")
 	}()
 
 	gInfo, result, anteEvents, err := app.runTx(execModeFinalize, tx)
@@ -805,7 +846,7 @@ func (app *BaseApp) endBlock(_ context.Context) (sdk.EndBlock, error) {
 		for i, event := range eb.Events {
 			eb.Events[i].Attributes = append(
 				event.Attributes,
-				abci.EventAttribute{Key: "mode", Value: "EndBlock"},
+				abci.EventAttribute{Key: "mode", Value: `"EndBlock"`},
 			)
 		}
 
@@ -831,6 +872,7 @@ func (app *BaseApp) runTx(mode execMode, txBytes []byte) (gInfo sdk.GasInfo, res
 
 	ctx := app.getContextForTx(mode, txBytes)
 	ms := ctx.MultiStore()
+	gInfo.MinGasPrice = app.minGasPrices.String()
 
 	// only run the tx if there is block gas remaining
 	if mode == execModeFinalize && ctx.BlockGasMeter().IsOutOfGas() {
@@ -844,14 +886,14 @@ func (app *BaseApp) runTx(mode execMode, txBytes []byte) (gInfo sdk.GasInfo, res
 			ctx.Logger().Error("panic recovered in runTx", "err", err)
 		}
 
-		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed()}
+		gInfo = sdk.GasInfo{GasWanted: gasWanted, GasUsed: ctx.GasMeter().GasConsumed(), MinGasPrice: gInfo.MinGasPrice, RwUsed: ctx.GasMeter().RwConsumed()}
 	}()
 
 	blockGasConsumed := false
 
 	// consumeBlockGas makes sure block gas is consumed at most once. It must
 	// happen after tx processing, and must be executed even if tx processing
-	// fails. Hence, it's execution is deferred.
+	// fails. Hence, its execution is deferred.
 	consumeBlockGas := func() {
 		if !blockGasConsumed {
 			blockGasConsumed = true
@@ -862,10 +904,10 @@ func (app *BaseApp) runTx(mode execMode, txBytes []byte) (gInfo sdk.GasInfo, res
 	}
 
 	// If BlockGasMeter() panics it will be caught by the above recover and will
-	// return an error - in any case BlockGasMeter will consume gas past the limit.
+	// return an error - in any case, BlockGasMeter will consume gas past the limit.
 	//
 	// NOTE: consumeBlockGas must exist in a separate defer function from the
-	// general deferred recovery function to recover from consumeBlockGas as it'll
+	// general deferred recovery function to recover from consumeBlockGas, as it'll
 	// be executed first (deferred statements are executed as stack).
 	if mode == execModeFinalize {
 		defer consumeBlockGas()
@@ -878,6 +920,9 @@ func (app *BaseApp) runTx(mode execMode, txBytes []byte) (gInfo sdk.GasInfo, res
 
 	msgs := tx.GetMsgs()
 	if err := validateBasicTxMsgs(msgs); err != nil {
+		return sdk.GasInfo{}, nil, nil, err
+	}
+	if err := validateRuntimeTxMsgs(ctx, msgs); err != nil {
 		return sdk.GasInfo{}, nil, nil, err
 	}
 
@@ -1056,7 +1101,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, msgsV2 []protov2.Me
 
 	}
 
-	data, err := makeABCIData(msgResponses)
+	rwUsedBz := sdk.Uint64ToBigEndian(ctx.GasMeter().RwConsumed())
+	data, err := makeABCIData(msgResponses, rwUsedBz)
 	if err != nil {
 		return nil, errorsmod.Wrap(err, "failed to marshal tx data")
 	}
@@ -1069,8 +1115,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, msgsV2 []protov2.Me
 }
 
 // makeABCIData generates the Data field to be sent to ABCI Check/DeliverTx.
-func makeABCIData(msgResponses []*codectypes.Any) ([]byte, error) {
-	return proto.Marshal(&sdk.TxMsgData{MsgResponses: msgResponses})
+func makeABCIData(msgResponses []*codectypes.Any, extraDate []byte) ([]byte, error) {
+	return proto.Marshal(&sdk.TxMsgData{MsgResponses: msgResponses, ExtraData: extraDate})
 }
 
 func createEvents(cdc codec.Codec, events sdk.Events, msg sdk.Msg, msgV2 protov2.Message) (sdk.Events, error) {
@@ -1083,10 +1129,7 @@ func createEvents(cdc codec.Codec, events sdk.Events, msg sdk.Msg, msgV2 protov2
 		return nil, err
 	}
 	if len(signers) > 0 && signers[0] != nil {
-		addrStr, err := cdc.InterfaceRegistry().SigningContext().AddressCodec().BytesToString(signers[0])
-		if err != nil {
-			return nil, err
-		}
+		addrStr := sdk.AccAddress(signers[0]).String()
 		msgEvent = msgEvent.AppendAttributes(sdk.NewAttribute(sdk.AttributeKeySender, addrStr))
 	}
 

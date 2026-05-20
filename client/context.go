@@ -17,6 +17,7 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // PreprocessTxFn defines a hook by which chains can preprocess transactions before broadcasting
@@ -27,6 +28,7 @@ type PreprocessTxFn func(chainID string, key keyring.KeyType, tx TxBuilder) erro
 type Context struct {
 	FromAddress       sdk.AccAddress
 	Client            CometRPC
+	EvmClient         *ethclient.Client
 	GRPCClient        *grpc.ClientConn
 	ChainID           string
 	Codec             codec.Codec
@@ -51,6 +53,7 @@ type Context struct {
 	TxConfig          TxConfig
 	AccountRetriever  AccountRetriever
 	NodeURI           string
+	EvmNodeURI        string
 	FeePayer          sdk.AccAddress
 	FeeGranter        sdk.AccAddress
 	Viper             *viper.Viper
@@ -59,6 +62,8 @@ type Context struct {
 
 	// IsAux is true when the signer is an auxiliary signer (e.g. the tipper).
 	IsAux bool
+
+	PrintEIP712MsgType bool
 
 	// TODO: Deprecated (remove).
 	LegacyAmino *codec.LegacyAmino
@@ -132,6 +137,12 @@ func (ctx Context) WithNodeURI(nodeURI string) Context {
 	return ctx
 }
 
+// WithEVMNodeURI returns a copy of the context with an updated node URI.
+func (ctx Context) WithEvmNodeURI(nodeURI string) Context {
+	ctx.EvmNodeURI = nodeURI
+	return ctx
+}
+
 // WithHeight returns a copy of the context with an updated height.
 func (ctx Context) WithHeight(height int64) Context {
 	ctx.Height = height
@@ -142,6 +153,13 @@ func (ctx Context) WithHeight(height int64) Context {
 // instance.
 func (ctx Context) WithClient(client CometRPC) Context {
 	ctx.Client = client
+	return ctx
+}
+
+// WithEvmClient returns a copy of the context with an updated RPC client
+// instance.
+func (ctx Context) WithEvmClient(client *ethclient.Client) Context {
+	ctx.EvmClient = client
 	return ctx
 }
 
@@ -278,6 +296,12 @@ func (ctx Context) WithAux(isAux bool) Context {
 	return ctx
 }
 
+// WithPrintEIP712MsgType returns a copy of the context with an updated PrintEIP712MsgType value.
+func (ctx Context) WithPrintEIP712MsgType(printEIP712MsgType bool) Context {
+	ctx.PrintEIP712MsgType = printEIP712MsgType
+	return ctx
+}
+
 // WithLedgerHasProto returns the context with the provided boolean value, indicating
 // whether the target Ledger application can support Protobuf payloads.
 func (ctx Context) WithLedgerHasProtobuf(val bool) Context {
@@ -376,11 +400,11 @@ func GetFromFields(clientCtx Context, kr keyring.Keyring, from string) (sdk.AccA
 		return nil, "", 0, nil
 	}
 
-	addr, err := sdk.AccAddressFromBech32(from)
+	addr, err := sdk.AccAddressFromHexUnsafe(from)
 	switch {
 	case clientCtx.Simulate:
 		if err != nil {
-			return nil, "", 0, fmt.Errorf("a valid bech32 address must be provided in simulation mode: %w", err)
+			return nil, "", 0, fmt.Errorf("a valid hex address must be provided in simulation mode: %w", err)
 		}
 
 		return addr, "", 0, nil

@@ -38,6 +38,8 @@ const (
 	SignModeTextual = "textual"
 	// SignModeEIP191 is the value of the --sign-mode flag for SIGN_MODE_EIP_191
 	SignModeEIP191 = "eip-191"
+	// SignModeEIP712 is the value of the --sign-mode flag for SIGN_MODE_EIP_712
+	SignModeEIP712 = "eip-712"
 )
 
 // List of CLI flags
@@ -47,6 +49,7 @@ const (
 	FlagUseLedger        = "ledger"
 	FlagChainID          = "chain-id"
 	FlagNode             = "node"
+	FlagEvmNode          = "evm-node"
 	FlagGRPC             = "grpc-addr"
 	FlagGRPCInsecure     = "grpc-insecure"
 	FlagHeight           = "height"
@@ -89,6 +92,8 @@ const (
 	FlagLogLevel   = "log_level"
 	FlagLogFormat  = "log_format"
 	FlagLogNoColor = "log_no_color"
+
+	FlagPrintEIP712MsgType = "print-eip712-msg-type"
 )
 
 // List of supported output formats
@@ -104,6 +109,7 @@ var LineBreak = &cobra.Command{Run: func(*cobra.Command, []string) {}}
 // AddQueryFlagsToCmd adds common flags to a module query command.
 func AddQueryFlagsToCmd(cmd *cobra.Command) {
 	cmd.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to CometBFT RPC interface for this chain")
+	cmd.Flags().String(FlagEvmNode, "http://localhost:8545", "<host>:<port> to EVM RPC interface for this chain")
 	cmd.Flags().String(FlagGRPC, "", "the gRPC endpoint to use for this chain")
 	cmd.Flags().Bool(FlagGRPCInsecure, false, "allow gRPC over insecure channels, if not the server must use TLS")
 	cmd.Flags().Int64(FlagHeight, 0, "Use a specific height to query state at (this can error if the node is pruning state)")
@@ -122,11 +128,14 @@ func AddTxFlagsToCmd(cmd *cobra.Command) {
 		f.String(FlagFrom, "", "Name or address of private key with which to sign")
 	}
 	f.Uint64P(FlagAccountNumber, "a", 0, "The account number of the signing account (offline mode only)")
-	f.Uint64P(FlagSequence, "s", 0, "The sequence number of the signing account (offline mode only)")
+	if cmd.Flag(FlagSequence) == nil { // avoid flag redefinition when it's already been added by AutoCLI
+		f.Uint64P(FlagSequence, "s", 0, "The sequence number of the signing account (offline mode only)")
+	}
 	f.String(FlagNote, "", "Note to add a description to the transaction (previously --memo)")
 	f.String(FlagFees, "", "Fees to pay along with transaction; eg: 10uatom")
 	f.String(FlagGasPrices, "", "Gas prices in decimal format to determine the transaction fee (e.g. 0.1uatom)")
 	f.String(FlagNode, "tcp://localhost:26657", "<host>:<port> to CometBFT rpc interface for this chain")
+	f.String(FlagEvmNode, "http://localhost:8545", "<host>:<port> to EVM RPC interface for this chain")
 	f.Bool(FlagUseLedger, false, "Use a connected Ledger device")
 	f.Float64(FlagGasAdjustment, DefaultGasAdjustment, "adjustment factor to be multiplied against the estimate returned by the tx simulation; if the gas limit is set manually this flag is ignored ")
 	f.StringP(FlagBroadcastMode, "b", BroadcastSync, "Transaction broadcasting mode (sync|async)")
@@ -144,6 +153,7 @@ func AddTxFlagsToCmd(cmd *cobra.Command) {
 	// --gas can accept integers and "auto"
 	f.String(FlagGas, "", fmt.Sprintf("gas limit to set per-transaction; set to %q to calculate sufficient gas automatically. Note: %q option doesn't always report accurate results. Set a valid coin value to adjust the result. Can be used instead of %q. (default %d)",
 		GasFlagAuto, GasFlagAuto, FlagFees, DefaultGasLimit))
+	f.Bool(FlagPrintEIP712MsgType, false, "ignore the --gas flag and perform a simulation of a transaction(but don't broadcast it) and print the EIP712 message type")
 
 	AddKeyringFlags(f)
 }

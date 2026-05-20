@@ -9,6 +9,7 @@ Flags:
   -b, --broadcast-mode string    Transaction broadcasting mode (sync|async) (default "sync")
       --chain-id string          The network chain ID
       --dry-run                  ignore the --gas flag and perform a simulation of a transaction, but don't broadcast it (when enabled, the local Keybase is not accessible)
+      --evm-node string          <host>:<port> to EVM RPC interface for this chain (default "http://localhost:8545")
       --fee-granter string       Fee granter grants fees for the transaction
       --fee-payer string         Fee payer pays fees for the transaction instead of deducting from the signer
       --fees string              Fees to pay along with transaction; eg: 10uatom
@@ -25,6 +26,7 @@ Flags:
       --note string              Note to add a description to the transaction (previously --memo)
       --offline                  Offline mode (does not allow any online functionality)
   -o, --output string            Output format (text|json) (default "json")
+      --print-eip712-msg-type    ignore the --gas flag and perform a simulation of a transaction(but don't broadcast it) and print the EIP712 message type
   -s, --sequence uint            The sequence number of the signing account (offline mode only)
       --sign-mode string         Choose sign mode (direct|amino-json|direct-aux|textual), this is an advanced feature
       --timeout-height uint      Set a block timeout height to prevent the tx from being committed past a certain height

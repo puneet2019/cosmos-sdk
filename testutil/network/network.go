@@ -3,6 +3,7 @@ package network
 import (
 	"bufio"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +18,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/0xPolygon/polygon-edge/bls"
+	"github.com/cometbft/cometbft/crypto/tmhash"
 	"github.com/cometbft/cometbft/node"
 	cmtclient "github.com/cometbft/cometbft/rpc/client"
 	dbm "github.com/cosmos/cosmos-db"
@@ -27,9 +30,9 @@ import (
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/log"
 	sdkmath "cosmossdk.io/math"
-	"cosmossdk.io/math/unsafe"
 	pruningtypes "cosmossdk.io/store/pruning/types"
 
+	"github.com/cometbft/cometbft/votepool"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
@@ -53,6 +56,7 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/x/auth"           // import auth as a blank
 	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config" // import auth tx config as a blank
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	_ "github.com/cosmos/cosmos-sdk/x/authz/module"
 	_ "github.com/cosmos/cosmos-sdk/x/bank" // import bank as a blank
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	_ "github.com/cosmos/cosmos-sdk/x/consensus" // import consensus as a blank
@@ -146,7 +150,7 @@ func DefaultConfig(factory TestFixtureFactory) Config {
 		AppConstructor:    fixture.AppConstructor,
 		GenesisState:      fixture.GenesisState,
 		TimeoutCommit:     2 * time.Second,
-		ChainID:           "chain-" + unsafe.Str(6),
+		ChainID:           testutil.DefaultChainId,
 		NumValidators:     4,
 		BondDenom:         sdk.DefaultBondDenom,
 		MinGasPrices:      fmt.Sprintf("0.000006%s", sdk.DefaultBondDenom),
@@ -155,8 +159,8 @@ func DefaultConfig(factory TestFixtureFactory) Config {
 		BondedTokens:      sdk.TokensFromConsensusPower(100, sdk.DefaultPowerReduction),
 		PruningStrategy:   pruningtypes.PruningOptionNothing,
 		CleanupDir:        true,
-		SigningAlgo:       string(hd.Secp256k1Type),
-		KeyringOptions:    []keyring.Option{},
+		SigningAlgo:       string(hd.EthSecp256k1Type),
+		KeyringOptions:    []keyring.Option{keyring.ETHAlgoOption()},
 		PrintMnemonic:     false,
 	}
 }
@@ -165,6 +169,7 @@ func DefaultConfig(factory TestFixtureFactory) Config {
 func MinimumAppConfig() depinject.Config {
 	return configurator.NewAppConfig(
 		configurator.AuthModule(),
+		configurator.AuthzModule(),
 		configurator.ParamsModule(),
 		configurator.BankModule(),
 		configurator.GenutilModule(),
@@ -270,7 +275,7 @@ type (
 		RPCAddress string
 		P2PAddress string
 		Address    sdk.AccAddress
-		ValAddress sdk.ValAddress
+		ValAddress sdk.AccAddress
 		RPCClient  cmtclient.Client
 
 		app      servertypes.Application
@@ -521,13 +526,22 @@ func New(l Logger, baseDir string, cfg Config) (*Network, error) {
 			return nil, err
 		}
 
+		blsSecretKey, err := bls.GenerateBlsKey()
+		if err != nil {
+			return nil, err
+		}
+		blsPubKey := hex.EncodeToString(blsSecretKey.PublicKey().Marshal())
+		blsProofBuf, _ := blsSecretKey.Sign(tmhash.Sum(blsSecretKey.PublicKey().Marshal()), votepool.DST)
+		blsProofBts, _ := blsProofBuf.Marshal()
+		blsProof := hex.EncodeToString(blsProofBts)
 		createValMsg, err := stakingtypes.NewMsgCreateValidator(
-			sdk.ValAddress(addr).String(),
+			addr.String(),
 			valPubKeys[i],
 			sdk.NewCoin(cfg.BondDenom, cfg.BondedTokens),
 			stakingtypes.NewDescription(nodeDirName, "", "", "", ""),
 			stakingtypes.NewCommissionRates(commission, sdkmath.LegacyOneDec(), sdkmath.LegacyOneDec()),
 			sdkmath.OneInt(),
+			addr, addr, addr, addr, blsPubKey, blsProof,
 		)
 		if err != nil {
 			return nil, err
@@ -598,7 +612,7 @@ func New(l Logger, baseDir string, cfg Config) (*Network, error) {
 			P2PAddress: cmtCfg.P2P.ListenAddress,
 			APIAddress: apiAddr,
 			Address:    addr,
-			ValAddress: sdk.ValAddress(addr),
+			ValAddress: addr,
 		}
 	}
 

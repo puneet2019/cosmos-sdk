@@ -48,6 +48,7 @@ func defaultConfig() *Config {
 			"evidence",
 			"staking",
 			"auth",
+			"authz",
 			"bank",
 			"gov",
 			"crisis",
@@ -66,6 +67,7 @@ func defaultConfig() *Config {
 			"gov",
 			"staking",
 			"auth",
+			"authz",
 			"bank",
 			"distribution",
 			"slashing",
@@ -84,6 +86,7 @@ func defaultConfig() *Config {
 		},
 		InitGenesisOrder: []string{
 			"auth",
+			"authz",
 			"bank",
 			"distribution",
 			"staking",

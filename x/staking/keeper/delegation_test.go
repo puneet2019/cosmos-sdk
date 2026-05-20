@@ -7,7 +7,6 @@ import (
 
 	"cosmossdk.io/math"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -15,9 +14,9 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-func createValAddrs(count int) ([]sdk.AccAddress, []sdk.ValAddress) {
+func createValAddrs(count int) ([]sdk.AccAddress, []sdk.AccAddress) {
 	addrs := simtestutil.CreateIncrementalAccounts(count)
-	valAddrs := simtestutil.ConvertAddrsToValAddrs(addrs)
+	valAddrs := simtestutil.CopyAddrs(addrs)
 
 	return addrs, valAddrs
 }
@@ -28,8 +27,6 @@ func (s *KeeperTestSuite) TestDelegation() {
 	require := s.Require()
 
 	addrDels, valAddrs := createValAddrs(3)
-
-	s.accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	// construct the validators
 	amts := []math.Int{math.NewInt(9), math.NewInt(8), math.NewInt(7)}
@@ -164,7 +161,6 @@ func (s *KeeperTestSuite) TestDelegationsByValIndex() {
 	for _, addr := range addrDels {
 		s.bankKeeper.EXPECT().DelegateCoinsFromAccountToModule(gomock.Any(), addr, gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
-	s.accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	// construct the validators
 	amts := []math.Int{math.NewInt(9), math.NewInt(8), math.NewInt(7)}
@@ -244,8 +240,6 @@ func (s *KeeperTestSuite) TestUnbondingDelegation() {
 
 	delAddrs, valAddrs := createValAddrs(2)
 
-	s.accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
-
 	ubd := stakingtypes.NewUnbondingDelegation(
 		delAddrs[0],
 		valAddrs[0],
@@ -253,7 +247,6 @@ func (s *KeeperTestSuite) TestUnbondingDelegation() {
 		time.Unix(0, 0).UTC(),
 		math.NewInt(5),
 		0,
-		address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"),
 	)
 
 	// set and retrieve a record
@@ -310,7 +303,6 @@ func (s *KeeperTestSuite) TestUnbondingDelegationsFromValidator() {
 		time.Unix(0, 0).UTC(),
 		math.NewInt(5),
 		0,
-		address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"),
 	)
 
 	// set and retrieve a record
@@ -485,7 +477,7 @@ func (s *KeeperTestSuite) TestUndelegateFromUnbondingValidator() {
 	ctx = ctx.WithBlockHeader(header)
 
 	// unbond the all self-delegation to put validator in unbonding state
-	val0AccAddr := sdk.AccAddress(addrVals[0])
+	val0AccAddr := addrVals[0]
 	s.bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stakingtypes.BondedPoolName, stakingtypes.NotBondedPoolName, gomock.Any())
 	_, amount, err := keeper.Undelegate(ctx, val0AccAddr, addrVals[0], math.LegacyNewDecFromInt(delTokens))
 	require.NoError(err)
@@ -540,7 +532,7 @@ func (s *KeeperTestSuite) TestUndelegateFromUnbondedValidator() {
 	validator = stakingkeeper.TestingUpdateValidator(keeper, ctx, validator, true)
 	require.True(validator.IsBonded())
 
-	val0AccAddr := sdk.AccAddress(addrVals[0])
+	val0AccAddr := addrVals[0]
 	selfDelegation := stakingtypes.NewDelegation(val0AccAddr.String(), addrVals[0].String(), issuedShares)
 	require.NoError(keeper.SetDelegation(ctx, selfDelegation))
 
@@ -676,7 +668,7 @@ func (s *KeeperTestSuite) TestGetRedelegationsFromSrcValidator() {
 
 	rd := stakingtypes.NewRedelegation(addrDels[0], addrVals[0], addrVals[1], 0,
 		time.Unix(0, 0), math.NewInt(5),
-		math.LegacyNewDec(5), 0, address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"))
+		math.LegacyNewDec(5), 0)
 
 	// set and retrieve a record
 	err := keeper.SetRedelegation(ctx, rd)
@@ -706,7 +698,7 @@ func (s *KeeperTestSuite) TestRedelegation() {
 
 	rd := stakingtypes.NewRedelegation(addrDels[0], addrVals[0], addrVals[1], 0,
 		time.Unix(0, 0).UTC(), math.NewInt(5),
-		math.LegacyNewDec(5), 0, address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"))
+		math.LegacyNewDec(5), 0)
 
 	// test shouldn't have and redelegations
 	has, err := keeper.HasReceivingRedelegation(ctx, addrDels[0], addrVals[1])
@@ -867,7 +859,7 @@ func (s *KeeperTestSuite) TestRedelegateSelfDelegation() {
 	s.bankKeeper.EXPECT().SendCoinsFromModuleToModule(gomock.Any(), stakingtypes.NotBondedPoolName, stakingtypes.BondedPoolName, gomock.Any())
 	validator = stakingkeeper.TestingUpdateValidator(keeper, ctx, validator, true)
 
-	val0AccAddr := sdk.AccAddress(addrVals[0])
+	val0AccAddr := addrVals[0]
 	selfDelegation := stakingtypes.NewDelegation(val0AccAddr.String(), addrVals[0].String(), issuedShares)
 	require.NoError(keeper.SetDelegation(ctx, selfDelegation))
 
@@ -1068,7 +1060,6 @@ func (s *KeeperTestSuite) TestUnbondingDelegationAddEntry() {
 		time.Unix(0, 0).UTC(),
 		math.NewInt(10),
 		0,
-		address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"),
 	)
 	var initialEntries []stakingtypes.UnbondingDelegationEntry
 	initialEntries = append(initialEntries, ubd.Entries...)
@@ -1110,7 +1101,6 @@ func (s *KeeperTestSuite) TestSetUnbondingDelegationEntry() {
 		time.Unix(0, 0).UTC(),
 		math.NewInt(5),
 		0,
-		address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"),
 	)
 
 	// set and retrieve a record

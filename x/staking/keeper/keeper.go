@@ -27,6 +27,7 @@ type Keeper struct {
 	storeService          storetypes.KVStoreService
 	cdc                   codec.BinaryCodec
 	authKeeper            types.AccountKeeper
+	authzKeeper           types.AuthzKeeper
 	bankKeeper            types.BankKeeper
 	hooks                 types.StakingHooks
 	authority             string
@@ -39,6 +40,7 @@ func NewKeeper(
 	cdc codec.BinaryCodec,
 	storeService storetypes.KVStoreService,
 	ak types.AccountKeeper,
+	azk types.AuthzKeeper,
 	bk types.BankKeeper,
 	authority string,
 	validatorAddressCodec addresscodec.Codec,
@@ -54,18 +56,15 @@ func NewKeeper(
 	}
 
 	// ensure that authority is a valid AccAddress
-	if _, err := ak.AddressCodec().StringToBytes(authority); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(authority); err != nil {
 		panic("authority is not a valid acc address")
-	}
-
-	if validatorAddressCodec == nil || consensusAddressCodec == nil {
-		panic("validator and/or consensus address codec are nil")
 	}
 
 	return &Keeper{
 		storeService:          storeService,
 		cdc:                   cdc,
 		authKeeper:            ak,
+		authzKeeper:           azk,
 		bankKeeper:            bk,
 		hooks:                 nil,
 		authority:             authority,
@@ -98,6 +97,16 @@ func (k *Keeper) SetHooks(sh types.StakingHooks) {
 	}
 
 	k.hooks = sh
+}
+
+// ValidatorAddressCodec returns the validator address codec.
+func (k Keeper) ValidatorAddressCodec() addresscodec.Codec {
+	return k.validatorAddressCodec
+}
+
+// ConsensusAddressCodec returns the consensus address codec.
+func (k Keeper) ConsensusAddressCodec() addresscodec.Codec {
+	return k.consensusAddressCodec
 }
 
 // GetLastTotalPower loads the last total validator power.
@@ -134,16 +143,6 @@ func (k Keeper) SetLastTotalPower(ctx context.Context, power math.Int) error {
 // GetAuthority returns the x/staking module's authority.
 func (k Keeper) GetAuthority() string {
 	return k.authority
-}
-
-// ValidatorAddressCodec returns the app validator address codec.
-func (k Keeper) ValidatorAddressCodec() addresscodec.Codec {
-	return k.validatorAddressCodec
-}
-
-// ConsensusAddressCodec returns the app consensus address codec.
-func (k Keeper) ConsensusAddressCodec() addresscodec.Codec {
-	return k.consensusAddressCodec
 }
 
 // SetValidatorUpdates sets the ABCI validator power updates for the current block.

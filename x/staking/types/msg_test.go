@@ -1,11 +1,15 @@
 package types_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"cosmossdk.io/math"
+	"github.com/0xPolygon/polygon-edge/bls"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	"github.com/cometbft/cometbft/votepool"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -34,9 +38,19 @@ func TestMsgDecode(t *testing.T) {
 	require.True(t, pk1.Equals(pkUnmarshaled.(*ed25519.PubKey)))
 
 	// now let's try to serialize the whole message
+	blsSecretKey, _ := bls.GenerateBlsKey()
+	blsPk := hex.EncodeToString(blsSecretKey.PublicKey().Marshal())
+	blsProofBuf, _ := blsSecretKey.Sign(tmhash.Sum(blsSecretKey.PublicKey().Marshal()), votepool.DST)
+	blsProofBts, _ := blsProofBuf.Marshal()
+	blsProof := hex.EncodeToString(blsProofBts)
 
 	commission1 := types.NewCommissionRates(math.LegacyZeroDec(), math.LegacyZeroDec(), math.LegacyZeroDec())
-	msg, err := types.NewMsgCreateValidator(valAddr1.String(), pk1, coinPos, types.Description{}, commission1, math.OneInt())
+	msg, err := types.NewMsgCreateValidator(
+		valAddr1.String(), pk1,
+		coinPos, types.Description{}, commission1, math.OneInt(),
+		valAddr1, valAddr1,
+		valAddr1, valAddr1, blsPk, blsProof,
+	)
 	require.NoError(t, err)
 	msgSerialized, err := cdc.MarshalInterface(msg)
 	require.NoError(t, err)

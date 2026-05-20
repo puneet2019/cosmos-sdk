@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
-	"cosmossdk.io/core/address"
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -18,8 +18,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/version"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/authz"
+	govcli "github.com/cosmos/cosmos-sdk/x/gov/client/cli"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
@@ -34,7 +38,7 @@ var (
 )
 
 // NewTxCmd returns a root CLI command handler for all x/staking transaction commands.
-func NewTxCmd(valAddrCodec, ac address.Codec) *cobra.Command {
+func NewTxCmd() *cobra.Command {
 	stakingTxCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Staking transaction subcommands",
@@ -44,45 +48,71 @@ func NewTxCmd(valAddrCodec, ac address.Codec) *cobra.Command {
 	}
 
 	stakingTxCmd.AddCommand(
-		NewCreateValidatorCmd(valAddrCodec),
-		NewEditValidatorCmd(valAddrCodec),
-		NewDelegateCmd(valAddrCodec, ac),
-		NewRedelegateCmd(valAddrCodec, ac),
-		NewUnbondCmd(valAddrCodec, ac),
-		NewCancelUnbondingDelegation(valAddrCodec, ac),
+		NewCreateValidatorCmd(),
+		NewEditValidatorCmd(),
+		NewDelegateCmd(),
+		NewRedelegateCmd(),
+		NewUnbondCmd(),
+		NewCancelUnbondingDelegation(),
 	)
 
 	return stakingTxCmd
 }
 
 // NewCreateValidatorCmd returns a CLI command handler for creating a MsgCreateValidator transaction.
-func NewCreateValidatorCmd(ac address.Codec) *cobra.Command {
+func NewCreateValidatorCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create-validator [path/to/validator.json]",
-		Short: "create new validator initialized with a self-delegation to it",
+		Use:   "create-validator [path/to/create_validator_proposal.json]",
+		Short: "submit a create new validator proposal",
 		Args:  cobra.ExactArgs(1),
-		Long:  `Create a new validator initialized with a self-delegation by submitting a JSON file with the new validator details.`,
+		Long:  `Submit a create new validator proposal by submitting a JSON file with the new validator details, once the proposal has been passed, create a new validator initialized with a self-delegation.`,
 		Example: strings.TrimSpace(
 			fmt.Sprintf(`
-$ %s tx staking create-validator path/to/validator.json --from keyname
+$ %s tx staking create-validator path/to/create_validator_proposal.json --from keyname
 
-Where validator.json contains:
+Where create_validator_proposal.json contains:
 
 {
-	"pubkey": {"@type":"/cosmos.crypto.ed25519.PubKey","key":"oWg2ISpLF405Jcm2vXV+2v4fnjodh6aafuIdeoW+rUw="},
-	"amount": "1000000stake",
-	"moniker": "myvalidator",
-	"identity": "optional identity signature (ex. UPort or Keybase)",
-	"website": "validator's (optional) website",
-	"security": "validator's (optional) security contact email",
-	"details": "validator's (optional) details",
-	"commission-rate": "0.1",
-	"commission-max-rate": "0.2",
-	"commission-max-change-rate": "0.01",
-	"min-self-delegation": "1"
+	"messages": [
+		{
+			"@type": "/cosmos.staking.v1beta1.MsgCreateValidator",
+			"description": {
+				"moniker": "${NODE_NAME}",
+				"identity": "",
+				"website": "",
+				"security_contact": "",
+				"details": ""
+			},
+			"commission": {
+				"rate": "0.070000000000000000",
+				"max_rate": "1.000000000000000000",
+				"max_change_rate": "0.010000000000000000"
+			},
+			"min_self_delegation": "1000000000000000000000",
+			"delegator_address": "${VALIDATOR_ADDR}",
+			"validator_address": "${VALIDATOR_ADDR}",
+			"pubkey": {
+				"@type": "/cosmos.crypto.ed25519.PubKey",
+				"key": "${VALIDATOR_NODE_PUB_KEY}"
+			},
+			"value": {
+				"denom": "amoca",
+				"amount": "1000000000000000000000"
+			},
+			"from": "0x7b5Fe22B5446f7C62Ea27B8BD71CeF94e03f3dF2",
+			"relayer_address": "${RELAYER_ADDR}",
+			"challenger_address": "${CHALLENGER_ADDR}",
+			"bls_key": "${VALIDATOR_BLS}",
+			"bls_proof": "${VALIDATOR_BLS_PROOF}"
+		}
+	],
+	"metadata": "",
+	"title": "Create ${NODE_NAME} Validator",
+	"summary": "create ${NODE_NAME} validator",
+	"deposit": "1000000000000000000amoca"
 }
 
-where we can get the pubkey using "%s tendermint show-validator"
+modify the related configrations as you need, where you can get the pubkey using "%s tendermint show-validator"
 `, version.AppName, version.AppName)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx, err := client.GetClientTxContext(cmd)
@@ -90,27 +120,52 @@ where we can get the pubkey using "%s tendermint show-validator"
 				return err
 			}
 
-			txf, err := tx.NewFactoryCLI(clientCtx, cmd.Flags())
+			proposal, msgs, deposit, err := govcli.ParseSubmitProposal(clientCtx.Codec, args[0])
 			if err != nil {
 				return err
 			}
 
-			validator, err := parseAndValidateValidatorJSON(clientCtx.Codec, args[0])
+			govMsg, err := v1.NewMsgSubmitProposal(msgs, deposit, clientCtx.GetFromAddress().String(), proposal.Metadata, proposal.Title, proposal.Summary, proposal.Expedited)
+			if err != nil {
+				return fmt.Errorf("invalid message: %w", err)
+			}
+
+			if len(msgs) != 1 {
+				return fmt.Errorf("invalid message length: %d", len(msgs))
+			}
+
+			valMsg, ok := msgs[0].(*types.MsgCreateValidator)
+			if !ok || valMsg.Validate() != nil {
+				return fmt.Errorf("invalid create validator message")
+			}
+
+			delAddr, err := sdk.AccAddressFromHexUnsafe(valMsg.DelegatorAddress)
+			if err != nil {
+				return err
+			}
+			if !delAddr.Equals(clientCtx.GetFromAddress()) {
+				return fmt.Errorf("the from address should be the self delegator address: %s", delAddr.String())
+			}
+
+			valAddr, err := sdk.AccAddressFromHexUnsafe(valMsg.ValidatorAddress)
 			if err != nil {
 				return err
 			}
 
-			txf, msg, err := newBuildCreateValidatorMsg(clientCtx, txf, cmd.Flags(), validator, ac)
+			grantee := authtypes.NewModuleAddress(govtypes.ModuleName)
+			authorization, err := types.NewStakeAuthorization([]sdk.AccAddress{valAddr}, nil, types.AuthorizationType_AUTHORIZATION_TYPE_DELEGATE, &valMsg.Value)
+			if err != nil {
+				return err
+			}
+			authzMsg, err := authz.NewMsgGrant(clientCtx.GetFromAddress(), grantee, authorization, nil)
 			if err != nil {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxWithFactory(clientCtx, txf, msg)
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), authzMsg, govMsg)
 		},
 	}
 
-	cmd.Flags().String(FlagIP, "", fmt.Sprintf("The node's public IP. It takes effect only when used in combination with --%s", flags.FlagGenerateOnly))
-	cmd.Flags().String(FlagNodeID, "", "The node's ID")
 	flags.AddTxFlagsToCmd(cmd)
 
 	_ = cmd.MarkFlagRequired(flags.FlagFrom)
@@ -119,7 +174,7 @@ where we can get the pubkey using "%s tendermint show-validator"
 }
 
 // NewEditValidatorCmd returns a CLI command handler for creating a MsgEditValidator transaction.
-func NewEditValidatorCmd(ac address.Codec) *cobra.Command {
+func NewEditValidatorCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit-validator",
 		Short: "edit an existing validator account",
@@ -160,12 +215,25 @@ func NewEditValidatorCmd(ac address.Codec) *cobra.Command {
 				newMinSelfDelegation = &msb
 			}
 
-			valAddr, err := ac.BytesToString(clientCtx.GetFromAddress())
+			valAddr := sdk.AccAddress(clientCtx.GetFromAddress()).String()
+
+			relayerAddr, err := cmd.Flags().GetString(FlagAddressRelayer)
 			if err != nil {
-				return err
+				return fmt.Errorf("invalid relayer address: %v", err)
 			}
 
-			msg := types.NewMsgEditValidator(valAddr, description, newRate, newMinSelfDelegation)
+			challengerAddr, err := cmd.Flags().GetString(FlagAddressChallenger)
+			if err != nil {
+				return fmt.Errorf("invalid challenger address: %v", err)
+			}
+
+			blsPk, _ := cmd.Flags().GetString(FlagBlsKey)
+			blsProof, _ := cmd.Flags().GetString(FlagBlsProof)
+
+			msg := types.NewMsgEditValidator(
+				valAddr, description, newRate, newMinSelfDelegation,
+				relayerAddr, challengerAddr, blsPk, blsProof,
+			)
 
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
@@ -174,13 +242,16 @@ func NewEditValidatorCmd(ac address.Codec) *cobra.Command {
 	cmd.Flags().AddFlagSet(flagSetDescriptionEdit())
 	cmd.Flags().AddFlagSet(flagSetCommissionUpdate())
 	cmd.Flags().AddFlagSet(FlagSetMinSelfDelegation())
+	cmd.Flags().AddFlagSet(FlagSetRelayerAddress())
+	cmd.Flags().AddFlagSet(FlagSetChallengerAddress())
+	cmd.Flags().AddFlagSet(FlagSetBlsKey())
 	flags.AddTxFlagsToCmd(cmd)
 
 	return cmd
 }
 
 // NewDelegateCmd returns a CLI command handler for creating a MsgDelegate transaction.
-func NewDelegateCmd(valAddrCodec, ac address.Codec) *cobra.Command {
+func NewDelegateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delegate [validator-addr] [amount]",
 		Args:  cobra.ExactArgs(2),
@@ -204,12 +275,9 @@ $ %s tx staking delegate cosmosvalopers1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 1
 				return err
 			}
 
-			delAddr, err := ac.BytesToString(clientCtx.GetFromAddress())
-			if err != nil {
-				return err
-			}
+			delAddr := sdk.AccAddress(clientCtx.GetFromAddress()).String()
 
-			_, err = valAddrCodec.StringToBytes(args[0])
+			_, err = sdk.AccAddressFromHexUnsafe(args[0])
 			if err != nil {
 				return err
 			}
@@ -226,7 +294,7 @@ $ %s tx staking delegate cosmosvalopers1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm 1
 }
 
 // NewRedelegateCmd returns a CLI command handler for creating a MsgBeginRedelegate transaction.
-func NewRedelegateCmd(valAddrCodec, ac address.Codec) *cobra.Command {
+func NewRedelegateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "redelegate [src-validator-addr] [dst-validator-addr] [amount]",
 		Short: "Redelegate illiquid tokens from one validator to another",
@@ -245,17 +313,14 @@ $ %s tx staking redelegate cosmosvalopers1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
 			if err != nil {
 				return err
 			}
-			delAddr, err := ac.BytesToString(clientCtx.GetFromAddress())
+			delAddr := sdk.AccAddress(clientCtx.GetFromAddress()).String()
+
+			_, err = sdk.AccAddressFromHexUnsafe(args[0])
 			if err != nil {
 				return err
 			}
 
-			_, err = valAddrCodec.StringToBytes(args[0])
-			if err != nil {
-				return err
-			}
-
-			_, err = valAddrCodec.StringToBytes(args[1])
+			_, err = sdk.AccAddressFromHexUnsafe(args[1])
 			if err != nil {
 				return err
 			}
@@ -277,7 +342,7 @@ $ %s tx staking redelegate cosmosvalopers1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
 }
 
 // NewUnbondCmd returns a CLI command handler for creating a MsgUndelegate transaction.
-func NewUnbondCmd(valAddrCodec, ac address.Codec) *cobra.Command {
+func NewUnbondCmd() *cobra.Command {
 	bech32PrefixValAddr := sdk.GetConfig().GetBech32ValidatorAddrPrefix()
 
 	cmd := &cobra.Command{
@@ -299,11 +364,8 @@ $ %s tx staking unbond %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 100stake --from
 				return err
 			}
 
-			delAddr, err := ac.BytesToString(clientCtx.GetFromAddress())
-			if err != nil {
-				return err
-			}
-			_, err = valAddrCodec.StringToBytes(args[0])
+			delAddr := sdk.AccAddress(clientCtx.GetFromAddress()).String()
+			_, err = sdk.AccAddressFromHexUnsafe(args[0])
 			if err != nil {
 				return err
 			}
@@ -325,7 +387,7 @@ $ %s tx staking unbond %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 100stake --from
 }
 
 // NewCancelUnbondingDelegation returns a CLI command handler for creating a MsgCancelUnbondingDelegation transaction.
-func NewCancelUnbondingDelegation(valAddrCodec, ac address.Codec) *cobra.Command {
+func NewCancelUnbondingDelegation() *cobra.Command {
 	bech32PrefixValAddr := sdk.GetConfig().GetBech32ValidatorAddrPrefix()
 
 	cmd := &cobra.Command{
@@ -348,12 +410,9 @@ $ %s tx staking cancel-unbond %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 100stake
 			if err != nil {
 				return err
 			}
-			delAddr, err := ac.BytesToString(clientCtx.GetFromAddress())
-			if err != nil {
-				return err
-			}
+			delAddr := sdk.AccAddress(clientCtx.GetFromAddress()).String()
 
-			_, err = valAddrCodec.StringToBytes(args[0])
+			_, err = sdk.AccAddressFromHexUnsafe(args[0])
 			if err != nil {
 				return err
 			}
@@ -377,45 +436,6 @@ $ %s tx staking cancel-unbond %s1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj 100stake
 	flags.AddTxFlagsToCmd(cmd)
 
 	return cmd
-}
-
-func newBuildCreateValidatorMsg(clientCtx client.Context, txf tx.Factory, fs *flag.FlagSet, val validator, valAc address.Codec) (tx.Factory, *types.MsgCreateValidator, error) {
-	valAddr := clientCtx.GetFromAddress()
-
-	description := types.NewDescription(
-		val.Moniker,
-		val.Identity,
-		val.Website,
-		val.Security,
-		val.Details,
-	)
-
-	valStr, err := valAc.BytesToString(sdk.ValAddress(valAddr))
-	if err != nil {
-		return txf, nil, err
-	}
-	msg, err := types.NewMsgCreateValidator(
-		valStr, val.PubKey, val.Amount, description, val.CommissionRates, val.MinSelfDelegation,
-	)
-	if err != nil {
-		return txf, nil, err
-	}
-	if err := msg.Validate(valAc); err != nil {
-		return txf, nil, err
-	}
-
-	genOnly, _ := fs.GetBool(flags.FlagGenerateOnly)
-	if genOnly {
-		ip, _ := fs.GetString(FlagIP)
-		p2pPort, _ := fs.GetUint(FlagP2PPort)
-		nodeID, _ := fs.GetString(FlagNodeID)
-
-		if nodeID != "" && ip != "" && p2pPort > 0 {
-			txf = txf.WithMemo(fmt.Sprintf("%s@%s:%d", nodeID, ip, p2pPort))
-		}
-	}
-
-	return txf, msg, nil
 }
 
 // Return the flagset, particular flags, and a description of defaults
@@ -468,6 +488,13 @@ type TxCreateValidatorConfig struct {
 	SecurityContact string
 	Details         string
 	Identity        string
+
+	Validator  sdk.AccAddress
+	Delegator  sdk.AccAddress
+	Relayer    sdk.AccAddress
+	Challenger sdk.AccAddress
+	BlsKey     string
+	BLSProof   string
 }
 
 func PrepareConfigForTxCreateValidator(flagSet *flag.FlagSet, moniker, nodeID, chainID string, valPubKey cryptotypes.PubKey) (TxCreateValidatorConfig, error) {
@@ -570,14 +597,15 @@ func PrepareConfigForTxCreateValidator(flagSet *flag.FlagSet, moniker, nodeID, c
 }
 
 // BuildCreateValidatorMsg makes a new MsgCreateValidator.
-func BuildCreateValidatorMsg(clientCtx client.Context, config TxCreateValidatorConfig, txBldr tx.Factory, generateOnly bool, valCodec address.Codec) (tx.Factory, sdk.Msg, error) {
+func BuildCreateValidatorMsg(clientCtx client.Context, config TxCreateValidatorConfig, txBldr tx.Factory, generateOnly bool) (tx.Factory, sdk.Msg, error) {
 	amounstStr := config.Amount
 	amount, err := sdk.ParseCoinNormalized(amounstStr)
 	if err != nil {
 		return txBldr, nil, err
 	}
 
-	valAddr := clientCtx.GetFromAddress()
+	from := clientCtx.GetFromAddress()
+
 	description := types.NewDescription(
 		config.Moniker,
 		config.Identity,
@@ -603,19 +631,12 @@ func BuildCreateValidatorMsg(clientCtx client.Context, config TxCreateValidatorC
 		return txBldr, nil, errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "minimum self delegation must be a positive integer")
 	}
 
-	valStr, err := valCodec.BytesToString(sdk.ValAddress(valAddr))
-	if err != nil {
-		return txBldr, nil, err
-	}
+	valStr := sdk.AccAddress(config.Validator).String()
 
 	msg, err := types.NewMsgCreateValidator(
-		valStr,
-		config.PubKey,
-		amount,
-		description,
-		commissionRates,
-		minSelfDelegation,
-	)
+		valStr, config.PubKey,
+		amount, description, commissionRates, minSelfDelegation,
+		from, config.Delegator, config.Relayer, config.Challenger, config.BlsKey, config.BLSProof)
 	if err != nil {
 		return txBldr, msg, err
 	}

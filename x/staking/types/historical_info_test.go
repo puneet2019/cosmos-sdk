@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/codec/legacy"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -31,7 +30,7 @@ func createValidators(t *testing.T) []types.Validator {
 func TestHistoricalInfo(t *testing.T) {
 	validators := createValidators(t)
 
-	vals := types.Validators{Validators: validators, ValidatorCodec: addresscodec.NewBech32Codec("cosmosvaloper")}
+	vals := types.Validators{Validators: validators}
 	hi := types.NewHistoricalInfo(header, vals, sdk.DefaultPowerReduction)
 	require.True(t, sort.IsSorted(vals), "Validators are not sorted")
 
@@ -55,12 +54,11 @@ func TestValidateBasic(t *testing.T) {
 	hi := types.HistoricalInfo{
 		Header: header,
 	}
-	ac := addresscodec.NewBech32Codec("cosmosvaloper")
-	err := types.ValidateBasic(hi, ac)
+	err := types.ValidateBasic(hi)
 	require.Error(t, err, "ValidateBasic passed on nil ValSet")
 
 	// Ensure validators are not sorted
-	for sort.IsSorted(types.Validators{Validators: validators, ValidatorCodec: ac}) {
+	for sort.IsSorted(types.Validators{Validators: validators}) {
 		rand.Shuffle(len(validators), func(i, j int) {
 			validators[i], validators[j] = validators[j], validators[i]
 		})
@@ -69,10 +67,10 @@ func TestValidateBasic(t *testing.T) {
 		Header: header,
 		Valset: validators,
 	}
-	err = types.ValidateBasic(hi, ac)
+	err = types.ValidateBasic(hi)
 	require.Error(t, err, "ValidateBasic passed on unsorted ValSet")
 
-	hi = types.NewHistoricalInfo(header, types.Validators{Validators: validators, ValidatorCodec: ac}, sdk.DefaultPowerReduction)
-	err = types.ValidateBasic(hi, ac)
+	hi = types.NewHistoricalInfo(header, types.Validators{Validators: validators}, sdk.DefaultPowerReduction)
+	err = types.ValidateBasic(hi)
 	require.NoError(t, err, "ValidateBasic failed on valid HistoricalInfo")
 }

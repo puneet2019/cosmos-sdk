@@ -21,7 +21,7 @@ var (
 )
 
 // ParseDelegationKey parses given key and returns delagator, validator address bytes
-func ParseDelegationKey(bz []byte) (sdk.AccAddress, sdk.ValAddress, error) {
+func ParseDelegationKey(bz []byte) (sdk.AccAddress, sdk.AccAddress, error) {
 	prefixLength := len(DelegationKey)
 	if prefix := bz[:prefixLength]; !bytes.Equal(prefix, DelegationKey) {
 		return nil, nil, fmt.Errorf("invalid prefix; expected: %X, got: %x", DelegationKey, prefix)
@@ -62,12 +62,12 @@ func GetHistoricalInfoKey(height int64) []byte {
 }
 
 // GetDelegationsByValPrefixKey builds a prefix key bytes with the given validator address bytes.
-func GetDelegationsByValPrefixKey(valAddr sdk.ValAddress) []byte {
+func GetDelegationsByValPrefixKey(valAddr sdk.AccAddress) []byte {
 	return append(DelegationByValIndexKey, address.MustLengthPrefix(valAddr)...)
 }
 
 // GetDelegationsByValKey creates the key for delegations by validator address
 // VALUE: staking/Delegation
-func GetDelegationsByValKey(valAddr sdk.ValAddress, delAddr sdk.AccAddress) []byte {
+func GetDelegationsByValKey(valAddr sdk.AccAddress, delAddr sdk.AccAddress) []byte {
 	return append(GetDelegationsByValPrefixKey(valAddr), delAddr...)
 }

@@ -12,7 +12,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
@@ -54,18 +53,16 @@ func (s *KeeperTestSuite) SetupTest() {
 	accountKeeper := stakingtestutil.NewMockAccountKeeper(ctrl)
 	accountKeeper.EXPECT().GetModuleAddress(stakingtypes.BondedPoolName).Return(bondedAcc.GetAddress())
 	accountKeeper.EXPECT().GetModuleAddress(stakingtypes.NotBondedPoolName).Return(notBondedAcc.GetAddress())
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
-
 	bankKeeper := stakingtestutil.NewMockBankKeeper(ctrl)
+	authzKeeper := stakingtestutil.NewMockAuthzKeeper(ctrl)
 
 	keeper := stakingkeeper.NewKeeper(
 		encCfg.Codec,
 		storeService,
 		accountKeeper,
+		authzKeeper,
 		bankKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-		address.NewBech32Codec("cosmosvaloper"),
-		address.NewBech32Codec("cosmosvalcons"),
 	)
 	require.NoError(keeper.SetParams(ctx, stakingtypes.DefaultParams()))
 

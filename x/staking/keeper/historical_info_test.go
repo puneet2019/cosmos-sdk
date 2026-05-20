@@ -5,6 +5,7 @@ import (
 
 	"cosmossdk.io/math"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/testutil"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
@@ -88,14 +89,14 @@ func (s *KeeperTestSuite) TestTrackHistoricalInfo() {
 	val1.Status = stakingtypes.Bonded // when not bonded, consensus power is Zero
 	val1.Tokens = keeper.TokensFromConsensusPower(ctx, 10)
 	require.NoError(keeper.SetValidator(ctx, val1))
-	valbz, err := keeper.ValidatorAddressCodec().StringToBytes(val1.GetOperator())
+	valbz, err := sdk.AccAddressFromHexUnsafe(val1.GetOperator())
 	require.NoError(err)
 	require.NoError(keeper.SetLastValidatorPower(ctx, valbz, 10))
 	val2 := testutil.NewValidator(s.T(), addrVals[3], PKs[3])
 	val1.Status = stakingtypes.Bonded
 	val2.Tokens = keeper.TokensFromConsensusPower(ctx, 80)
 	require.NoError(keeper.SetValidator(ctx, val2))
-	valbz, err = keeper.ValidatorAddressCodec().StringToBytes(val2.GetOperator())
+	valbz, err = sdk.AccAddressFromHexUnsafe(val2.GetOperator())
 	require.NoError(err)
 	require.NoError(keeper.SetLastValidatorPower(ctx, valbz, 80))
 

@@ -4,20 +4,18 @@ import (
 	context "context"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 )
 
-// TODO: Revisit this once we have propoer gas fee framework.
-// Tracking issues https://github.com/cosmos/cosmos-sdk/issues/9054, https://github.com/cosmos/cosmos-sdk/discussions/9072
-const gasCostPerIteration = uint64(10)
+const authListSizeLimitation = 41
 
 var _ authz.Authorization = &StakeAuthorization{}
 
 // NewStakeAuthorization creates a new StakeAuthorization object.
-func NewStakeAuthorization(allowed, denied []sdk.ValAddress, authzType AuthorizationType, amount *sdk.Coin) (*StakeAuthorization, error) {
+func NewStakeAuthorization(allowed, denied []sdk.AccAddress, authzType AuthorizationType, amount *sdk.Coin) (*StakeAuthorization, error) {
 	allowedValidators, deniedValidators, err := validateAllowAndDenyValidators(allowed, denied)
 	if err != nil {
 		return nil, err
@@ -68,6 +66,16 @@ func (a StakeAuthorization) ValidateBasic() error {
 	if a.AuthorizationType == AuthorizationType_AUTHORIZATION_TYPE_UNSPECIFIED {
 		return authz.ErrUnknownAuthorizationType
 	}
+	if allowList := a.GetAllowList().GetAddress(); allowList != nil {
+		if len(allowList) > authListSizeLimitation {
+			return errorsmod.Wrapf(authz.ErrTooManyValidators, "allow list number: %d, limit: %d", len(allowList), authListSizeLimitation)
+		}
+	}
+	if denyList := a.GetDenyList().GetAddress(); denyList != nil {
+		if len(denyList) > authListSizeLimitation {
+			return errorsmod.Wrapf(authz.ErrTooManyValidators, "deny list number: %d, limit: %d", len(denyList), authListSizeLimitation)
+		}
+	}
 
 	return nil
 }
@@ -99,12 +107,24 @@ func (a StakeAuthorization) Accept(ctx context.Context, msg sdk.Msg) (authz.Acce
 		return authz.AcceptResponse{}, sdkerrors.ErrInvalidRequest.Wrap("unknown msg type")
 	}
 
+	// Normalize validator address to ensure consistent format for comparison
+	valAddr, err := sdk.AccAddressFromHexUnsafe(validatorAddress)
+	if err != nil {
+		return authz.AcceptResponse{}, sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address in message: %s", err)
+	}
+	normalizedValidatorAddress := valAddr.String()
+
 	isValidatorExists := false
 	allowedList := a.GetAllowList().GetAddress()
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	for _, validator := range allowedList {
-		sdkCtx.GasMeter().ConsumeGas(gasCostPerIteration, "stake authorization")
-		if validator == validatorAddress {
+		// Normalize validator address from authorization to ensure consistent format
+		authValAddr, err := sdk.AccAddressFromHexUnsafe(validator)
+		if err != nil {
+			continue
+		}
+		normalizedAuthValidator := authValAddr.String()
+		// sdkCtx.GasMeter().ConsumeGas(gasCostPerIteration, "stake authorization")
+		if normalizedAuthValidator == normalizedValidatorAddress {
 			isValidatorExists = true
 			break
 		}
@@ -112,14 +132,20 @@ func (a StakeAuthorization) Accept(ctx context.Context, msg sdk.Msg) (authz.Acce
 
 	denyList := a.GetDenyList().GetAddress()
 	for _, validator := range denyList {
-		sdkCtx.GasMeter().ConsumeGas(gasCostPerIteration, "stake authorization")
-		if validator == validatorAddress {
-			return authz.AcceptResponse{}, sdkerrors.ErrUnauthorized.Wrapf("cannot delegate/undelegate to %s validator", validator)
+		// Normalize validator address from authorization to ensure consistent format
+		authValAddr, err := sdk.AccAddressFromHexUnsafe(validator)
+		if err != nil {
+			continue
+		}
+		normalizedAuthValidator := authValAddr.String()
+		// sdkCtx.GasMeter().ConsumeGas(gasCostPerIteration, "stake authorization")
+		if normalizedAuthValidator == normalizedValidatorAddress {
+			return authz.AcceptResponse{}, sdkerrors.ErrUnauthorized.Wrapf("cannot delegate/undelegate to %s validator", normalizedAuthValidator)
 		}
 	}
 
 	if len(allowedList) > 0 && !isValidatorExists {
-		return authz.AcceptResponse{}, sdkerrors.ErrUnauthorized.Wrapf("cannot delegate/undelegate to %s validator", validatorAddress)
+		return authz.AcceptResponse{}, sdkerrors.ErrUnauthorized.Wrapf("cannot delegate/undelegate to %s validator", normalizedValidatorAddress)
 	}
 
 	if a.MaxTokens == nil {
@@ -153,7 +179,7 @@ func (a StakeAuthorization) Accept(ctx context.Context, msg sdk.Msg) (authz.Acce
 	}, nil
 }
 
-func validateAllowAndDenyValidators(allowed, denied []sdk.ValAddress) ([]string, []string, error) {
+func validateAllowAndDenyValidators(allowed, denied []sdk.AccAddress) ([]string, []string, error) {
 	if len(allowed) == 0 && len(denied) == 0 {
 		return nil, nil, sdkerrors.ErrInvalidRequest.Wrap("both allowed & deny list cannot be empty")
 	}

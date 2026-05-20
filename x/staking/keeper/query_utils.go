@@ -27,7 +27,7 @@ func (k Keeper) GetDelegatorValidators(
 	for ; iterator.Valid() && i < int(maxRetrieve); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(k.cdc, iterator.Value())
 
-		valAddr, err := k.validatorAddressCodec.StringToBytes(delegation.GetValidatorAddr())
+		valAddr, err := sdk.AccAddressFromHexUnsafe(delegation.GetValidatorAddr())
 		if err != nil {
 			return types.Validators{}, err
 		}
@@ -41,19 +41,19 @@ func (k Keeper) GetDelegatorValidators(
 		i++
 	}
 
-	return types.Validators{Validators: validators[:i], ValidatorCodec: k.validatorAddressCodec}, nil // trim
+	return types.Validators{Validators: validators[:i]}, nil // trim
 }
 
 // GetDelegatorValidator returns a validator that a delegator is bonded to
 func (k Keeper) GetDelegatorValidator(
-	ctx context.Context, delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress,
+	ctx context.Context, delegatorAddr, validatorAddr sdk.AccAddress,
 ) (validator types.Validator, err error) {
 	delegation, err := k.GetDelegation(ctx, delegatorAddr, validatorAddr)
 	if err != nil {
 		return validator, err
 	}
 
-	valAddr, err := k.validatorAddressCodec.StringToBytes(delegation.GetValidatorAddr())
+	valAddr, err := sdk.AccAddressFromHexUnsafe(delegation.GetValidatorAddr())
 	if err != nil {
 		return validator, err
 	}
@@ -113,7 +113,7 @@ func (k Keeper) GetAllUnbondingDelegations(ctx context.Context, delegator sdk.Ac
 
 // GetAllRedelegations returns all redelegations of a delegator
 func (k Keeper) GetAllRedelegations(
-	ctx context.Context, delegator sdk.AccAddress, srcValAddress, dstValAddress sdk.ValAddress,
+	ctx context.Context, delegator, srcValAddress, dstValAddress sdk.AccAddress,
 ) ([]types.Redelegation, error) {
 	store := k.storeService.OpenKVStore(ctx)
 	delegatorPrefixKey := types.GetREDsKey(delegator)
@@ -131,19 +131,19 @@ func (k Keeper) GetAllRedelegations(
 
 	for ; iterator.Valid(); iterator.Next() {
 		redelegation := types.MustUnmarshalRED(k.cdc, iterator.Value())
-		valSrcAddr, err := k.validatorAddressCodec.StringToBytes(redelegation.ValidatorSrcAddress)
+		valSrcAddr, err := sdk.AccAddressFromHexUnsafe(redelegation.ValidatorSrcAddress)
 		if err != nil {
 			return nil, err
 		}
-		valDstAddr, err := k.validatorAddressCodec.StringToBytes(redelegation.ValidatorDstAddress)
+		valDstAddr, err := sdk.AccAddressFromHexUnsafe(redelegation.ValidatorDstAddress)
 		if err != nil {
 			return nil, err
 		}
-		if srcValFilter && !(srcValAddress.Equals(sdk.ValAddress(valSrcAddr))) {
+		if srcValFilter && !(srcValAddress.Equals(valSrcAddr)) {
 			continue
 		}
 
-		if dstValFilter && !(dstValAddress.Equals(sdk.ValAddress(valDstAddr))) {
+		if dstValFilter && !(dstValAddress.Equals(valDstAddr)) {
 			continue
 		}
 

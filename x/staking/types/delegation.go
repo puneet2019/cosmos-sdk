@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -110,21 +109,12 @@ func UnmarshalUBDE(cdc codec.BinaryCodec, value []byte) (ubd UnbondingDelegation
 
 // NewUnbondingDelegation - create a new unbonding delegation object
 func NewUnbondingDelegation(
-	delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress,
+	delegatorAddr, validatorAddr sdk.AccAddress,
 	creationHeight int64, minTime time.Time, balance math.Int, id uint64,
-	valAc, delAc address.Codec,
 ) UnbondingDelegation {
-	valAddr, err := valAc.BytesToString(validatorAddr)
-	if err != nil {
-		panic(err)
-	}
-	delAddr, err := delAc.BytesToString(delegatorAddr)
-	if err != nil {
-		panic(err)
-	}
 	return UnbondingDelegation{
-		DelegatorAddress: delAddr,
-		ValidatorAddress: valAddr,
+		DelegatorAddress: delegatorAddr.String(),
+		ValidatorAddress: validatorAddr.String(),
 		Entries: []UnbondingDelegationEntry{
 			NewUnbondingDelegationEntry(creationHeight, minTime, balance, id),
 		},
@@ -216,27 +206,13 @@ func (e RedelegationEntry) OnHold() bool {
 }
 
 func NewRedelegation(
-	delegatorAddr sdk.AccAddress, validatorSrcAddr, validatorDstAddr sdk.ValAddress,
+	delegatorAddr, validatorSrcAddr, validatorDstAddr sdk.AccAddress,
 	creationHeight int64, minTime time.Time, balance math.Int, sharesDst math.LegacyDec, id uint64,
-	valAc, delAc address.Codec,
 ) Redelegation {
-	valSrcAddr, err := valAc.BytesToString(validatorSrcAddr)
-	if err != nil {
-		panic(err)
-	}
-	valDstAddr, err := valAc.BytesToString(validatorDstAddr)
-	if err != nil {
-		panic(err)
-	}
-	delAddr, err := delAc.BytesToString(delegatorAddr)
-	if err != nil {
-		panic(err)
-	}
-
 	return Redelegation{
-		DelegatorAddress:    delAddr,
-		ValidatorSrcAddress: valSrcAddr,
-		ValidatorDstAddress: valDstAddr,
+		DelegatorAddress:    delegatorAddr.String(),
+		ValidatorSrcAddress: validatorSrcAddr.String(),
+		ValidatorDstAddress: validatorDstAddr.String(),
 		Entries: []RedelegationEntry{
 			NewRedelegationEntry(creationHeight, minTime, balance, sharesDst, id),
 		},

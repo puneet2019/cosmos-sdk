@@ -97,7 +97,7 @@ func (k Keeper) IterateLastValidators(ctx context.Context, fn func(index int64, 
 }
 
 // Validator gets the Validator interface for a particular address
-func (k Keeper) Validator(ctx context.Context, address sdk.ValAddress) (types.ValidatorI, error) {
+func (k Keeper) Validator(ctx context.Context, address sdk.AccAddress) (types.ValidatorI, error) {
 	return k.GetValidator(ctx, address)
 }
 
@@ -114,7 +114,7 @@ func (k Keeper) GetValidatorSet() types.ValidatorSet {
 }
 
 // Delegation gets the delegation interface for a particular set of delegator and validator addresses
-func (k Keeper) Delegation(ctx context.Context, addrDel sdk.AccAddress, addrVal sdk.ValAddress) (types.DelegationI, error) {
+func (k Keeper) Delegation(ctx context.Context, addrDel, addrVal sdk.AccAddress) (types.DelegationI, error) {
 	bond, err := k.GetDelegation(ctx, addrDel, addrVal)
 	if err != nil {
 		return nil, err

@@ -13,7 +13,7 @@ func (s *KeeperTestSuite) TestGRPCQueryValidator() {
 	ctx, keeper, queryClient := s.ctx, s.stakingKeeper, s.queryClient
 	require := s.Require()
 
-	validator := testutil.NewValidator(s.T(), sdk.ValAddress(PKs[0].Address().Bytes()), PKs[0])
+	validator := testutil.NewValidator(s.T(), sdk.AccAddress(PKs[0].Address().Bytes()), PKs[0])
 	require.NoError(keeper.SetValidator(ctx, validator))
 	var req *types.QueryValidatorRequest
 	testCases := []struct {
@@ -32,7 +32,7 @@ func (s *KeeperTestSuite) TestGRPCQueryValidator() {
 			"with valid and not existing address",
 			func() {
 				req = &types.QueryValidatorRequest{
-					ValidatorAddr: "cosmosvaloper15jkng8hytwt22lllv6mw4k89qkqehtahd84ptu",
+					ValidatorAddr: "0x871755eDC6FA6ffC92D4b78B540f01D63e84dcf5",
 				}
 			},
 			false,

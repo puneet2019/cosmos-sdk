@@ -72,7 +72,7 @@ func (k Querier) Validator(ctx context.Context, req *types.QueryValidatorRequest
 		return nil, status.Error(codes.InvalidArgument, "validator address cannot be empty")
 	}
 
-	valAddr, err := k.validatorAddressCodec.StringToBytes(req.ValidatorAddr)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (k Querier) ValidatorDelegations(ctx context.Context, req *types.QueryValid
 		return nil, status.Error(codes.InvalidArgument, "validator address cannot be empty")
 	}
 
-	valAddr, err := k.validatorAddressCodec.StringToBytes(req.ValidatorAddr)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (k Querier) getValidatorDelegationsLegacy(ctx context.Context, req *types.Q
 
 	valStore := prefix.NewStore(store, types.DelegationKey)
 	return query.GenericFilteredPaginate(k.cdc, valStore, req.Pagination, func(key []byte, delegation *types.Delegation) (*types.Delegation, error) {
-		_, err := k.validatorAddressCodec.StringToBytes(req.ValidatorAddr)
+		_, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddr)
 		if err != nil {
 			return nil, err
 		}
@@ -174,7 +174,7 @@ func (k Querier) ValidatorUnbondingDelegations(ctx context.Context, req *types.Q
 	}
 	var ubds types.UnbondingDelegations
 
-	valAddr, err := k.validatorAddressCodec.StringToBytes(req.ValidatorAddr)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -216,12 +216,12 @@ func (k Querier) Delegation(ctx context.Context, req *types.QueryDelegationReque
 		return nil, status.Error(codes.InvalidArgument, "validator address cannot be empty")
 	}
 
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddr)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	valAddr, err := k.validatorAddressCodec.StringToBytes(req.ValidatorAddr)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -255,12 +255,12 @@ func (k Querier) UnbondingDelegation(ctx context.Context, req *types.QueryUnbond
 		return nil, status.Errorf(codes.InvalidArgument, "validator address cannot be empty")
 	}
 
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddr)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	valAddr, err := k.validatorAddressCodec.StringToBytes(req.ValidatorAddr)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ func (k Querier) DelegatorDelegations(ctx context.Context, req *types.QueryDeleg
 	}
 	var delegations types.Delegations
 
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddr)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -327,12 +327,12 @@ func (k Querier) DelegatorValidator(ctx context.Context, req *types.QueryDelegat
 		return nil, status.Error(codes.InvalidArgument, "validator address cannot be empty")
 	}
 
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddr)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	valAddr, err := k.validatorAddressCodec.StringToBytes(req.ValidatorAddr)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +356,7 @@ func (k Querier) DelegatorUnbondingDelegations(ctx context.Context, req *types.Q
 	}
 	var unbondingDelegations types.UnbondingDelegations
 
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddr)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +440,7 @@ func (k Querier) DelegatorValidators(ctx context.Context, req *types.QueryDelega
 	var validators types.Validators
 
 	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddr)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -452,7 +452,7 @@ func (k Querier) DelegatorValidators(ctx context.Context, req *types.QueryDelega
 			return err
 		}
 
-		valAddr, err := k.validatorAddressCodec.StringToBytes(delegation.GetValidatorAddr())
+		valAddr, err := sdk.AccAddressFromHexUnsafe(delegation.GetValidatorAddr())
 		if err != nil {
 			return err
 		}
@@ -499,17 +499,17 @@ func (k Querier) Params(ctx context.Context, _ *types.QueryParamsRequest) (*type
 }
 
 func queryRedelegation(ctx context.Context, k Querier, req *types.QueryRedelegationsRequest) (redels types.Redelegations, err error) {
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddr)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	srcValAddr, err := k.validatorAddressCodec.StringToBytes(req.SrcValidatorAddr)
+	srcValAddr, err := sdk.AccAddressFromHexUnsafe(req.SrcValidatorAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	dstValAddr, err := k.validatorAddressCodec.StringToBytes(req.DstValidatorAddr)
+	dstValAddr, err := sdk.AccAddressFromHexUnsafe(req.DstValidatorAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +527,7 @@ func queryRedelegation(ctx context.Context, k Querier, req *types.QueryRedelegat
 }
 
 func queryRedelegationsFromSrcValidator(store storetypes.KVStore, k Querier, req *types.QueryRedelegationsRequest) (redels types.Redelegations, res *query.PageResponse, err error) {
-	valAddr, err := k.validatorAddressCodec.StringToBytes(req.SrcValidatorAddr)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(req.SrcValidatorAddr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -549,7 +549,7 @@ func queryRedelegationsFromSrcValidator(store storetypes.KVStore, k Querier, req
 }
 
 func queryAllRedelegations(store storetypes.KVStore, k Querier, req *types.QueryRedelegationsRequest) (redels types.Redelegations, res *query.PageResponse, err error) {
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddr)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -570,7 +570,7 @@ func queryAllRedelegations(store storetypes.KVStore, k Querier, req *types.Query
 // util
 
 func delegationToDelegationResponse(ctx context.Context, k *Keeper, del types.Delegation) (types.DelegationResponse, error) {
-	valAddr, err := k.validatorAddressCodec.StringToBytes(del.GetValidatorAddr())
+	valAddr, err := sdk.AccAddressFromHexUnsafe(del.GetValidatorAddr())
 	if err != nil {
 		return types.DelegationResponse{}, err
 	}
@@ -580,7 +580,7 @@ func delegationToDelegationResponse(ctx context.Context, k *Keeper, del types.De
 		return types.DelegationResponse{}, err
 	}
 
-	_, err = k.authKeeper.AddressCodec().StringToBytes(del.DelegatorAddress)
+	_, err = sdk.AccAddressFromHexUnsafe(del.DelegatorAddress)
 	if err != nil {
 		return types.DelegationResponse{}, err
 	}
@@ -617,16 +617,16 @@ func redelegationsToRedelegationResponses(ctx context.Context, k *Keeper, redels
 	resp := make(types.RedelegationResponses, len(redels))
 
 	for i, redel := range redels {
-		_, err := k.validatorAddressCodec.StringToBytes(redel.ValidatorSrcAddress)
+		_, err := sdk.AccAddressFromHexUnsafe(redel.ValidatorSrcAddress)
 		if err != nil {
 			return nil, err
 		}
-		valDstAddr, err := k.validatorAddressCodec.StringToBytes(redel.ValidatorDstAddress)
+		valDstAddr, err := sdk.AccAddressFromHexUnsafe(redel.ValidatorDstAddress)
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = k.authKeeper.AddressCodec().StringToBytes(redel.DelegatorAddress)
+		_, err = sdk.AccAddressFromHexUnsafe(redel.DelegatorAddress)
 		if err != nil {
 			return nil, err
 		}

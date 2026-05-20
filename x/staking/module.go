@@ -12,6 +12,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	modulev1 "cosmossdk.io/api/cosmos/staking/module/v1"
+	addresscodec "cosmossdk.io/core/address"
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/depinject"
@@ -19,7 +20,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -94,7 +94,7 @@ func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *g
 
 // GetTxCmd returns the root tx command for the staking module.
 func (amb AppModuleBasic) GetTxCmd() *cobra.Command {
-	return cli.NewTxCmd(amb.cdc.InterfaceRegistry().SigningContext().ValidatorAddressCodec(), amb.cdc.InterfaceRegistry().SigningContext().AddressCodec())
+	return cli.NewTxCmd()
 }
 
 // AppModule implements an application module for the staking module.
@@ -199,12 +199,13 @@ type ModuleInputs struct {
 	depinject.In
 
 	Config                *modulev1.Module
-	ValidatorAddressCodec runtime.ValidatorAddressCodec
-	ConsensusAddressCodec runtime.ConsensusAddressCodec
 	AccountKeeper         types.AccountKeeper
+	AuthzKeeper           types.AuthzKeeper
 	BankKeeper            types.BankKeeper
 	Cdc                   codec.Codec
 	StoreService          store.KVStoreService
+	ValidatorAddressCodec addresscodec.Codec
+	ConsensusAddressCodec addresscodec.Codec
 
 	// LegacySubspace is used solely for migration of x/params managed parameters
 	LegacySubspace exported.Subspace `optional:"true"`
@@ -222,13 +223,14 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 	// default to governance authority if not provided
 	authority := authtypes.NewModuleAddress(govtypes.ModuleName)
 	if in.Config.Authority != "" {
-		authority = authtypes.NewModuleAddressOrBech32Address(in.Config.Authority)
+		authority = authtypes.NewModuleAddressOrHexAddress(in.Config.Authority)
 	}
 
 	k := keeper.NewKeeper(
 		in.Cdc,
 		in.StoreService,
 		in.AccountKeeper,
+		in.AuthzKeeper,
 		in.BankKeeper,
 		authority.String(),
 		in.ValidatorAddressCodec,

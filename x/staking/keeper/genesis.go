@@ -52,9 +52,21 @@ func (k Keeper) InitGenesis(ctx context.Context, data *types.GenesisState) (res 
 			panic(err)
 		}
 
+		if err := k.SetValidatorByRelayerAddress(ctx, validator); err != nil {
+			panic(err)
+		}
+
+		if err := k.SetValidatorByChallengerAddress(ctx, validator); err != nil {
+			panic(err)
+		}
+
+		if err := k.SetValidatorByBlsKey(ctx, validator); err != nil {
+			panic(err)
+		}
+
 		// Call the creation hook if not exported
 		if !data.Exported {
-			valbz, err := k.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+			valbz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 			if err != nil {
 				panic(err)
 			}
@@ -83,12 +95,12 @@ func (k Keeper) InitGenesis(ctx context.Context, data *types.GenesisState) (res 
 	}
 
 	for _, delegation := range data.Delegations {
-		delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(delegation.DelegatorAddress)
+		delegatorAddress, err := sdk.AccAddressFromHexUnsafe(delegation.DelegatorAddress)
 		if err != nil {
 			panic(fmt.Errorf("invalid delegator address: %s", err))
 		}
 
-		valAddr, err := k.validatorAddressCodec.StringToBytes(delegation.GetValidatorAddr())
+		valAddr, err := sdk.AccAddressFromHexUnsafe(delegation.GetValidatorAddr())
 		if err != nil {
 			panic(err)
 		}
@@ -177,7 +189,7 @@ func (k Keeper) InitGenesis(ctx context.Context, data *types.GenesisState) (res 
 	// don't need to run CometBFT updates if we exported
 	if data.Exported {
 		for _, lv := range data.LastValidatorPowers {
-			valAddr, err := k.validatorAddressCodec.StringToBytes(lv.Address)
+			valAddr, err := sdk.AccAddressFromHexUnsafe(lv.Address)
 			if err != nil {
 				panic(err)
 			}
@@ -234,12 +246,8 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 
 	var lastValidatorPowers []types.LastValidatorPower
 
-	err = k.IterateLastValidatorPowers(ctx, func(addr sdk.ValAddress, power int64) (stop bool) {
-		addrStr, err := k.validatorAddressCodec.BytesToString(addr)
-		if err != nil {
-			panic(err)
-		}
-		lastValidatorPowers = append(lastValidatorPowers, types.LastValidatorPower{Address: addrStr, Power: power})
+	err = k.IterateLastValidatorPowers(ctx, func(addr sdk.AccAddress, power int64) (stop bool) {
+		lastValidatorPowers = append(lastValidatorPowers, types.LastValidatorPower{Address: addr.String(), Power: power})
 		return false
 	})
 	if err != nil {

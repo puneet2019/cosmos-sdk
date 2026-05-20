@@ -48,4 +48,13 @@ var (
 	ErrInvalidSigner                   = errors.Register(ModuleName, 43, "expected authority account as only signer for proposal message")
 	ErrBadRedelegationSrc              = errors.Register(ModuleName, 44, "redelegation source validator not found")
 	ErrNoUnbondingType                 = errors.Register(ModuleName, 45, "unbonding type not found")
+
+	ErrValidatorRelayerAddressExists    = errors.Register(ModuleName, 46, "validator already exist for this relayer address; must use new relayer address")
+	ErrValidatorChallengerAddressExists = errors.Register(ModuleName, 47, "validator already exist for this challenger address; must use new relayer address")
+	ErrValidatorInvalidBlsKey           = errors.Register(ModuleName, 48, "validator bls pubkey is invalid")
+	ErrValidatorBlsKeyExists            = errors.Register(ModuleName, 49, "validator already exist for this bls pubkey; must use new bls pubkey")
+	ErrDelegationNotAllowed             = errors.Register(ModuleName, 50, "delegation is not allowed")
+	ErrRedelegationNotAllowed           = errors.Register(ModuleName, 51, "redelegation is not allowed")
+	ErrInvalidMinSelfDelegation         = errors.Register(ModuleName, 52, "invalid minimum self delegation, must no less than the chain level minimum self delegation")
+	ErrValidatorInvalidBlsProof         = errors.Register(ModuleName, 53, "validator bls proof is invalid")
 )

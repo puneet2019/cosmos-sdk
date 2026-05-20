@@ -9,7 +9,6 @@ import (
 
 	"cosmossdk.io/math"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/kv"
@@ -21,7 +20,7 @@ import (
 var (
 	delPk1   = ed25519.GenPrivKey().PubKey()
 	delAddr1 = sdk.AccAddress(delPk1.Address())
-	valAddr1 = sdk.ValAddress(delPk1.Address())
+	valAddr1 = sdk.AccAddress(delPk1.Address())
 )
 
 func TestDecodeStore(t *testing.T) {
@@ -29,11 +28,11 @@ func TestDecodeStore(t *testing.T) {
 	dec := simulation.NewDecodeStore(cdc)
 	bondTime := time.Now().UTC()
 
-	val, err := types.NewValidator(valAddr1.String(), delPk1, types.NewDescription("test", "test", "test", "test", "test"))
+	val, err := types.NewSimpleValidator(valAddr1.String(), delPk1, types.NewDescription("test", "test", "test", "test", "test"))
 	require.NoError(t, err)
 	del := types.NewDelegation(delAddr1.String(), valAddr1.String(), math.LegacyOneDec())
-	ubd := types.NewUnbondingDelegation(delAddr1, valAddr1, 15, bondTime, math.OneInt(), 1, address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"))
-	red := types.NewRedelegation(delAddr1, valAddr1, valAddr1, 12, bondTime, math.OneInt(), math.LegacyOneDec(), 0, address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"))
+	ubd := types.NewUnbondingDelegation(delAddr1, valAddr1, 15, bondTime, math.OneInt(), 1)
+	red := types.NewRedelegation(delAddr1, valAddr1, valAddr1, 12, bondTime, math.OneInt(), math.LegacyOneDec(), 0)
 
 	kvPairs := kv.Pairs{
 		Pairs: []kv.Pair{

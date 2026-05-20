@@ -20,7 +20,7 @@ import (
 )
 
 // GetValidator gets a single validator
-func (k Keeper) GetValidator(ctx context.Context, addr sdk.ValAddress) (validator types.Validator, err error) {
+func (k Keeper) GetValidator(ctx context.Context, addr sdk.AccAddress) (validator types.Validator, err error) {
 	store := k.storeService.OpenKVStore(ctx)
 	value, err := store.Get(types.GetValidatorKey(addr))
 	if err != nil {
@@ -34,7 +34,7 @@ func (k Keeper) GetValidator(ctx context.Context, addr sdk.ValAddress) (validato
 	return types.UnmarshalValidator(k.cdc, value)
 }
 
-func (k Keeper) mustGetValidator(ctx context.Context, addr sdk.ValAddress) types.Validator {
+func (k Keeper) mustGetValidator(ctx context.Context, addr sdk.AccAddress) types.Validator {
 	validator, err := k.GetValidator(ctx, addr)
 	if err != nil {
 		panic(fmt.Sprintf("validator record not found for address: %X\n", addr))
@@ -47,6 +47,51 @@ func (k Keeper) mustGetValidator(ctx context.Context, addr sdk.ValAddress) types
 func (k Keeper) GetValidatorByConsAddr(ctx context.Context, consAddr sdk.ConsAddress) (validator types.Validator, err error) {
 	store := k.storeService.OpenKVStore(ctx)
 	opAddr, err := store.Get(types.GetValidatorByConsAddrKey(consAddr))
+	if err != nil {
+		return validator, err
+	}
+
+	if opAddr == nil {
+		return validator, types.ErrNoValidatorFound
+	}
+
+	return k.GetValidator(ctx, opAddr)
+}
+
+// get a single validator by relayer address
+func (k Keeper) GetValidatorByRelayerAddr(ctx context.Context, relayerAddr sdk.AccAddress) (validator types.Validator, err error) {
+	store := k.storeService.OpenKVStore(ctx)
+	opAddr, err := store.Get(types.GetValidatorByRelayerAddrKey(relayerAddr))
+	if err != nil {
+		return validator, err
+	}
+
+	if opAddr == nil {
+		return validator, types.ErrNoValidatorFound
+	}
+
+	return k.GetValidator(ctx, opAddr)
+}
+
+// get a single validator by bls pubkey
+func (k Keeper) GetValidatorByBlsKey(ctx context.Context, blsPk []byte) (validator types.Validator, err error) {
+	store := k.storeService.OpenKVStore(ctx)
+	opAddr, err := store.Get(types.GetValidatorByBlsKey(blsPk))
+	if err != nil {
+		return validator, err
+	}
+
+	if opAddr == nil {
+		return validator, types.ErrNoValidatorFound
+	}
+
+	return k.GetValidator(ctx, opAddr)
+}
+
+// GetValidatorByChallengerAddr gets a single validator by challenger address
+func (k Keeper) GetValidatorByChallengerAddr(ctx context.Context, challengerAddr sdk.AccAddress) (validator types.Validator, err error) {
+	store := k.storeService.OpenKVStore(ctx)
+	opAddr, err := store.Get(types.GetValidatorByChallengerAddrKey(challengerAddr))
 	if err != nil {
 		return validator, err
 	}
@@ -71,11 +116,81 @@ func (k Keeper) mustGetValidatorByConsAddr(ctx context.Context, consAddr sdk.Con
 func (k Keeper) SetValidator(ctx context.Context, validator types.Validator) error {
 	store := k.storeService.OpenKVStore(ctx)
 	bz := types.MustMarshalValidator(k.cdc, &validator)
-	str, err := k.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return err
 	}
 	return store.Set(types.GetValidatorKey(str), bz)
+}
+
+// validator index
+func (k Keeper) SetValidatorByRelayerAddress(ctx context.Context, validator types.Validator) error {
+	relayer := validator.GetRelayer()
+	store := k.storeService.OpenKVStore(ctx)
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
+	if err != nil {
+		return err
+	}
+	addr, err := sdk.AccAddressFromHexUnsafe(relayer)
+	if err != nil && err != sdk.ErrEmptyHexAddress {
+		return err
+	}
+	return store.Set(types.GetValidatorByRelayerAddrKey(addr), str)
+}
+
+// validator index
+func (k Keeper) DeleteValidatorByRelayerAddress(ctx context.Context, validator types.Validator) error {
+	relayer := validator.GetRelayer()
+	store := k.storeService.OpenKVStore(ctx)
+	addr, err := sdk.AccAddressFromHexUnsafe(relayer)
+	if err != nil {
+		return err
+	}
+	return store.Delete(types.GetValidatorByRelayerAddrKey(addr))
+}
+
+// validator index
+func (k Keeper) SetValidatorByChallengerAddress(ctx context.Context, validator types.Validator) error {
+	challenger := validator.GetChallenger()
+	store := k.storeService.OpenKVStore(ctx)
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
+	if err != nil {
+		return err
+	}
+	addr, err := sdk.AccAddressFromHexUnsafe(challenger)
+	if err != nil && err != sdk.ErrEmptyHexAddress {
+		return err
+	}
+	return store.Set(types.GetValidatorByChallengerAddrKey(addr), str)
+}
+
+// validator index
+func (k Keeper) DeleteValidatorByChallengerAddress(ctx context.Context, validator types.Validator) error {
+	challenger := validator.GetChallenger()
+	store := k.storeService.OpenKVStore(ctx)
+	addr, err := sdk.AccAddressFromHexUnsafe(challenger)
+	if err != nil {
+		return err
+	}
+	return store.Delete(types.GetValidatorByChallengerAddrKey(addr))
+}
+
+// validator index
+func (k Keeper) SetValidatorByBlsKey(ctx context.Context, validator types.Validator) error {
+	blsPk := validator.GetBlsKey()
+	store := k.storeService.OpenKVStore(ctx)
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
+	if err != nil {
+		return err
+	}
+	return store.Set(types.GetValidatorByBlsKey(blsPk), str)
+}
+
+// validator index
+func (k Keeper) DeleteValidatorByBlsKey(ctx context.Context, validator types.Validator) error {
+	blsPk := validator.GetBlsKey()
+	store := k.storeService.OpenKVStore(ctx)
+	return store.Delete(types.GetValidatorByBlsKey(blsPk))
 }
 
 // SetValidatorByConsAddr sets a validator by conesensus address
@@ -86,7 +201,7 @@ func (k Keeper) SetValidatorByConsAddr(ctx context.Context, validator types.Vali
 	}
 	store := k.storeService.OpenKVStore(ctx)
 
-	bz, err := k.validatorAddressCodec.StringToBytes(validator.GetOperator())
+	bz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return err
 	}
@@ -102,27 +217,27 @@ func (k Keeper) SetValidatorByPowerIndex(ctx context.Context, validator types.Va
 	}
 
 	store := k.storeService.OpenKVStore(ctx)
-	str, err := k.validatorAddressCodec.StringToBytes(validator.GetOperator())
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return err
 	}
-	return store.Set(types.GetValidatorsByPowerIndexKey(validator, k.PowerReduction(ctx), k.validatorAddressCodec), str)
+	return store.Set(types.GetValidatorsByPowerIndexKey(validator, k.PowerReduction(ctx)), str)
 }
 
 // DeleteValidatorByPowerIndex deletes a record by power index
 func (k Keeper) DeleteValidatorByPowerIndex(ctx context.Context, validator types.Validator) error {
 	store := k.storeService.OpenKVStore(ctx)
-	return store.Delete(types.GetValidatorsByPowerIndexKey(validator, k.PowerReduction(ctx), k.validatorAddressCodec))
+	return store.Delete(types.GetValidatorsByPowerIndexKey(validator, k.PowerReduction(ctx)))
 }
 
 // SetNewValidatorByPowerIndex adds new entry by power index
 func (k Keeper) SetNewValidatorByPowerIndex(ctx context.Context, validator types.Validator) error {
 	store := k.storeService.OpenKVStore(ctx)
-	str, err := k.validatorAddressCodec.StringToBytes(validator.GetOperator())
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return err
 	}
-	return store.Set(types.GetValidatorsByPowerIndexKey(validator, k.PowerReduction(ctx), k.validatorAddressCodec), str)
+	return store.Set(types.GetValidatorsByPowerIndexKey(validator, k.PowerReduction(ctx)), str)
 }
 
 // AddValidatorTokensAndShares updates the tokens of an existing validator, updates the validators power index key
@@ -212,7 +327,7 @@ func (k Keeper) UpdateValidatorCommission(ctx context.Context,
 
 // RemoveValidator removes the validator record and associated indexes
 // except for the bonded validator index which is only handled in ApplyAndReturnTendermintUpdates
-func (k Keeper) RemoveValidator(ctx context.Context, address sdk.ValAddress) error {
+func (k Keeper) RemoveValidator(ctx context.Context, address sdk.AccAddress) error {
 	// first retrieve the old validator record
 	validator, err := k.GetValidator(ctx, address)
 	if errors.Is(err, types.ErrNoValidatorFound) {
@@ -242,11 +357,31 @@ func (k Keeper) RemoveValidator(ctx context.Context, address sdk.ValAddress) err
 		return err
 	}
 
-	if err = store.Delete(types.GetValidatorsByPowerIndexKey(validator, k.PowerReduction(ctx), k.validatorAddressCodec)); err != nil {
+	relayerAddr, err := sdk.AccAddressFromHexUnsafe(validator.GetRelayer())
+	if err != nil {
+		return err
+	}
+	if err = store.Delete(types.GetValidatorByRelayerAddrKey(relayerAddr)); err != nil {
 		return err
 	}
 
-	str, err := k.validatorAddressCodec.StringToBytes(validator.GetOperator())
+	challengerAddr, err := sdk.AccAddressFromHexUnsafe(validator.GetChallenger())
+	if err != nil {
+		return err
+	}
+	if err = store.Delete(types.GetValidatorByChallengerAddrKey(challengerAddr)); err != nil {
+		return err
+	}
+
+	if err = store.Delete(types.GetValidatorByBlsKey(validator.BlsKey)); err != nil {
+		return err
+	}
+
+	if err = store.Delete(types.GetValidatorsByPowerIndexKey(validator, k.PowerReduction(ctx))); err != nil {
+		return err
+	}
+
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return err
 	}
@@ -342,7 +477,7 @@ func (k Keeper) ValidatorsPowerStoreIterator(ctx context.Context) (corestore.Ite
 
 // GetLastValidatorPower loads the last validator power.
 // Returns zero if the operator was not a validator last block.
-func (k Keeper) GetLastValidatorPower(ctx context.Context, operator sdk.ValAddress) (power int64, err error) {
+func (k Keeper) GetLastValidatorPower(ctx context.Context, operator sdk.AccAddress) (power int64, err error) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := store.Get(types.GetLastValidatorPowerKey(operator))
 	if err != nil {
@@ -363,7 +498,7 @@ func (k Keeper) GetLastValidatorPower(ctx context.Context, operator sdk.ValAddre
 }
 
 // SetLastValidatorPower sets the last validator power.
-func (k Keeper) SetLastValidatorPower(ctx context.Context, operator sdk.ValAddress, power int64) error {
+func (k Keeper) SetLastValidatorPower(ctx context.Context, operator sdk.AccAddress, power int64) error {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := k.cdc.Marshal(&gogotypes.Int64Value{Value: power})
 	if err != nil {
@@ -373,9 +508,21 @@ func (k Keeper) SetLastValidatorPower(ctx context.Context, operator sdk.ValAddre
 }
 
 // DeleteLastValidatorPower deletes the last validator power.
-func (k Keeper) DeleteLastValidatorPower(ctx context.Context, operator sdk.ValAddress) error {
+func (k Keeper) DeleteLastValidatorPower(ctx context.Context, operator sdk.AccAddress) error {
 	store := k.storeService.OpenKVStore(ctx)
 	return store.Delete(types.GetLastValidatorPowerKey(operator))
+}
+
+// Set the last validator cross-chain bytes.
+func (k Keeper) SetLastValidatorCrossChainBytes(ctx context.Context, operator sdk.AccAddress, crossChainBytes []byte) error {
+	store := k.storeService.OpenKVStore(ctx)
+	return store.Set(types.GetLastValidatorCrossChainKey(operator), crossChainBytes)
+}
+
+// Delete the last validator cross-chain bytes.
+func (k Keeper) DeleteLastValidatorCrossChainBytes(ctx context.Context, operator sdk.AccAddress) error {
+	store := k.storeService.OpenKVStore(ctx)
+	return store.Delete(types.GetLastValidatorCrossChainKey(operator))
 }
 
 // lastValidatorsIterator returns an iterator for the consensus validators in the last block
@@ -384,15 +531,21 @@ func (k Keeper) LastValidatorsIterator(ctx context.Context) (corestore.Iterator,
 	return store.Iterator(types.LastValidatorPowerKey, storetypes.PrefixEndBytes(types.LastValidatorPowerKey))
 }
 
+// returns an iterator for the consensus validators in the last block by cross-chain key
+func (k Keeper) LastValidatorsCrossChainBytesIterator(ctx context.Context) (corestore.Iterator, error) {
+	store := k.storeService.OpenKVStore(ctx)
+	return store.Iterator(types.LastValidatorCrossChainKey, storetypes.PrefixEndBytes(types.LastValidatorCrossChainKey))
+}
+
 // IterateLastValidatorPowers iterates over last validator powers.
-func (k Keeper) IterateLastValidatorPowers(ctx context.Context, handler func(operator sdk.ValAddress, power int64) (stop bool)) error {
+func (k Keeper) IterateLastValidatorPowers(ctx context.Context, handler func(operator sdk.AccAddress, power int64) (stop bool)) error {
 	iter, err := k.LastValidatorsIterator(ctx)
 	if err != nil {
 		return err
 	}
 
 	for ; iter.Valid(); iter.Next() {
-		addr := sdk.ValAddress(types.AddressFromLastValidatorPowerKey(iter.Key()))
+		addr := sdk.AccAddress(types.AddressFromLastValidatorPowerKey(iter.Key()))
 		intV := &gogotypes.Int64Value{}
 
 		if err = k.cdc.Unmarshal(iter.Value(), intV); err != nil {
@@ -506,13 +659,13 @@ func (k Keeper) DeleteValidatorQueue(ctx context.Context, val types.Validator) e
 
 	// since address string may change due to Bech32 prefix change, we parse the addresses into bytes
 	// format for normalization
-	deletingAddr, err := k.validatorAddressCodec.StringToBytes(val.OperatorAddress)
+	deletingAddr, err := sdk.AccAddressFromHexUnsafe(val.OperatorAddress)
 	if err != nil {
 		return err
 	}
 
 	for _, addr := range addrs {
-		storedAddr, err := k.validatorAddressCodec.StringToBytes(addr)
+		storedAddr, err := sdk.AccAddressFromHexUnsafe(addr)
 		if err != nil {
 			// even if we don't error here, it will error in UnbondAllMatureValidators at unbond time
 			return err
@@ -571,7 +724,7 @@ func (k Keeper) UnbondAllMatureValidators(ctx context.Context) error {
 			}
 
 			for _, valAddr := range addrs.Addresses {
-				addr, err := k.validatorAddressCodec.StringToBytes(valAddr)
+				addr, err := sdk.AccAddressFromHexUnsafe(valAddr)
 				if err != nil {
 					return err
 				}
@@ -597,7 +750,7 @@ func (k Keeper) UnbondAllMatureValidators(ctx context.Context) error {
 					}
 
 					if val.GetDelegatorShares().IsZero() {
-						str, err := k.validatorAddressCodec.StringToBytes(val.GetOperator())
+						str, err := sdk.AccAddressFromHexUnsafe(val.GetOperator())
 						if err != nil {
 							return err
 						}

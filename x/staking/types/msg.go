@@ -1,14 +1,13 @@
 package types
 
 import (
-	"cosmossdk.io/core/address"
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/math"
 
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 var (
@@ -27,6 +26,7 @@ var (
 func NewMsgCreateValidator(
 	valAddr string, pubKey cryptotypes.PubKey,
 	selfDelegation sdk.Coin, description Description, commission CommissionRates, minSelfDelegation math.Int,
+	from, selfDelAddr, relayerAddr, challengerAddr sdk.AccAddress, blsKey, blsProof string,
 ) (*MsgCreateValidator, error) {
 	var pkAny *codectypes.Any
 	if pubKey != nil {
@@ -38,17 +38,32 @@ func NewMsgCreateValidator(
 	return &MsgCreateValidator{
 		Description:       description,
 		ValidatorAddress:  valAddr,
+		DelegatorAddress:  selfDelAddr.String(),
 		Pubkey:            pkAny,
 		Value:             selfDelegation,
 		Commission:        commission,
 		MinSelfDelegation: minSelfDelegation,
+		From:              from.String(),
+		RelayerAddress:    relayerAddr.String(),
+		ChallengerAddress: challengerAddr.String(),
+		BlsKey:            blsKey,
+		BlsProof:          blsProof,
 	}, nil
 }
 
+// GetSigners implements the sdk.Msg interface. It returns the address(es) that
+// must sign over msg.GetSignBytes().
+// If the validator address is not same as delegator's, then the validator must
+// sign the msg as well.
+func (msg MsgCreateValidator) GetSigners() []sdk.AccAddress {
+	from, _ := sdk.AccAddressFromHexUnsafe(msg.From)
+	return []sdk.AccAddress{from}
+}
+
 // Validate validates the MsgCreateValidator sdk msg.
-func (msg MsgCreateValidator) Validate(ac address.Codec) error {
+func (msg MsgCreateValidator) Validate() error {
 	// note that unmarshaling from bech32 ensures both non-empty and valid
-	_, err := ac.StringToBytes(msg.ValidatorAddress)
+	_, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddress)
 	if err != nil {
 		return sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)
 	}
@@ -59,6 +74,22 @@ func (msg MsgCreateValidator) Validate(ac address.Codec) error {
 
 	if !msg.Value.IsValid() || !msg.Value.Amount.IsPositive() {
 		return errorsmod.Wrap(sdkerrors.ErrInvalidRequest, "invalid delegation amount")
+	}
+
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.RelayerAddress); err != nil {
+		return sdkerrors.ErrInvalidAddress.Wrapf("invalid relayer address: %s", err)
+	}
+
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.ChallengerAddress); err != nil {
+		return sdkerrors.ErrInvalidAddress.Wrapf("invalid challenger address: %s", err)
+	}
+
+	if len(msg.BlsKey) != 2*sdk.BLSPubKeyLength {
+		return ErrValidatorInvalidBlsKey
+	}
+
+	if len(msg.BlsProof) != 2*sdk.BLSSignatureLength {
+		return ErrValidatorInvalidBlsProof.Wrapf("proof length is invalid %d", len(msg.BlsProof))
 	}
 
 	if msg.Description == (Description{}) {
@@ -94,12 +125,19 @@ func (msg MsgCreateValidator) UnpackInterfaces(unpacker codectypes.AnyUnpacker) 
 }
 
 // NewMsgEditValidator creates a new MsgEditValidator instance
-func NewMsgEditValidator(valAddr string, description Description, newRate *math.LegacyDec, newMinSelfDelegation *math.Int) *MsgEditValidator {
+func NewMsgEditValidator(
+	valAddr string, description Description, newRate *math.LegacyDec, newMinSelfDelegation *math.Int,
+	newRelayerAddr, newChallengerAddr string, newBlsKey, newBlsProof string,
+) *MsgEditValidator {
 	return &MsgEditValidator{
 		Description:       description,
 		CommissionRate:    newRate,
 		ValidatorAddress:  valAddr,
 		MinSelfDelegation: newMinSelfDelegation,
+		RelayerAddress:    newRelayerAddr,
+		ChallengerAddress: newChallengerAddr,
+		BlsKey:            newBlsKey,
+		BlsProof:          newBlsProof,
 	}
 }
 

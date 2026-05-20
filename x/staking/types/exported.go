@@ -24,6 +24,10 @@ type ValidatorI interface {
 	IsUnbonded() bool                                               // check if has status unbonded
 	IsUnbonding() bool                                              // check if has status unbonding
 	GetOperator() string                                            // operator address to receive/return validators coins
+	GetSelfDelegator() string                                       // validator address used for self delegation
+	GetRelayer() string                                             // validator authorized relayer/operator address
+	GetChallenger() string                                          // validator authorized challenger/operator address
+	GetBlsKey() []byte                                              // validator authorized relayer/challenger's bls pubkey
 	ConsPubKey() (cryptotypes.PubKey, error)                        // validation consensus pubkey (cryptotypes.PubKey)
 	TmConsPublicKey() (cmtprotocrypto.PublicKey, error)             // validation consensus pubkey (CometBFT)
 	GetConsAddr() ([]byte, error)                                   // validation consensus address

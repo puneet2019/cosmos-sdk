@@ -11,7 +11,6 @@ import (
 
 	"cosmossdk.io/math"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/codec/legacy"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
@@ -253,11 +252,11 @@ func TestValidatorsSortDeterminism(t *testing.T) {
 	// Create random validator slice
 	for i := range vals {
 		pk := ed25519.GenPrivKey().PubKey()
-		vals[i] = newValidator(t, sdk.ValAddress(pk.Address()), pk)
+		vals[i] = newValidator(t, sdk.AccAddress(pk.Address()), pk)
 	}
 
 	// Save sorted copy
-	sort.Sort(types.Validators{Validators: vals, ValidatorCodec: address.NewBech32Codec("cosmosvaloper")})
+	sort.Sort(types.Validators{Validators: vals})
 	copy(sortedVals, vals)
 
 	// Randomly shuffle validators, sort, and check it is equal to original sort
@@ -266,7 +265,7 @@ func TestValidatorsSortDeterminism(t *testing.T) {
 			vals[i], vals[j] = vals[j], vals[i]
 		})
 
-		types.Validators{Validators: vals, ValidatorCodec: address.NewBech32Codec("cosmosvaloper")}.Sort()
+		types.Validators{Validators: vals}.Sort()
 		require.Equal(t, sortedVals, vals, "Validator sort returned different slices")
 	}
 }
@@ -278,7 +277,7 @@ func TestValidatorsSortCometBFT(t *testing.T) {
 	for i := range vals {
 		pk := ed25519.GenPrivKey().PubKey()
 		pk2 := ed25519.GenPrivKey().PubKey()
-		vals[i] = newValidator(t, sdk.ValAddress(pk2.Address()), pk)
+		vals[i] = newValidator(t, sdk.AccAddress(pk2.Address()), pk)
 		vals[i].Status = types.Bonded
 		vals[i].Tokens = math.NewInt(rand.Int63())
 	}
@@ -287,7 +286,7 @@ func TestValidatorsSortCometBFT(t *testing.T) {
 		vals[i].Tokens = math.NewInt(1000000)
 	}
 
-	valz := types.Validators{Validators: vals, ValidatorCodec: address.NewBech32Codec("cosmosvaloper")}
+	valz := types.Validators{Validators: vals}
 
 	// create expected CometBFT validators by converting to CometBFT then sorting
 	expectedVals, err := testutil.ToCmtValidators(valz, sdk.DefaultPowerReduction)
@@ -310,7 +309,7 @@ func TestValidatorToCmt(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		pk := ed25519.GenPrivKey().PubKey()
-		val := newValidator(t, sdk.ValAddress(pk.Address()), pk)
+		val := newValidator(t, sdk.AccAddress(pk.Address()), pk)
 		val.Status = types.Bonded
 		val.Tokens = math.NewInt(rand.Int63())
 		vals.Validators = append(vals.Validators, val)
@@ -345,9 +344,9 @@ func mkValidator(tokens int64, shares math.LegacyDec) types.Validator {
 }
 
 // Creates a new validators and asserts the error check.
-func newValidator(t *testing.T, operator sdk.ValAddress, pubKey cryptotypes.PubKey) types.Validator {
+func newValidator(t *testing.T, operator sdk.AccAddress, pubKey cryptotypes.PubKey) types.Validator {
 	t.Helper()
-	v, err := types.NewValidator(operator.String(), pubKey, types.Description{})
+	v, err := types.NewSimpleValidator(operator.String(), pubKey, types.Description{})
 	require.NoError(t, err)
 	return v
 }

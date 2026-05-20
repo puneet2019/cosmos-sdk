@@ -9,8 +9,7 @@ import (
 
 	storetypes "cosmossdk.io/store/types"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
-	sdktestuil "github.com/cosmos/cosmos-sdk/testutil"
+	sdktestutil "github.com/cosmos/cosmos-sdk/testutil"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	v1 "github.com/cosmos/cosmos-sdk/x/staking/migrations/v1"
@@ -22,14 +21,14 @@ import (
 func TestStoreMigration(t *testing.T) {
 	stakingKey := storetypes.NewKVStoreKey("staking")
 	tStakingKey := storetypes.NewTransientStoreKey("transient_test")
-	ctx := sdktestuil.DefaultContext(stakingKey, tStakingKey)
+	ctx := sdktestutil.DefaultContext(stakingKey, tStakingKey)
 	store := ctx.KVStore(stakingKey)
 
 	_, pk1, addr1 := testdata.KeyTestPubAddr()
-	valAddr1 := sdk.ValAddress(addr1)
+	valAddr1 := addr1
 	val := testutil.NewValidator(t, valAddr1, pk1)
 	_, _, addr2 := testdata.KeyTestPubAddr()
-	valAddr2 := sdk.ValAddress(addr2)
+	valAddr2 := addr2
 	_, _, addr3 := testdata.KeyTestPubAddr()
 	consAddr := sdk.ConsAddress(addr3.String())
 	_, _, addr4 := testdata.KeyTestPubAddr()
@@ -65,7 +64,7 @@ func TestStoreMigration(t *testing.T) {
 		{
 			"ValidatorsByPowerIndexKey",
 			v1.GetValidatorsByPowerIndexKey(val),
-			types.GetValidatorsByPowerIndexKey(val, sdk.DefaultPowerReduction, address.NewBech32Codec("cosmosvaloper")),
+			types.GetValidatorsByPowerIndexKey(val, sdk.DefaultPowerReduction),
 		},
 		{
 			"DelegationKey",

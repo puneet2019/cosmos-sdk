@@ -12,7 +12,7 @@ func (s *KeeperTestSuite) TestRevocation() {
 	ctx, keeper := s.ctx, s.stakingKeeper
 	require := s.Require()
 
-	valAddr := sdk.ValAddress(PKs[0].Address().Bytes())
+	valAddr := sdk.AccAddress(PKs[0].Address().Bytes())
 	consAddr := sdk.ConsAddress(PKs[0].Address())
 	validator := testutil.NewValidator(s.T(), valAddr, PKs[0])
 
@@ -42,7 +42,7 @@ func (s *KeeperTestSuite) TestSlashAtFutureHeight() {
 	require := s.Require()
 
 	consAddr := sdk.ConsAddress(PKs[0].Address())
-	validator := testutil.NewValidator(s.T(), sdk.ValAddress(PKs[0].Address().Bytes()), PKs[0])
+	validator := testutil.NewValidator(s.T(), sdk.AccAddress(PKs[0].Address().Bytes()), PKs[0])
 	require.NoError(keeper.SetValidator(ctx, validator))
 	require.NoError(keeper.SetValidatorByConsAddr(ctx, validator))
 

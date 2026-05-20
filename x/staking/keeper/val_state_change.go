@@ -9,7 +9,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	gogotypes "github.com/cosmos/gogoproto/types"
 
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -47,11 +46,11 @@ func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]abci.ValidatorUpda
 	}
 
 	for _, dvPair := range matureUnbonds {
-		addr, err := k.validatorAddressCodec.StringToBytes(dvPair.ValidatorAddress)
+		addr, err := sdk.AccAddressFromHexUnsafe(dvPair.ValidatorAddress)
 		if err != nil {
 			return nil, err
 		}
-		delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(dvPair.DelegatorAddress)
+		delegatorAddress, err := sdk.AccAddressFromHexUnsafe(dvPair.DelegatorAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -78,15 +77,15 @@ func (k Keeper) BlockValidatorUpdates(ctx context.Context) ([]abci.ValidatorUpda
 	}
 
 	for _, dvvTriplet := range matureRedelegations {
-		valSrcAddr, err := k.validatorAddressCodec.StringToBytes(dvvTriplet.ValidatorSrcAddress)
+		valSrcAddr, err := sdk.AccAddressFromHexUnsafe(dvvTriplet.ValidatorSrcAddress)
 		if err != nil {
 			return nil, err
 		}
-		valDstAddr, err := k.validatorAddressCodec.StringToBytes(dvvTriplet.ValidatorDstAddress)
+		valDstAddr, err := sdk.AccAddressFromHexUnsafe(dvvTriplet.ValidatorDstAddress)
 		if err != nil {
 			return nil, err
 		}
-		delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(dvvTriplet.DelegatorAddress)
+		delegatorAddress, err := sdk.AccAddressFromHexUnsafe(dvvTriplet.DelegatorAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -145,6 +144,11 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx context.Context) (updates 
 		return nil, err
 	}
 
+	lastCrossChainBytes, err := k.getLastValidatorsCrossChainBytesByAddr(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	// Iterate over validators, highest power to lowest.
 	iterator, err := k.ValidatorsPowerStoreIterator(ctx)
 	if err != nil {
@@ -155,7 +159,7 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx context.Context) (updates 
 	for count := 0; iterator.Valid() && count < int(maxValidators); iterator.Next() {
 		// everything that is iterated in this loop is becoming or already a
 		// part of the bonded validator set
-		valAddr := sdk.ValAddress(iterator.Value())
+		valAddr := sdk.AccAddress(iterator.Value())
 		validator := k.mustGetValidator(ctx, valAddr)
 
 		if validator.Jailed {
@@ -189,20 +193,27 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx context.Context) (updates 
 		}
 
 		// fetch the old power bytes
-		valAddrStr, err := k.validatorAddressCodec.BytesToString(valAddr)
-		if err != nil {
-			return nil, err
-		}
+		valAddrStr := valAddr.String()
 		oldPowerBytes, found := last[valAddrStr]
 		newPower := validator.ConsensusPower(powerReduction)
 		newPowerBytes := k.cdc.MustMarshal(&gogotypes.Int64Value{Value: newPower})
+		oldCrossChainBytes := lastCrossChainBytes[valAddrStr]
+		newCrossChainBytes := validator.CrossChainBytes()
 
 		// update the validator set if power has changed
-		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) {
+		if !found || !bytes.Equal(oldPowerBytes, newPowerBytes) || !bytes.Equal(oldCrossChainBytes, newCrossChainBytes) {
 			updates = append(updates, validator.ABCIValidatorUpdate(powerReduction))
 
-			if err = k.SetLastValidatorPower(ctx, valAddr, newPower); err != nil {
-				return nil, err
+			if !bytes.Equal(oldPowerBytes, newPowerBytes) {
+				if err = k.SetLastValidatorPower(ctx, valAddr, newPower); err != nil {
+					return nil, err
+				}
+			}
+
+			if !bytes.Equal(oldCrossChainBytes, newCrossChainBytes) {
+				if err = k.SetLastValidatorCrossChainBytes(ctx, valAddr, newCrossChainBytes); err != nil {
+					return nil, err
+				}
 			}
 		}
 
@@ -212,18 +223,18 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx context.Context) (updates 
 		totalPower = totalPower.Add(math.NewInt(newPower))
 	}
 
-	noLongerBonded, err := sortNoLongerBonded(last, k.validatorAddressCodec)
+	noLongerBonded, err := sortNoLongerBonded(last)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, valAddrBytes := range noLongerBonded {
-		validator := k.mustGetValidator(ctx, sdk.ValAddress(valAddrBytes))
+		validator := k.mustGetValidator(ctx, sdk.AccAddress(valAddrBytes))
 		validator, err = k.bondedToUnbonding(ctx, validator)
 		if err != nil {
 			return nil, err
 		}
-		str, err := k.validatorAddressCodec.StringToBytes(validator.GetOperator())
+		str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 		if err != nil {
 			return nil, err
 		}
@@ -231,7 +242,9 @@ func (k Keeper) ApplyAndReturnValidatorSetUpdates(ctx context.Context) (updates 
 		if err = k.DeleteLastValidatorPower(ctx, str); err != nil {
 			return nil, err
 		}
-
+		if err = k.DeleteLastValidatorCrossChainBytes(ctx, str); err != nil {
+			return nil, err
+		}
 		updates = append(updates, validator.ABCIValidatorUpdateZero())
 	}
 
@@ -361,7 +374,7 @@ func (k Keeper) bondValidator(ctx context.Context, validator types.Validator) (t
 		return validator, err
 	}
 
-	str, err := k.validatorAddressCodec.StringToBytes(validator.GetOperator())
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return validator, err
 	}
@@ -424,7 +437,7 @@ func (k Keeper) BeginUnbondingValidator(ctx context.Context, validator types.Val
 		return validator, err
 	}
 
-	str, err := k.validatorAddressCodec.StringToBytes(validator.GetOperator())
+	str, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return validator, err
 	}
@@ -471,10 +484,7 @@ func (k Keeper) getLastValidatorsByAddr(ctx context.Context) (validatorsByAddr, 
 	for ; iterator.Valid(); iterator.Next() {
 		// extract the validator address from the key (prefix is 1-byte, addrLen is 1-byte)
 		valAddr := types.AddressFromLastValidatorPowerKey(iterator.Key())
-		valAddrStr, err := k.validatorAddressCodec.BytesToString(valAddr)
-		if err != nil {
-			return nil, err
-		}
+		valAddrStr := sdk.AccAddress(valAddr).String()
 
 		powerBytes := iterator.Value()
 		last[valAddrStr] = make([]byte, len(powerBytes))
@@ -486,13 +496,13 @@ func (k Keeper) getLastValidatorsByAddr(ctx context.Context) (validatorsByAddr, 
 
 // given a map of remaining validators to previous bonded power
 // returns the list of validators to be unbonded, sorted by operator address
-func sortNoLongerBonded(last validatorsByAddr, ac address.Codec) ([][]byte, error) {
+func sortNoLongerBonded(last validatorsByAddr) ([][]byte, error) {
 	// sort the map keys for determinism
 	noLongerBonded := make([][]byte, len(last))
 	index := 0
 
 	for valAddrStr := range last {
-		valAddrBytes, err := ac.StringToBytes(valAddrStr)
+		valAddrBytes, err := sdk.AccAddressFromHexUnsafe(valAddrStr)
 		if err != nil {
 			return nil, err
 		}
@@ -506,4 +516,31 @@ func sortNoLongerBonded(last validatorsByAddr, ac address.Codec) ([][]byte, erro
 	})
 
 	return noLongerBonded, nil
+}
+
+// map of operator bech32-addresses to cross-chain bytes
+// We use bech32 strings here, because we can't have slices as keys: map[[]byte][]byte
+type crossChainBytesByAddr map[string][]byte
+
+// get the last validator set
+func (k Keeper) getLastValidatorsCrossChainBytesByAddr(ctx context.Context) (crossChainBytesByAddr, error) {
+	last := make(crossChainBytesByAddr)
+
+	iterator, err := k.LastValidatorsCrossChainBytesIterator(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer iterator.Close()
+
+	for ; iterator.Valid(); iterator.Next() {
+		// extract the validator address from the key (prefix is 1-byte, addrLen is 1-byte)
+		valAddr := types.AddressFromLastValidatorPowerKey(iterator.Key())
+		valAddrStr := sdk.AccAddress(valAddr).String()
+
+		crossChainBytes := iterator.Value()
+		last[valAddrStr] = make([]byte, len(crossChainBytes))
+		copy(last[valAddrStr], crossChainBytes)
+	}
+
+	return last, nil
 }

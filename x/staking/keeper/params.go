@@ -56,6 +56,12 @@ func (k Keeper) MinCommissionRate(ctx context.Context) (math.LegacyDec, error) {
 	return params.MinCommissionRate, err
 }
 
+// MinSelfDelegation - Minimum validator self delegation
+func (k Keeper) MinSelfDelegation(ctx context.Context) (math.Int, error) {
+	params, err := k.GetParams(ctx)
+	return params.MinSelfDelegation, err
+}
+
 // SetParams sets the x/staking module parameters.
 // CONTRACT: This method performs no validation of the parameters.
 func (k Keeper) SetParams(ctx context.Context, params types.Params) error {

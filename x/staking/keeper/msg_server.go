@@ -2,20 +2,25 @@ package keeper
 
 import (
 	"context"
+	"encoding/hex"
 	"strconv"
 	"time"
 
+	"github.com/0xPolygon/polygon-edge/bls"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	"github.com/cometbft/cometbft/votepool"
 	"github.com/hashicorp/go-metrics"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/math"
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
@@ -34,13 +39,35 @@ var _ types.MsgServer = msgServer{}
 
 // CreateValidator defines a method for creating a new validator
 func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateValidator) (*types.MsgCreateValidatorResponse, error) {
-	valAddr, err := k.validatorAddressCodec.StringToBytes(msg.ValidatorAddress)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)
 	}
 
-	if err := msg.Validate(k.validatorAddressCodec); err != nil {
+	if err := msg.Validate(); err != nil {
 		return nil, err
+	}
+
+	delAddr, err := sdk.AccAddressFromHexUnsafe(msg.DelegatorAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	// For genesis block, the signer should be the self delegator itself,
+	// for other blocks, the signer should be the gov module account.
+	// govModuleAddr := k.authKeeper.GetModuleAddress(govtypes.ModuleName)
+	govModuleAddr := authtypes.NewModuleAddress(govtypes.ModuleName)
+	if sdkCtx.BlockHeight() == 0 {
+		signers := msg.GetSigners()
+		if len(signers) != 1 || !signers[0].Equals(delAddr) {
+			return nil, types.ErrInvalidSigner
+		}
+	} else {
+		signers := msg.GetSigners()
+		if len(signers) != 1 || !signers[0].Equals(govModuleAddr) {
+			return nil, types.ErrInvalidSigner
+		}
 	}
 
 	minCommRate, err := k.MinCommissionRate(ctx)
@@ -52,11 +79,12 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 		return nil, errorsmod.Wrapf(types.ErrCommissionLTMinRate, "cannot set validator commission to less than minimum rate of %s", minCommRate)
 	}
 
-	// check to see if the pubkey or sender has been registered before
+	// check to see if the operator address has been registered before
 	if _, err := k.GetValidator(ctx, valAddr); err == nil {
 		return nil, types.ErrValidatorOwnerExists
 	}
 
+	// check to see if the pubkey has been registered before
 	pk, ok := msg.Pubkey.GetCachedValue().(cryptotypes.PubKey)
 	if !ok {
 		return nil, errorsmod.Wrapf(sdkerrors.ErrInvalidType, "Expecting cryptotypes.PubKey, got %T", pk)
@@ -64,6 +92,43 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 
 	if _, err := k.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(pk)); err == nil {
 		return nil, types.ErrValidatorPubKeyExists
+	}
+
+	// check to see if the relayer address has been registered before
+	relayerAddr, err := sdk.AccAddressFromHexUnsafe(msg.RelayerAddress)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := k.GetValidatorByRelayerAddr(ctx, relayerAddr); err == nil {
+		return nil, types.ErrValidatorRelayerAddressExists
+	}
+
+	// check to see if the challenger address has been registered before
+	challengerAddr, err := sdk.AccAddressFromHexUnsafe(msg.ChallengerAddress)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := k.GetValidatorByChallengerAddr(ctx, challengerAddr); err == nil {
+		return nil, types.ErrValidatorChallengerAddressExists
+	}
+
+	// check to see if the bls pubkey has been registered before
+	blsPk, err := hex.DecodeString(msg.BlsKey)
+	if err != nil || len(blsPk) != sdk.BLSPubKeyLength {
+		return nil, types.ErrValidatorInvalidBlsKey
+	}
+	if _, err := k.GetValidatorByBlsKey(ctx, blsPk); err == nil {
+		return nil, types.ErrValidatorBlsKeyExists
+	}
+
+	// check to see if the bls proof is signed from operator
+	blsProof, err := hex.DecodeString(msg.BlsProof)
+	if err != nil {
+		return nil, errorsmod.Wrap(types.ErrValidatorInvalidBlsProof, err.Error())
+	}
+	err = k.CheckBlsProof(blsPk, blsProof)
+	if err != nil {
+		return nil, errorsmod.Wrap(types.ErrValidatorInvalidBlsProof, err.Error())
 	}
 
 	bondDenom, err := k.BondDenom(ctx)
@@ -81,7 +146,6 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 		return nil, err
 	}
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	cp := sdkCtx.ConsensusParams()
 	if cp.Validator != nil {
 		pkType := pk.Type()
@@ -100,7 +164,7 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 		}
 	}
 
-	validator, err := types.NewValidator(msg.ValidatorAddress, pk, msg.Description)
+	validator, err := types.NewValidator(msg.ValidatorAddress, pk, msg.Description, delAddr.String(), relayerAddr.String(), challengerAddr.String(), blsPk)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +173,14 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 		msg.Commission.Rate, msg.Commission.MaxRate,
 		msg.Commission.MaxChangeRate, sdkCtx.BlockHeader().Time,
 	)
+
+	minSelfDelegation, err := k.MinSelfDelegation(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if msg.MinSelfDelegation.LT(minSelfDelegation) {
+		return nil, types.ErrInvalidMinSelfDelegation
+	}
 
 	validator, err = validator.SetInitialCommission(commission)
 	if err != nil {
@@ -121,12 +193,22 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 	if err != nil {
 		return nil, err
 	}
-
 	err = k.SetValidatorByConsAddr(ctx, validator)
 	if err != nil {
 		return nil, err
 	}
-
+	err = k.SetValidatorByRelayerAddress(ctx, validator)
+	if err != nil {
+		return nil, err
+	}
+	err = k.SetValidatorByChallengerAddress(ctx, validator)
+	if err != nil {
+		return nil, err
+	}
+	err = k.SetValidatorByBlsKey(ctx, validator)
+	if err != nil {
+		return nil, err
+	}
 	err = k.SetNewValidatorByPowerIndex(ctx, validator)
 	if err != nil {
 		return nil, err
@@ -137,6 +219,14 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 		return nil, err
 	}
 
+	// check the delegate staking authorization from the delegator to the gov module account
+	if sdkCtx.BlockHeight() != 0 {
+		err = k.CheckStakeAuthorization(sdkCtx, govModuleAddr, delAddr, types.NewMsgDelegate(delAddr.String(), valAddr.String(), msg.Value))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// move coins from the msg.Address account to a (self-delegation) delegator account
 	// the validator account and global shares are updated within here
 	// NOTE source will always be from a wallet which are unbonded
@@ -145,11 +235,21 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 		return nil, err
 	}
 
+	// the validator should self delegate enough coins to be an active validator when creating
+	selfDelAmount, _ := k.GetSelfDelegation(ctx, valAddr)
+	if selfDelAmount.LT(validator.MinSelfDelegation) {
+		return nil, types.ErrNotEnoughDelegationShares
+	}
+
 	sdkCtx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeCreateValidator,
 			sdk.NewAttribute(types.AttributeKeyValidator, msg.ValidatorAddress),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, msg.Value.String()),
+			sdk.NewAttribute(types.AttributeKeySelfDelAddress, validator.SelfDelAddress),
+			sdk.NewAttribute(types.AttributeKeyRelayerAddress, validator.RelayerAddress),
+			sdk.NewAttribute(types.AttributeKeyChallengerAddress, validator.ChallengerAddress),
+			sdk.NewAttribute(types.AttributeKeyBlsKey, string(validator.BlsKey)),
 		),
 	})
 
@@ -158,7 +258,7 @@ func (k msgServer) CreateValidator(ctx context.Context, msg *types.MsgCreateVali
 
 // EditValidator defines a method for editing an existing validator
 func (k msgServer) EditValidator(ctx context.Context, msg *types.MsgEditValidator) (*types.MsgEditValidatorResponse, error) {
-	valAddr, err := k.validatorAddressCodec.StringToBytes(msg.ValidatorAddress)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)
 	}
@@ -229,6 +329,67 @@ func (k msgServer) EditValidator(ctx context.Context, msg *types.MsgEditValidato
 		validator.MinSelfDelegation = *msg.MinSelfDelegation
 	}
 
+	// replace relayer address
+	if len(msg.RelayerAddress) != 0 {
+		relayerAddr, err := sdk.AccAddressFromHexUnsafe(msg.RelayerAddress)
+		if err != nil {
+			return nil, err
+		}
+		if tmpValidator, err := k.GetValidatorByRelayerAddr(ctx, relayerAddr); err == nil {
+			if tmpValidator.OperatorAddress != validator.OperatorAddress {
+				return nil, types.ErrValidatorRelayerAddressExists
+			}
+		} else {
+			k.DeleteValidatorByRelayerAddress(ctx, validator)
+			validator.RelayerAddress = relayerAddr.String()
+			k.SetValidatorByRelayerAddress(ctx, validator)
+		}
+	}
+
+	// replace challenger address
+	if len(msg.ChallengerAddress) != 0 {
+		challengerAddr, err := sdk.AccAddressFromHexUnsafe(msg.ChallengerAddress)
+		if err != nil {
+			return nil, err
+		}
+		if tmpValidator, err := k.GetValidatorByChallengerAddr(ctx, challengerAddr); err == nil {
+			if tmpValidator.OperatorAddress != validator.OperatorAddress {
+				return nil, types.ErrValidatorChallengerAddressExists
+			}
+		} else {
+			k.DeleteValidatorByChallengerAddress(ctx, validator)
+			validator.ChallengerAddress = challengerAddr.String()
+			k.SetValidatorByChallengerAddress(ctx, validator)
+		}
+	}
+
+	// replace bls pubkey
+	if len(msg.BlsKey) != 0 && len(msg.BlsProof) != 0 {
+		blsPk, err := hex.DecodeString(msg.BlsKey)
+		if err != nil || len(blsPk) != sdk.BLSPubKeyLength {
+			return nil, types.ErrValidatorInvalidBlsKey
+		}
+		// check to see if the bls proof is signed from operator
+		blsProof, err := hex.DecodeString(msg.BlsProof)
+		if err != nil {
+			return nil, errorsmod.Wrap(types.ErrValidatorInvalidBlsProof, err.Error())
+		}
+		err = k.CheckBlsProof(blsPk, blsProof)
+		if err != nil {
+			return nil, errorsmod.Wrap(types.ErrValidatorInvalidBlsProof, err.Error())
+		}
+
+		if tmpValidator, err := k.GetValidatorByBlsKey(ctx, blsPk); err == nil {
+			if tmpValidator.OperatorAddress != validator.OperatorAddress {
+				return nil, types.ErrValidatorBlsKeyExists
+			}
+		} else {
+			k.DeleteValidatorByBlsKey(ctx, validator)
+			validator.BlsKey = blsPk
+			k.SetValidatorByBlsKey(ctx, validator)
+		}
+	}
+
 	err = k.SetValidator(ctx, validator)
 	if err != nil {
 		return nil, err
@@ -240,6 +401,9 @@ func (k msgServer) EditValidator(ctx context.Context, msg *types.MsgEditValidato
 			types.EventTypeEditValidator,
 			sdk.NewAttribute(types.AttributeKeyCommissionRate, validator.Commission.String()),
 			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
+			sdk.NewAttribute(types.AttributeKeyRelayerAddress, validator.RelayerAddress),
+			sdk.NewAttribute(types.AttributeKeyChallengerAddress, validator.ChallengerAddress),
+			sdk.NewAttribute(types.AttributeKeyBlsKey, string(validator.BlsKey)),
 		),
 	})
 
@@ -248,12 +412,12 @@ func (k msgServer) EditValidator(ctx context.Context, msg *types.MsgEditValidato
 
 // Delegate defines a method for performing a delegation of coins from a delegator to a validator
 func (k msgServer) Delegate(ctx context.Context, msg *types.MsgDelegate) (*types.MsgDelegateResponse, error) {
-	valAddr, valErr := k.validatorAddressCodec.StringToBytes(msg.ValidatorAddress)
+	valAddr, valErr := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddress)
 	if valErr != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", valErr)
 	}
 
-	delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(msg.DelegatorAddress)
+	delegatorAddress, err := sdk.AccAddressFromHexUnsafe(msg.DelegatorAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid delegator address: %s", err)
 	}
@@ -314,17 +478,17 @@ func (k msgServer) Delegate(ctx context.Context, msg *types.MsgDelegate) (*types
 
 // BeginRedelegate defines a method for performing a redelegation of coins from a source validator to a destination validator of given delegator
 func (k msgServer) BeginRedelegate(ctx context.Context, msg *types.MsgBeginRedelegate) (*types.MsgBeginRedelegateResponse, error) {
-	valSrcAddr, err := k.validatorAddressCodec.StringToBytes(msg.ValidatorSrcAddress)
+	valSrcAddr, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorSrcAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid source validator address: %s", err)
 	}
 
-	valDstAddr, err := k.validatorAddressCodec.StringToBytes(msg.ValidatorDstAddress)
+	valDstAddr, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorDstAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid destination validator address: %s", err)
 	}
 
-	delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(msg.DelegatorAddress)
+	delegatorAddress, err := sdk.AccAddressFromHexUnsafe(msg.DelegatorAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid delegator address: %s", err)
 	}
@@ -342,6 +506,8 @@ func (k msgServer) BeginRedelegate(ctx context.Context, msg *types.MsgBeginRedel
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: And a hard fork to allow all redelegations
 
 	bondDenom, err := k.BondDenom(ctx)
 	if err != nil {
@@ -390,12 +556,12 @@ func (k msgServer) BeginRedelegate(ctx context.Context, msg *types.MsgBeginRedel
 
 // Undelegate defines a method for performing an undelegation from a delegate and a validator
 func (k msgServer) Undelegate(ctx context.Context, msg *types.MsgUndelegate) (*types.MsgUndelegateResponse, error) {
-	addr, err := k.validatorAddressCodec.StringToBytes(msg.ValidatorAddress)
+	addr, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)
 	}
 
-	delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(msg.DelegatorAddress)
+	delegatorAddress, err := sdk.AccAddressFromHexUnsafe(msg.DelegatorAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid delegator address: %s", err)
 	}
@@ -463,12 +629,12 @@ func (k msgServer) Undelegate(ctx context.Context, msg *types.MsgUndelegate) (*t
 // CancelUnbondingDelegation defines a method for canceling the unbonding delegation
 // and delegate back to the validator.
 func (k msgServer) CancelUnbondingDelegation(ctx context.Context, msg *types.MsgCancelUnbondingDelegation) (*types.MsgCancelUnbondingDelegationResponse, error) {
-	valAddr, err := k.validatorAddressCodec.StringToBytes(msg.ValidatorAddress)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid validator address: %s", err)
 	}
 
-	delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(msg.DelegatorAddress)
+	delegatorAddress, err := sdk.AccAddressFromHexUnsafe(msg.DelegatorAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid delegator address: %s", err)
 	}
@@ -604,4 +770,27 @@ func (k msgServer) UpdateParams(ctx context.Context, msg *types.MsgUpdateParams)
 	}
 
 	return &types.MsgUpdateParamsResponse{}, nil
+}
+
+// CheckBlsProof checks the BLS signature of the validator
+func (k msgServer) CheckBlsProof(blsPk, sig []byte) error {
+	if len(sig) != sdk.BLSSignatureLength {
+		return errorsmod.Wrapf(sdkerrors.ErrorInvalidSigner, "signature length (actual: %d) doesn't match typical BLS signature 64 bytes", len(sig))
+	}
+
+	blsPubKey, err := bls.UnmarshalPublicKey(blsPk)
+	if err != nil {
+		return errorsmod.Wrap(sdkerrors.ErrorInvalidSigner, "BLS public key is invalid")
+	}
+
+	signature, err := bls.UnmarshalSignature(sig)
+	if err != nil {
+		return errorsmod.Wrap(sdkerrors.ErrorInvalidSigner, "BLS signature key is invalid")
+	}
+
+	sigHash := tmhash.Sum(blsPk)
+	if !signature.Verify(blsPubKey, sigHash, votepool.DST) {
+		return errorsmod.Wrap(sdkerrors.ErrorInvalidSigner, "BLS signature verification is failed")
+	}
+	return nil
 }

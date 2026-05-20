@@ -37,7 +37,7 @@ func TestingUpdateValidator(keeper *Keeper, ctx sdk.Context, validator types.Val
 	}
 	defer iterator.Close()
 
-	bz, err := keeper.validatorAddressCodec.StringToBytes(validator.GetOperator())
+	bz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		panic(err)
 	}
@@ -69,7 +69,7 @@ func TestingUpdateValidator(keeper *Keeper, ctx sdk.Context, validator types.Val
 		panic(err)
 	}
 
-	validator, err = keeper.GetValidator(ctx, sdk.ValAddress(bz))
+	validator, err = keeper.GetValidator(ctx, bz)
 	if err != nil {
 		panic(err)
 	}

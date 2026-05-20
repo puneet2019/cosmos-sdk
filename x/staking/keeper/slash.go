@@ -53,14 +53,9 @@ func (k Keeper) Slash(ctx context.Context, consAddr sdk.ConsAddress, infractionH
 		// NOTE:  Correctness dependent on invariant that unbonding delegations / redelegations must also have been completely
 		//        slashed in this case - which we don't explicitly check, but should be true.
 		// Log the slash attempt for future reference (maybe we should tag it too)
-		conStr, err := k.consensusAddressCodec.BytesToString(consAddr)
-		if err != nil {
-			panic(err)
-		}
-
 		logger.Error(
 			"WARNING: ignored attempt to slash a nonexistent validator; we recommend you investigate immediately",
-			"validator", conStr,
+			"validator", consAddr.String(),
 		)
 		return math.NewInt(0), nil
 	} else if err != nil {
@@ -72,7 +67,7 @@ func (k Keeper) Slash(ctx context.Context, consAddr sdk.ConsAddress, infractionH
 		return math.NewInt(0), fmt.Errorf("should not be slashing unbonded validator: %s", validator.GetOperator())
 	}
 
-	operatorAddress, err := k.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+	operatorAddress, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return math.Int{}, err
 	}
@@ -299,12 +294,12 @@ func (k Keeper) SlashRedelegation(ctx context.Context, srcValidator types.Valida
 	totalSlashAmount = math.ZeroInt()
 	bondedBurnedAmount, notBondedBurnedAmount := math.ZeroInt(), math.ZeroInt()
 
-	valDstAddr, err := k.validatorAddressCodec.StringToBytes(redelegation.ValidatorDstAddress)
+	valDstAddr, err := sdk.AccAddressFromHexUnsafe(redelegation.ValidatorDstAddress)
 	if err != nil {
 		return math.ZeroInt(), fmt.Errorf("SlashRedelegation: could not parse validator destination address: %w", err)
 	}
 
-	delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(redelegation.DelegatorAddress)
+	delegatorAddress, err := sdk.AccAddressFromHexUnsafe(redelegation.DelegatorAddress)
 	if err != nil {
 		return math.ZeroInt(), fmt.Errorf("SlashRedelegation: could not parse delegator address: %w", err)
 	}
@@ -326,13 +321,13 @@ func (k Keeper) SlashRedelegation(ctx context.Context, srcValidator types.Valida
 		slashAmount := slashAmountDec.TruncateInt()
 		totalSlashAmount = totalSlashAmount.Add(slashAmount)
 
-		validatorDstAddress, err := sdk.ValAddressFromBech32(redelegation.ValidatorDstAddress)
+		validatorDstAddress, err := sdk.AccAddressFromHexUnsafe(redelegation.ValidatorDstAddress)
 		if err != nil {
 			panic(err)
 		}
 		// Handle undelegation after redelegation
 		// Prioritize slashing unbondingDelegation than delegation
-		unbondingDelegation, err := k.GetUnbondingDelegation(ctx, sdk.MustAccAddressFromBech32(redelegation.DelegatorAddress), validatorDstAddress)
+		unbondingDelegation, err := k.GetUnbondingDelegation(ctx, sdk.MustAccAddressFromHex(redelegation.DelegatorAddress), validatorDstAddress)
 		if err == nil {
 			for i, entry := range unbondingDelegation.Entries {
 				// slash with the amount of `slashAmount` if possible, else slash all unbonding token

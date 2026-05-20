@@ -2,9 +2,13 @@ package simulation
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 
+	"github.com/0xPolygon/polygon-edge/bls"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	"github.com/cometbft/cometbft/votepool"
 	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -27,7 +31,6 @@ const (
 	DefaultWeightMsgBeginRedelegate           int = 100
 	DefaultWeightMsgCancelUnbondingDelegation int = 100
 
-	OpWeightMsgCreateValidator           = "op_weight_msg_create_validator"
 	OpWeightMsgEditValidator             = "op_weight_msg_edit_validator"
 	OpWeightMsgDelegate                  = "op_weight_msg_delegate"
 	OpWeightMsgUndelegate                = "op_weight_msg_undelegate"
@@ -45,17 +48,12 @@ func WeightedOperations(
 	k *keeper.Keeper,
 ) simulation.WeightedOperations {
 	var (
-		weightMsgCreateValidator           int
 		weightMsgEditValidator             int
 		weightMsgDelegate                  int
 		weightMsgUndelegate                int
 		weightMsgBeginRedelegate           int
 		weightMsgCancelUnbondingDelegation int
 	)
-
-	appParams.GetOrGenerate(OpWeightMsgCreateValidator, &weightMsgCreateValidator, nil, func(_ *rand.Rand) {
-		weightMsgCreateValidator = DefaultWeightMsgCreateValidator
-	})
 
 	appParams.GetOrGenerate(OpWeightMsgEditValidator, &weightMsgEditValidator, nil, func(_ *rand.Rand) {
 		weightMsgEditValidator = DefaultWeightMsgEditValidator
@@ -78,10 +76,6 @@ func WeightedOperations(
 	})
 
 	return simulation.WeightedOperations{
-		simulation.NewWeightedOperation(
-			weightMsgCreateValidator,
-			SimulateMsgCreateValidator(txGen, ak, bk, k),
-		),
 		simulation.NewWeightedOperation(
 			weightMsgEditValidator,
 			SimulateMsgEditValidator(txGen, ak, bk, k),
@@ -118,7 +112,7 @@ func SimulateMsgCreateValidator(
 		msgType := sdk.MsgTypeURL(&types.MsgCreateValidator{})
 
 		simAccount, _ := simtypes.RandomAcc(r, accs)
-		address := sdk.ValAddress(simAccount.Address)
+		address := simAccount.Address
 
 		// ensure the validator doesn't exist already
 		_, err := k.GetValidator(ctx, address)
@@ -171,7 +165,17 @@ func SimulateMsgCreateValidator(
 			simtypes.RandomDecAmount(r, maxCommission),
 		)
 
-		msg, err := types.NewMsgCreateValidator(address.String(), simAccount.ConsKey.PubKey(), selfDelegation, description, commission, math.OneInt())
+		blsSecretKey, _ := bls.GenerateBlsKey()
+		blsPk := hex.EncodeToString(blsSecretKey.PublicKey().Marshal())
+		blsProofBuf, _ := blsSecretKey.Sign(tmhash.Sum(blsSecretKey.PublicKey().Marshal()), votepool.DST)
+		blsProofBts, _ := blsProofBuf.Marshal()
+		blsProof := hex.EncodeToString(blsProofBts)
+
+		msg, err := types.NewMsgCreateValidator(
+			address.String(), simAccount.ConsKey.PubKey(),
+			selfDelegation, description, commission, math.OneInt(),
+			address, address, address, address, blsPk, blsProof,
+		)
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, sdk.MsgTypeURL(msg), "unable to create CreateValidator message"), nil, err
 		}
@@ -226,12 +230,12 @@ func SimulateMsgEditValidator(
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "invalid commission rate"), nil, nil
 		}
 
-		bz, err := k.ValidatorAddressCodec().StringToBytes(val.GetOperator())
+		bz, err := sdk.AccAddressFromHexUnsafe(val.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "error getting validator address bytes"), nil, err
 		}
 
-		simAccount, found := simtypes.FindAccount(accs, sdk.AccAddress(bz))
+		simAccount, found := simtypes.FindAccount(accs, bz)
 		if !found {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "unable to find account"), nil, fmt.Errorf("validator %s not found", val.GetOperator())
 		}
@@ -247,7 +251,7 @@ func SimulateMsgEditValidator(
 			simtypes.RandStringOfLength(r, 10),
 		)
 
-		msg := types.NewMsgEditValidator(address, description, &newCommissionRate, nil)
+		msg := types.NewMsgEditValidator(address, description, &newCommissionRate, nil, address, address, "", "")
 
 		txCtx := simulation.OperationInput{
 			R:               r,
@@ -371,7 +375,7 @@ func SimulateMsgUndelegate(
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "validator is not ok"), nil, nil
 		}
 
-		valAddr, err := k.ValidatorAddressCodec().StringToBytes(val.GetOperator())
+		valAddr, err := sdk.AccAddressFromHexUnsafe(val.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "error getting validator address bytes"), nil, err
 		}
@@ -388,7 +392,7 @@ func SimulateMsgUndelegate(
 		delegation := delegations[r.Intn(len(delegations))]
 		delAddr := delegation.GetDelegatorAddr()
 
-		delAddrBz, err := ak.AddressCodec().StringToBytes(delAddr)
+		delAddrBz, err := sdk.AccAddressFromHexUnsafe(delAddr)
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "error getting delegator address bytes"), nil, err
 		}
@@ -491,7 +495,7 @@ func SimulateMsgCancelUnbondingDelegate(
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "validator is jailed"), nil, nil
 		}
 
-		valAddr, err := k.ValidatorAddressCodec().StringToBytes(val.GetOperator())
+		valAddr, err := sdk.AccAddressFromHexUnsafe(val.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "error getting validator address bytes"), nil, err
 		}
@@ -586,7 +590,7 @@ func SimulateMsgBeginRedelegate(
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "unable to pick validator"), nil, nil
 		}
 
-		srcAddr, err := k.ValidatorAddressCodec().StringToBytes(srcVal.GetOperator())
+		srcAddr, err := sdk.AccAddressFromHexUnsafe(srcVal.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "error getting validator address bytes"), nil, err
 		}
@@ -603,7 +607,7 @@ func SimulateMsgBeginRedelegate(
 		delegation := delegations[r.Intn(len(delegations))]
 		delAddr := delegation.GetDelegatorAddr()
 
-		delAddrBz, err := ak.AddressCodec().StringToBytes(delAddr)
+		delAddrBz, err := sdk.AccAddressFromHexUnsafe(delAddr)
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "error getting delegator address bytes"), nil, err
 		}
@@ -614,7 +618,7 @@ func SimulateMsgBeginRedelegate(
 		}
 
 		if hasRecRedel {
-			return simtypes.NoOpMsg(types.ModuleName, msgType, "receveing redelegation is not allowed"), nil, nil // skip
+			return simtypes.NoOpMsg(types.ModuleName, msgType, "receiving redelegation is not allowed"), nil, nil // skip
 		}
 
 		// get random destination validator
@@ -623,7 +627,7 @@ func SimulateMsgBeginRedelegate(
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "unable to pick validator"), nil, nil
 		}
 
-		destAddr, err := k.ValidatorAddressCodec().StringToBytes(destVal.GetOperator())
+		destAddr, err := sdk.AccAddressFromHexUnsafe(destVal.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "error getting validator address bytes"), nil, err
 		}

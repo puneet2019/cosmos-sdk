@@ -86,7 +86,7 @@ func TestDelegationsByValidatorMigrations(t *testing.T) {
 	store := ctx.KVStore(storeKey)
 
 	accAddrs := sims.CreateIncrementalAccounts(11)
-	valAddrs := sims.ConvertAddrsToValAddrs(accAddrs[0:1])
+	valAddrs := sims.CopyAddrs(accAddrs[0:1])
 	var addedDels []stakingtypes.Delegation
 
 	for i := 1; i < 11; i++ {
@@ -108,7 +108,7 @@ func TestDelegationsByValidatorMigrations(t *testing.T) {
 	assert.Equal(t, addedDels, dels)
 }
 
-func getValDelegations(ctx sdk.Context, cdc codec.Codec, storeKey storetypes.StoreKey, valAddr sdk.ValAddress) []stakingtypes.Delegation {
+func getValDelegations(ctx sdk.Context, cdc codec.Codec, storeKey storetypes.StoreKey, valAddr sdk.AccAddress) []stakingtypes.Delegation {
 	var delegations []stakingtypes.Delegation
 
 	store := ctx.KVStore(storeKey)

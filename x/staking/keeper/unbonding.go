@@ -168,11 +168,11 @@ func (k Keeper) GetValidatorByUnbondingID(ctx context.Context, id uint64) (val t
 // set the unbonding delegation itself, use SetUnbondingDelegation(ctx, ubd) for that
 func (k Keeper) SetUnbondingDelegationByUnbondingID(ctx context.Context, ubd types.UnbondingDelegation, id uint64) error {
 	store := k.storeService.OpenKVStore(ctx)
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(ubd.DelegatorAddress)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(ubd.DelegatorAddress)
 	if err != nil {
 		return err
 	}
-	valAddr, err := k.validatorAddressCodec.StringToBytes(ubd.ValidatorAddress)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(ubd.ValidatorAddress)
 	if err != nil {
 		return err
 	}
@@ -191,17 +191,17 @@ func (k Keeper) SetUnbondingDelegationByUnbondingID(ctx context.Context, ubd typ
 func (k Keeper) SetRedelegationByUnbondingID(ctx context.Context, red types.Redelegation, id uint64) error {
 	store := k.storeService.OpenKVStore(ctx)
 
-	delAddr, err := k.authKeeper.AddressCodec().StringToBytes(red.DelegatorAddress)
+	delAddr, err := sdk.AccAddressFromHexUnsafe(red.DelegatorAddress)
 	if err != nil {
 		return err
 	}
 
-	valSrcAddr, err := k.validatorAddressCodec.StringToBytes(red.ValidatorSrcAddress)
+	valSrcAddr, err := sdk.AccAddressFromHexUnsafe(red.ValidatorSrcAddress)
 	if err != nil {
 		return err
 	}
 
-	valDstAddr, err := k.validatorAddressCodec.StringToBytes(red.ValidatorDstAddress)
+	valDstAddr, err := sdk.AccAddressFromHexUnsafe(red.ValidatorDstAddress)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (k Keeper) SetRedelegationByUnbondingID(ctx context.Context, red types.Rede
 func (k Keeper) SetValidatorByUnbondingID(ctx context.Context, val types.Validator, id uint64) error {
 	store := k.storeService.OpenKVStore(ctx)
 
-	valAddr, err := k.validatorAddressCodec.StringToBytes(val.OperatorAddress)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(val.OperatorAddress)
 	if err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func (k Keeper) unbondingDelegationEntryCanComplete(ctx context.Context, id uint
 	// Check if entry is matured.
 	if !ubd.Entries[i].OnHold() && ubd.Entries[i].IsMature(sdkCtx.BlockHeader().Time) {
 		// If matured, complete it.
-		delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(ubd.DelegatorAddress)
+		delegatorAddress, err := sdk.AccAddressFromHexUnsafe(ubd.DelegatorAddress)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package math
 
 import (
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"math/big"
@@ -137,6 +138,21 @@ func MaxUint(u1, u2 Uint) Uint { return NewUintFromBigInt(max(u1.i, u2.i)) }
 // Human readable string
 func (u Uint) String() string { return u.i.String() }
 
+// MarshalXML defines custom encoding for xml Marshaler
+func (u Uint) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	return e.EncodeElement(u.String(), start)
+}
+
+// UnmarshalXML defines custom decoding for xml Marshaler
+func (u *Uint) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var s string
+	if err := d.DecodeElement(&s, &start); err != nil {
+		return err
+	}
+	*u = NewUintFromString(s)
+	return nil
+}
+
 // MarshalJSON defines custom encoding scheme
 func (u Uint) MarshalJSON() ([]byte, error) {
 	if u.i == nil { // Necessary since default Uint initialization has i.i as nil
@@ -197,6 +213,18 @@ func (u *Uint) Unmarshal(data []byte) error {
 
 	// Finally check for overflow.
 	return UintOverflow(u.i)
+}
+
+// Bytes returns the value of x as a big-endian byte slice.
+func (u Uint) Bytes() []byte {
+	return u.i.Bytes()
+}
+
+// SetBytes interprets buf as the bytes of a big-endian unsigned
+// integer, sets z to that value, and returns z.
+func (u Uint) SetBytes(buf []byte) Uint {
+	u.i = u.i.SetBytes(buf)
+	return u
 }
 
 // Size implements the gogo proto custom type interface.

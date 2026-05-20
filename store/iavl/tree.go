@@ -89,10 +89,14 @@ func (it *immutableTree) AvailableVersions() []int {
 	return []int{}
 }
 
-func (it *immutableTree) LoadVersionForOverwriting(targetVersion int64) error {
+func (it *immutableTree) LoadVersionForOverwriting(_ int64) error {
 	panic("cannot call 'LoadVersionForOverwriting' on an immutable IAVL tree")
 }
 
 func (it *immutableTree) WorkingHash() []byte {
 	panic("cannot call 'WorkingHash' on an immutable IAVL tree")
+}
+
+func (it *immutableTree) TraverseStateChanges(_, _ int64, _ func(version int64, changeSet *iavl.ChangeSet) error) error {
+	panic("cannot call 'TraverseStateChanges' on an immutable IAVL tree")
 }

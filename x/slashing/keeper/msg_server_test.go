@@ -160,21 +160,21 @@ func (s *KeeperTestSuite) TestUnjail() {
 				}
 			},
 			expErr:    true,
-			expErrMsg: "decoding bech32 failed",
+			expErrMsg: "invalid address",
 		},
 		{
 			name: "no self delegation: invalid request",
 			malleate: func() *slashingtypes.MsgUnjail {
 				_, pubKey, addr := testdata.KeyTestPubAddr()
-				valAddr := sdk.ValAddress(addr)
-				val, err := types.NewValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
+				valAddr := addr
+				val, err := types.NewSimpleValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
 				s.Require().NoError(err)
 
 				s.stakingKeeper.EXPECT().Validator(s.ctx, valAddr).Return(val, nil)
 				s.stakingKeeper.EXPECT().Delegation(s.ctx, addr, valAddr).Return(nil, nil)
 
 				return &slashingtypes.MsgUnjail{
-					ValidatorAddr: sdk.ValAddress(addr).String(),
+					ValidatorAddr: addr.String(),
 				}
 			},
 			expErr:    true,
@@ -184,7 +184,7 @@ func (s *KeeperTestSuite) TestUnjail() {
 			name: "validator not in the state: invalid request",
 			malleate: func() *slashingtypes.MsgUnjail {
 				_, _, addr := testdata.KeyTestPubAddr()
-				valAddr := sdk.ValAddress(addr)
+				valAddr := addr
 
 				s.stakingKeeper.EXPECT().Validator(s.ctx, valAddr).Return(nil, nil)
 
@@ -199,9 +199,9 @@ func (s *KeeperTestSuite) TestUnjail() {
 			name: "validator not jailed: invalid request",
 			malleate: func() *slashingtypes.MsgUnjail {
 				_, pubKey, addr := testdata.KeyTestPubAddr()
-				valAddr := sdk.ValAddress(addr)
+				valAddr := addr
 
-				val, err := types.NewValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
+				val, err := types.NewSimpleValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
 				val.Tokens = sdkmath.NewInt(1000)
 				val.DelegatorShares = sdkmath.LegacyNewDec(1)
 				val.Jailed = false
@@ -219,7 +219,7 @@ func (s *KeeperTestSuite) TestUnjail() {
 				s.stakingKeeper.EXPECT().Delegation(s.ctx, addr, valAddr).Return(del, nil)
 
 				return &slashingtypes.MsgUnjail{
-					ValidatorAddr: sdk.ValAddress(addr).String(),
+					ValidatorAddr: addr.String(),
 				}
 			},
 			expErr:    true,
@@ -229,9 +229,9 @@ func (s *KeeperTestSuite) TestUnjail() {
 			name: "validator tombstoned: invalid request",
 			malleate: func() *slashingtypes.MsgUnjail {
 				_, pubKey, addr := testdata.KeyTestPubAddr()
-				valAddr := sdk.ValAddress(addr)
+				valAddr := addr
 
-				val, err := types.NewValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
+				val, err := types.NewSimpleValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
 				val.Tokens = sdkmath.NewInt(1000)
 				val.DelegatorShares = sdkmath.LegacyNewDec(1)
 				val.Jailed = true
@@ -249,7 +249,7 @@ func (s *KeeperTestSuite) TestUnjail() {
 				s.stakingKeeper.EXPECT().Delegation(s.ctx, addr, valAddr).Return(del, nil)
 
 				return &slashingtypes.MsgUnjail{
-					ValidatorAddr: sdk.ValAddress(addr).String(),
+					ValidatorAddr: addr.String(),
 				}
 			},
 			expErr:    true,
@@ -259,9 +259,9 @@ func (s *KeeperTestSuite) TestUnjail() {
 			name: "unjailing before wait period: invalid request",
 			malleate: func() *slashingtypes.MsgUnjail {
 				_, pubKey, addr := testdata.KeyTestPubAddr()
-				valAddr := sdk.ValAddress(addr)
+				valAddr := addr
 
-				val, err := types.NewValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
+				val, err := types.NewSimpleValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
 				val.Tokens = sdkmath.NewInt(1000)
 				val.DelegatorShares = sdkmath.LegacyNewDec(1)
 				val.Jailed = true
@@ -279,7 +279,7 @@ func (s *KeeperTestSuite) TestUnjail() {
 				s.stakingKeeper.EXPECT().Delegation(s.ctx, addr, valAddr).Return(del, nil)
 
 				return &slashingtypes.MsgUnjail{
-					ValidatorAddr: sdk.ValAddress(addr).String(),
+					ValidatorAddr: addr.String(),
 				}
 			},
 			expErr:    true,
@@ -289,9 +289,9 @@ func (s *KeeperTestSuite) TestUnjail() {
 			name: "valid request",
 			malleate: func() *slashingtypes.MsgUnjail {
 				_, pubKey, addr := testdata.KeyTestPubAddr()
-				valAddr := sdk.ValAddress(addr)
+				valAddr := addr
 
-				val, err := types.NewValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
+				val, err := types.NewSimpleValidator(valAddr.String(), pubKey, types.Description{Moniker: "test"})
 				val.Tokens = sdkmath.NewInt(1000)
 				val.DelegatorShares = sdkmath.LegacyNewDec(1)
 
@@ -310,7 +310,7 @@ func (s *KeeperTestSuite) TestUnjail() {
 				s.stakingKeeper.EXPECT().Unjail(s.ctx, sdk.ConsAddress(addr)).Return(nil)
 
 				return &slashingtypes.MsgUnjail{
-					ValidatorAddr: sdk.ValAddress(addr).String(),
+					ValidatorAddr: addr.String(),
 				}
 			},
 			expErr: false,

@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/crisis/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
@@ -19,7 +19,7 @@ func (k *Keeper) VerifyInvariant(goCtx context.Context, msg *types.MsgVerifyInva
 	if msg.Sender == "" {
 		return nil, sdkerrors.ErrInvalidAddress.Wrap("empty address string is not allowed")
 	}
-	sender, err := k.addressCodec.StringToBytes(msg.Sender)
+	sender, err := sdk.AccAddressFromHexUnsafe(msg.Sender)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid sender address: %s", err)
 	}

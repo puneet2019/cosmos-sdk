@@ -7,8 +7,8 @@ import (
 
 	"cosmossdk.io/x/feegrant"
 
-	codecaddress "github.com/cosmos/cosmos-sdk/codec/address"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -16,8 +16,6 @@ func (suite *KeeperTestSuite) TestGrantAllowance() {
 	ctx := suite.ctx.WithBlockTime(time.Now())
 	oneYear := ctx.BlockTime().AddDate(1, 0, 0)
 	yesterday := ctx.BlockTime().AddDate(0, 0, -1)
-
-	addressCodec := codecaddress.NewBech32Codec("cosmos")
 
 	testCases := []struct {
 		name      string
@@ -38,7 +36,7 @@ func (suite *KeeperTestSuite) TestGrantAllowance() {
 				}
 			},
 			true,
-			"decoding bech32 failed",
+			"invalid address hex length",
 		},
 		{
 			"invalid grantee address",
@@ -53,13 +51,13 @@ func (suite *KeeperTestSuite) TestGrantAllowance() {
 				}
 			},
 			true,
-			"decoding bech32 failed",
+			"invalid address hex length",
 		},
 		{
 			"valid: grantee account doesn't exist",
 			func() *feegrant.MsgGrantAllowance {
-				grantee := "cosmos139f7kncmglres2nf3h4hc4tade85ekfr8sulz5"
-				granteeAccAddr, err := addressCodec.StringToBytes(grantee)
+				grantee := "0x319D057ce294319bA1fa5487134608727e1F3e29"
+				granteeAccAddr, err := sdk.AccAddressFromHexUnsafe(grantee)
 				suite.Require().NoError(err)
 				any, err := codectypes.NewAnyWithValue(&feegrant.BasicAllowance{
 					SpendLimit: suite.atom,
@@ -70,7 +68,7 @@ func (suite *KeeperTestSuite) TestGrantAllowance() {
 				suite.accountKeeper.EXPECT().GetAccount(gomock.Any(), granteeAccAddr).Return(nil).AnyTimes()
 
 				acc := authtypes.NewBaseAccountWithAddress(granteeAccAddr)
-				add, err := addressCodec.StringToBytes(grantee)
+				add, err := sdk.AccAddressFromHexUnsafe(grantee)
 				suite.Require().NoError(err)
 
 				suite.accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), add).Return(acc).AnyTimes()
@@ -207,7 +205,7 @@ func (suite *KeeperTestSuite) TestRevokeAllowance() {
 			},
 			func() {},
 			true,
-			"decoding bech32 failed",
+			"invalid address hex length",
 		},
 		{
 			"error: invalid grantee",
@@ -217,7 +215,7 @@ func (suite *KeeperTestSuite) TestRevokeAllowance() {
 			},
 			func() {},
 			true,
-			"decoding bech32 failed",
+			"invalid address hex length",
 		},
 		{
 			"error: fee allowance not found",

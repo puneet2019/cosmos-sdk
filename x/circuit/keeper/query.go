@@ -5,6 +5,7 @@ import (
 
 	"cosmossdk.io/x/circuit/types"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 )
 
@@ -22,7 +23,7 @@ func NewQueryServer(keeper Keeper) types.QueryServer {
 
 // Account returns account permissions.
 func (qs QueryServer) Account(ctx context.Context, req *types.QueryAccountRequest) (*types.AccountResponse, error) {
-	add, err := qs.keeper.addressCodec.StringToBytes(req.Address)
+	add, err := sdk.AccAddressFromHexUnsafe(req.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -42,10 +43,7 @@ func (qs QueryServer) Accounts(ctx context.Context, req *types.QueryAccountsRequ
 		qs.keeper.Permissions,
 		req.Pagination,
 		func(key []byte, value types.Permissions) (*types.GenesisAccountPermissions, error) {
-			addrStr, err := qs.keeper.addressCodec.BytesToString(key)
-			if err != nil {
-				return nil, err
-			}
+			addrStr := sdk.AccAddress(key).String()
 			return &types.GenesisAccountPermissions{
 				Address:     addrStr,
 				Permissions: &value,

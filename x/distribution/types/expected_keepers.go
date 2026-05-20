@@ -3,15 +3,12 @@ package types
 import (
 	context "context"
 
-	"cosmossdk.io/core/address"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // AccountKeeper defines the expected account keeper used for simulations (noalias)
 type AccountKeeper interface {
-	AddressCodec() address.Codec
 	GetAccount(ctx context.Context, addr sdk.AccAddress) sdk.AccountI
 	GetModuleAddress(name string) sdk.AccAddress
 	GetModuleAccount(ctx context.Context, name string) sdk.ModuleAccountI
@@ -34,18 +31,16 @@ type BankKeeper interface {
 
 // StakingKeeper expected staking keeper (noalias)
 type StakingKeeper interface {
-	ValidatorAddressCodec() address.Codec
-	ConsensusAddressCodec() address.Codec
 	// iterate through validators by operator address, execute func for each validator
 	IterateValidators(context.Context,
 		func(index int64, validator stakingtypes.ValidatorI) (stop bool)) error
 
-	Validator(context.Context, sdk.ValAddress) (stakingtypes.ValidatorI, error)            // get a particular validator by operator address
+	Validator(context.Context, sdk.AccAddress) (stakingtypes.ValidatorI, error)            // get a particular validator by operator address
 	ValidatorByConsAddr(context.Context, sdk.ConsAddress) (stakingtypes.ValidatorI, error) // get a particular validator by consensus address
 
 	// Delegation allows for getting a particular delegation for a given validator
 	// and delegator outside the scope of the staking module.
-	Delegation(context.Context, sdk.AccAddress, sdk.ValAddress) (stakingtypes.DelegationI, error)
+	Delegation(context.Context, sdk.AccAddress, sdk.AccAddress) (stakingtypes.DelegationI, error)
 
 	IterateDelegations(ctx context.Context, delegator sdk.AccAddress,
 		fn func(index int64, delegation stakingtypes.DelegationI) (stop bool)) error
@@ -57,6 +52,6 @@ type StakingKeeper interface {
 
 // StakingHooks event hooks for staking validator object (noalias)
 type StakingHooks interface {
-	AfterValidatorCreated(ctx context.Context, valAddr sdk.ValAddress) error // Must be called when a validator is created
-	AfterDelegationModified(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error
+	AfterValidatorCreated(ctx context.Context, valAddr sdk.AccAddress) error // Must be called when a validator is created
+	AfterDelegationModified(ctx context.Context, delAddr, valAddr sdk.AccAddress) error
 }

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"cosmossdk.io/collections"
-	"cosmossdk.io/core/address"
 	storetypes "cosmossdk.io/core/store"
 	"cosmossdk.io/log"
 
@@ -30,8 +29,6 @@ type Keeper struct {
 
 	feeCollectorName string // name of the FeeCollector ModuleAccount
 
-	addressCodec address.Codec
-
 	Schema      collections.Schema
 	ConstantFee collections.Item[sdk.Coin]
 }
@@ -39,7 +36,7 @@ type Keeper struct {
 // NewKeeper creates a new Keeper object
 func NewKeeper(
 	cdc codec.BinaryCodec, storeService storetypes.KVStoreService, invCheckPeriod uint,
-	supplyKeeper types.SupplyKeeper, feeCollectorName, authority string, ac address.Codec,
+	supplyKeeper types.SupplyKeeper, feeCollectorName, authority string,
 ) *Keeper {
 	sb := collections.NewSchemaBuilder(storeService)
 	k := &Keeper{
@@ -50,7 +47,6 @@ func NewKeeper(
 		supplyKeeper:     supplyKeeper,
 		feeCollectorName: feeCollectorName,
 		authority:        authority,
-		addressCodec:     ac,
 
 		ConstantFee: collections.NewItem(sb, types.ConstantFeeKey, "constant_fee", codec.CollValue[sdk.Coin](cdc)),
 	}

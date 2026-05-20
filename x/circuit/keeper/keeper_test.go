@@ -8,25 +8,24 @@ import (
 	cmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/stretchr/testify/require"
 
-	"cosmossdk.io/core/address"
 	storetypes "cosmossdk.io/store/types"
 	"cosmossdk.io/x/circuit"
 	"cosmossdk.io/x/circuit/keeper"
 	"cosmossdk.io/x/circuit/types"
 
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 var addresses = []string{
-	"cosmos1zglwfu6xjzvzagqcmvzewyzjp9xwqw5qwrr8n9",
-	"cosmos1p8s0p6gqc6c9gt77lgr2qqujz49huhu6a80smx",
-	"cosmos1qasf9ehx8m7cnat39ndc74rx3fg7z66u8lw0fd",
-	"cosmos1uxrdj5zfuudhypsmmjxnj4gpu432ycht06a05a",
-	"cosmos1wn7k8a7fwpmrwnm94ndj0germfnxnhl6hs8spj",
+	"0x123eE4f34690982EA018DB05971052094ce03A80",
+	"0x09E0F0e900c6B0542fDefa06a00392154b7e5F9a",
+	"0x076092e6e63EFd89f5712CDB8f54668A51E16b5C",
+	"0xe186d95049e71b72061bDc8d395501e562a262EB",
+	"0x74FD63F7c97076374f65AcDb27a323da6669Dffa",
 }
 
 type fixture struct {
@@ -35,17 +34,15 @@ type fixture struct {
 	mockAddr   []byte
 	mockPerms  types.Permissions
 	mockMsgURL string
-	ac         address.Codec
 }
 
 func initFixture(t *testing.T) *fixture {
 	encCfg := moduletestutil.MakeTestEncodingConfig(circuit.AppModuleBasic{})
-	ac := addresscodec.NewBech32Codec("cosmos")
 	mockStoreKey := storetypes.NewKVStoreKey("test")
 	storeService := runtime.NewKVStoreService(mockStoreKey)
-	k := keeper.NewKeeper(encCfg.Codec, storeService, authtypes.NewModuleAddress("gov").String(), ac)
+	k := keeper.NewKeeper(encCfg.Codec, storeService, authtypes.NewModuleAddress("gov").String())
 
-	bz, err := ac.StringToBytes(authtypes.NewModuleAddress("gov").String())
+	bz, err := sdk.AccAddressFromHexUnsafe(authtypes.NewModuleAddress("gov").String())
 	require.NoError(t, err)
 
 	return &fixture{
@@ -57,7 +54,6 @@ func initFixture(t *testing.T) *fixture {
 			LimitTypeUrls: []string{"test"},
 		},
 		mockMsgURL: "mock_url",
-		ac:         ac,
 	}
 }
 

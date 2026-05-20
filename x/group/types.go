@@ -7,10 +7,10 @@ import (
 	proto "github.com/cosmos/gogoproto/proto"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/group/errors"
 	"github.com/cosmos/cosmos-sdk/x/group/internal/math"
 	"github.com/cosmos/cosmos-sdk/x/group/internal/orm"
@@ -302,7 +302,7 @@ func (g GroupInfo) ValidateBasic() error {
 		return errorsmod.Wrap(errors.ErrEmpty, "group's GroupId")
 	}
 
-	_, err := sdk.AccAddressFromBech32(g.Admin)
+	_, err := sdk.AccAddressFromHexUnsafe(g.Admin)
 	if err != nil {
 		return errorsmod.Wrap(err, "admin")
 	}
@@ -317,7 +317,7 @@ func (g GroupInfo) ValidateBasic() error {
 }
 
 func (g GroupPolicyInfo) PrimaryKeyFields() []interface{} {
-	addr := sdk.MustAccAddressFromBech32(g.Address)
+	addr := sdk.MustAccAddressFromHex(g.Address)
 
 	return []interface{}{addr.Bytes()}
 }
@@ -328,11 +328,11 @@ func (g Proposal) PrimaryKeyFields() []interface{} {
 
 // ValidateBasic does basic validation on group policy info.
 func (g GroupPolicyInfo) ValidateBasic() error {
-	_, err := sdk.AccAddressFromBech32(g.Admin)
+	_, err := sdk.AccAddressFromHexUnsafe(g.Admin)
 	if err != nil {
 		return errorsmod.Wrap(err, "group policy admin")
 	}
-	_, err = sdk.AccAddressFromBech32(g.Address)
+	_, err = sdk.AccAddressFromHexUnsafe(g.Address)
 	if err != nil {
 		return errorsmod.Wrap(err, "group policy account address")
 	}
@@ -355,7 +355,7 @@ func (g GroupPolicyInfo) ValidateBasic() error {
 }
 
 func (g GroupMember) PrimaryKeyFields() []interface{} {
-	addr := sdk.MustAccAddressFromBech32(g.Member.Address)
+	addr := sdk.MustAccAddressFromHex(g.Member.Address)
 
 	return []interface{}{g.GroupId, addr.Bytes()}
 }
@@ -366,7 +366,7 @@ func (g GroupMember) ValidateBasic() error {
 		return errorsmod.Wrap(errors.ErrEmpty, "group member's group id")
 	}
 
-	if _, err := sdk.AccAddressFromBech32(g.Member.Address); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(g.Member.Address); err != nil {
 		return errorsmod.Wrap(err, "group member's address")
 	}
 
@@ -394,7 +394,7 @@ func (g Proposal) ValidateBasic() error {
 	if g.Id == 0 {
 		return errorsmod.Wrap(errors.ErrEmpty, "proposal id")
 	}
-	_, err := sdk.AccAddressFromBech32(g.GroupPolicyAddress)
+	_, err := sdk.AccAddressFromHexUnsafe(g.GroupPolicyAddress)
 	if err != nil {
 		return errorsmod.Wrap(err, "proposal group policy address")
 	}
@@ -424,7 +424,7 @@ func (g Proposal) ValidateBasic() error {
 }
 
 func (v Vote) PrimaryKeyFields() []interface{} {
-	addr := sdk.MustAccAddressFromBech32(v.Voter)
+	addr := sdk.MustAccAddressFromHex(v.Voter)
 
 	return []interface{}{v.ProposalId, addr.Bytes()}
 }
@@ -433,7 +433,7 @@ var _ orm.Validateable = Vote{}
 
 // ValidateBasic does basic validation on vote.
 func (v Vote) ValidateBasic() error {
-	_, err := sdk.AccAddressFromBech32(v.Voter)
+	_, err := sdk.AccAddressFromHexUnsafe(v.Voter)
 	if err != nil {
 		return errorsmod.Wrap(err, "voter")
 	}

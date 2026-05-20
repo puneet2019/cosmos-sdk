@@ -73,12 +73,12 @@ func SimulateMsgUnjail(
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "validator is not ok"), nil, nil // skip
 		}
 
-		bz, err := sk.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+		bz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "unable to convert validator address to bytes"), nil, err
 		}
 
-		simAccount, found := simtypes.FindAccount(accs, sdk.AccAddress(bz))
+		simAccount, found := simtypes.FindAccount(accs, bz)
 		if !found {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "unable to find account"), nil, nil // skip
 		}
@@ -106,7 +106,7 @@ func SimulateMsgUnjail(
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "self delegation is nil"), nil, nil // skip
 		}
 
-		account := ak.GetAccount(ctx, sdk.AccAddress(bz))
+		account := ak.GetAccount(ctx, bz)
 		spendable := bk.SpendableCoins(ctx, account.GetAddress())
 
 		fees, err := simtypes.RandomFees(r, ctx, spendable)

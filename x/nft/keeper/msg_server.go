@@ -5,10 +5,10 @@ import (
 	"context"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/x/nft"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 var _ nft.MsgServer = Keeper{}
@@ -23,12 +23,12 @@ func (k Keeper) Send(goCtx context.Context, msg *nft.MsgSend) (*nft.MsgSendRespo
 		return nil, nft.ErrEmptyNFTID
 	}
 
-	sender, err := k.ac.StringToBytes(msg.Sender)
+	sender, err := sdk.AccAddressFromHexUnsafe(msg.Sender)
 	if err != nil {
 		return nil, errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid sender address (%s)", msg.Sender)
 	}
 
-	receiver, err := k.ac.StringToBytes(msg.Receiver)
+	receiver, err := sdk.AccAddressFromHexUnsafe(msg.Receiver)
 	if err != nil {
 		return nil, errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid receiver address (%s)", msg.Receiver)
 	}

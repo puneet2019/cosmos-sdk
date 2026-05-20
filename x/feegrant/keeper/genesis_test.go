@@ -14,7 +14,6 @@ import (
 	"cosmossdk.io/x/feegrant/module"
 	feegranttestutil "cosmossdk.io/x/feegrant/testutil"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/runtime"
@@ -45,7 +44,6 @@ func initFixture(t *testing.T) *genesisFixture {
 
 	ctrl := gomock.NewController(t)
 	accountKeeper := feegranttestutil.NewMockAccountKeeper(ctrl)
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	return &genesisFixture{
 		ctx:            testCtx.Ctx,
@@ -58,7 +56,6 @@ func TestImportExportGenesis(t *testing.T) {
 	f := initFixture(t)
 
 	f.accountKeeper.EXPECT().GetAccount(gomock.Any(), granteeAddr).Return(authtypes.NewBaseAccountWithAddress(granteeAddr)).AnyTimes()
-	f.accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	coins := sdk.NewCoins(sdk.NewCoin("foo", math.NewInt(1_000)))
 	now := f.ctx.BlockHeader().Time
@@ -137,7 +134,7 @@ func TestInitGenesis(t *testing.T) {
 				err := f.feegrantKeeper.InitGenesis(f.ctx, &feegrant.GenesisState{Allowances: tc.feeAllowances})
 				assert.ErrorContains(t, err, "failed to get allowance: no allowance")
 			} else {
-				expectedErr := errors.New("decoding bech32 failed")
+				expectedErr := errors.New("invalid address")
 				err := f.feegrantKeeper.InitGenesis(f.ctx, &feegrant.GenesisState{Allowances: tc.feeAllowances})
 				assert.ErrorContains(t, err, expectedErr.Error())
 			}

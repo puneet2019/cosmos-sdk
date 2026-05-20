@@ -10,7 +10,6 @@ import (
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -36,8 +35,6 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -54,8 +51,8 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	require.NoError(t, distrKeeper.Params.Set(ctx, disttypes.DefaultParams()))
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr := valAddr
 	val, err := distrtestutil.CreateValidator(valConsPk0, math.NewInt(1000))
 	require.NoError(t, err)
 	val.Commission = stakingtypes.NewCommission(math.LegacyNewDecWithPrec(5, 1), math.LegacyNewDecWithPrec(5, 1), math.LegacyNewDec(0))
@@ -121,8 +118,6 @@ func TestCalculateRewardsAfterSlash(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -139,8 +134,8 @@ func TestCalculateRewardsAfterSlash(t *testing.T) {
 	require.NoError(t, distrKeeper.Params.Set(ctx, disttypes.DefaultParams()))
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr := valAddr
 	valPower := int64(100)
 	stake := sdk.TokensFromConsensusPower(100, sdk.DefaultPowerReduction)
 	val, err := distrtestutil.CreateValidator(valConsPk0, stake)
@@ -224,8 +219,6 @@ func TestCalculateRewardsAfterManySlashes(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -242,8 +235,8 @@ func TestCalculateRewardsAfterManySlashes(t *testing.T) {
 	require.NoError(t, distrKeeper.Params.Set(ctx, disttypes.DefaultParams()))
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr := valAddr
 	valPower := int64(100)
 	stake := sdk.TokensFromConsensusPower(valPower, sdk.DefaultPowerReduction)
 	val, err := distrtestutil.CreateValidator(valConsPk0, stake)
@@ -348,8 +341,6 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -366,8 +357,8 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	require.NoError(t, distrKeeper.Params.Set(ctx, disttypes.DefaultParams()))
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr0 := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr0 := valAddr
 	val, err := distrtestutil.CreateValidator(valConsPk0, math.NewInt(100))
 	require.NoError(t, err)
 
@@ -445,8 +436,6 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -463,8 +452,8 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	require.NoError(t, distrKeeper.Params.Set(ctx, disttypes.DefaultParams()))
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr := valAddr
 	val, err := distrtestutil.CreateValidator(valConsPk0, math.NewInt(100))
 	require.NoError(t, err)
 
@@ -494,7 +483,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	// withdraw rewards (the bank keeper should be called with the right amount of tokens to transfer)
 	expRewards := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, initial.QuoRaw(2))}
 	bankKeeper.EXPECT().SendCoinsFromModuleToAccount(ctx, disttypes.ModuleName, addr, expRewards)
-	_, err = distrKeeper.WithdrawDelegationRewards(ctx, sdk.AccAddress(valAddr), valAddr)
+	_, err = distrKeeper.WithdrawDelegationRewards(ctx, valAddr, valAddr)
 	require.Nil(t, err)
 
 	// historical count should still be 2 (added one record, cleared one)
@@ -520,8 +509,6 @@ func TestCalculateRewardsAfterManySlashesInSameBlock(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -538,8 +525,8 @@ func TestCalculateRewardsAfterManySlashesInSameBlock(t *testing.T) {
 	require.NoError(t, distrKeeper.Params.Set(ctx, disttypes.DefaultParams()))
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr := valAddr
 	val, err := distrtestutil.CreateValidator(valConsPk0, math.NewInt(100))
 	require.NoError(t, err)
 
@@ -636,8 +623,6 @@ func TestCalculateRewardsMultiDelegatorMultiSlash(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -656,8 +641,8 @@ func TestCalculateRewardsMultiDelegatorMultiSlash(t *testing.T) {
 	valPower := int64(100)
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr := valAddr
 	val, err := distrtestutil.CreateValidator(valConsPk0, sdk.TokensFromConsensusPower(valPower, sdk.DefaultPowerReduction))
 	require.NoError(t, err)
 	val.Commission = stakingtypes.NewCommission(math.LegacyNewDecWithPrec(5, 1), math.LegacyNewDecWithPrec(5, 1), math.LegacyNewDec(0))
@@ -773,8 +758,6 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -791,8 +774,8 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	require.NoError(t, distrKeeper.Params.Set(ctx, disttypes.DefaultParams()))
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr := valAddr
 	val, err := distrtestutil.CreateValidator(valConsPk0, math.NewInt(100))
 	require.NoError(t, err)
 	val.Commission = stakingtypes.NewCommission(math.LegacyNewDecWithPrec(5, 1), math.LegacyNewDecWithPrec(5, 1), math.LegacyNewDec(0))
@@ -972,8 +955,6 @@ func Test100PercentCommissionReward(t *testing.T) {
 	accountKeeper := distrtestutil.NewMockAccountKeeper(ctrl)
 
 	accountKeeper.EXPECT().GetModuleAddress("distribution").Return(distrAcc.GetAddress())
-	stakingKeeper.EXPECT().ValidatorAddressCodec().Return(address.NewBech32Codec(sdk.Bech32PrefixValAddr)).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec(sdk.Bech32MainPrefix)).AnyTimes()
 
 	distrKeeper := keeper.NewKeeper(
 		encCfg.Codec,
@@ -990,8 +971,8 @@ func Test100PercentCommissionReward(t *testing.T) {
 	require.NoError(t, distrKeeper.Params.Set(ctx, disttypes.DefaultParams()))
 
 	// create validator with 50% commission
-	valAddr := sdk.ValAddress(valConsAddr0)
-	addr := sdk.AccAddress(valAddr)
+	valAddr := sdk.AccAddress(valConsAddr0)
+	addr := valAddr
 	val, err := distrtestutil.CreateValidator(valConsPk0, math.NewInt(100))
 	require.NoError(t, err)
 	val.Commission = stakingtypes.NewCommission(math.LegacyNewDecWithPrec(10, 1), math.LegacyNewDecWithPrec(10, 1), math.LegacyNewDec(0))

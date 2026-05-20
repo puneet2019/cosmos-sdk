@@ -19,7 +19,6 @@ import (
 	"cosmossdk.io/x/evidence/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
@@ -35,7 +34,7 @@ var (
 		newPubKey("0B485CFC0EECC619440448436F8FC9DF40566F2369E72400281454CB552AFB52"),
 	}
 
-	valAddress = sdk.ValAddress(pubkeys[0].Address())
+	valAddress = sdk.AccAddress(pubkeys[0].Address())
 )
 
 func newPubKey(pk string) (res cryptotypes.PubKey) {
@@ -104,7 +103,6 @@ func (suite *KeeperTestSuite) SetupTest() {
 		storeService,
 		stakingKeeper,
 		slashingKeeper,
-		address.NewBech32Codec("cosmos"),
 		&evidencetestutil.MockCometinfo{},
 	)
 

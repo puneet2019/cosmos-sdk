@@ -87,7 +87,7 @@ func (k Keeper) AllocateTokensToValidator(ctx context.Context, val stakingtypes.
 	commission := tokens.MulDec(val.GetCommission())
 	shared := tokens.Sub(commission)
 
-	valBz, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(val.GetOperator())
+	valBz, err := sdk.AccAddressFromHexUnsafe(val.GetOperator())
 	if err != nil {
 		return err
 	}

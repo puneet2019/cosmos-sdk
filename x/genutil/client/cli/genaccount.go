@@ -8,8 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	address "cosmossdk.io/core/address"
-
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -28,7 +26,7 @@ const (
 
 // AddGenesisAccountCmd returns add-genesis-account cobra Command.
 // This command is provided as a default, applications are expected to provide their own command if custom genesis accounts are needed.
-func AddGenesisAccountCmd(defaultNodeHome string, addressCodec address.Codec) *cobra.Command {
+func AddGenesisAccountCmd(defaultNodeHome string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add-genesis-account [address_or_key_name] [coin][,[coin]]",
 		Short: "Add a genesis account to genesis.json",
@@ -46,7 +44,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 			config.SetRoot(clientCtx.HomeDir)
 
 			var kr keyring.Keyring
-			addr, err := addressCodec.StringToBytes(args[0])
+			addr, err := sdk.AccAddressFromHexUnsafe(args[0])
 			if err != nil {
 				inBuf := bufio.NewReader(cmd.InOrStdin())
 				keyringBackend, _ := cmd.Flags().GetString(flags.FlagKeyringBackend)
@@ -96,7 +94,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 
 // AddBulkGenesisAccountCmd returns bulk-add-genesis-account cobra Command.
 // This command is provided as a default, applications are expected to provide their own command if custom genesis accounts are needed.
-func AddBulkGenesisAccountCmd(defaultNodeHome string, addressCodec address.Codec) *cobra.Command {
+func AddBulkGenesisAccountCmd(defaultNodeHome string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bulk-add-genesis-account [/file/path.json]",
 		Short: "Bulk add genesis accounts to genesis.json",
@@ -104,14 +102,14 @@ func AddBulkGenesisAccountCmd(defaultNodeHome string, addressCodec address.Codec
 where accounts.json is:
 [
     {
-        "address": "cosmos139f7kncmglres2nf3h4hc4tade85ekfr8sulz5",
+        "address": "0x319D057ce294319bA1fa5487134608727e1F3e29",
         "coins": [
             { "denom": "umuon", "amount": "100000000" },
             { "denom": "stake", "amount": "200000000" }
         ]
     },
     {
-        "address": "cosmos1e0jnq2sun3dzjh8p2xq95kk0expwmd7shwjpfg",
+        "address": "0xcBe5302A1C9c5a295CE151805a5acfC982EDB7d0",
         "coins": [
             { "denom": "umuon", "amount": "500000000" }
         ],
@@ -148,7 +146,7 @@ contain valid denominations. Accounts may optionally be supplied with vesting pa
 
 			appendflag, _ := cmd.Flags().GetBool(flagAppendMode)
 
-			return genutil.AddGenesisAccounts(clientCtx.Codec, addressCodec, accounts, appendflag, config.GenesisFile())
+			return genutil.AddGenesisAccounts(clientCtx.Codec, accounts, appendflag, config.GenesisFile())
 		},
 	}
 

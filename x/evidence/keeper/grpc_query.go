@@ -67,6 +67,11 @@ func (k Querier) AllEvidence(ctx context.Context, req *types.QueryAllEvidenceReq
 	if req == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "empty request")
 	}
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+
+	if err := query.CheckOffsetQueryNotAllowed(sdkCtx, req.Pagination); err != nil {
+		return nil, err
+	}
 
 	evidences, pageRes, err := query.CollectionPaginate(ctx, k.k.Evidences, req.Pagination, func(_ []byte, value exported.Evidence) (*codectypes.Any, error) {
 		return codectypes.NewAnyWithValue(value)

@@ -48,7 +48,7 @@ func Migrate(
 	}
 
 	for _, policy := range groupPolicies {
-		addr, err := accountKeeper.AddressCodec().StringToBytes(policy.Address)
+		addr, err := sdk.AccAddressFromHexUnsafe(policy.Address)
 		if err != nil {
 			return fmt.Errorf("failed to convert group policy account address: %w", err)
 		}

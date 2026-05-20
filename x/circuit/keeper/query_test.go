@@ -8,6 +8,7 @@ import (
 	"cosmossdk.io/x/circuit/keeper"
 	"cosmossdk.io/x/circuit/types"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
 )
 
@@ -15,7 +16,7 @@ func TestQueryAccount(t *testing.T) {
 	t.Parallel()
 	f := initFixture(t)
 
-	add, err := f.ac.StringToBytes(addresses[0])
+	add, err := sdk.AccAddressFromHexUnsafe(addresses[0])
 	require.NoError(t, err)
 
 	err = f.keeper.Permissions.Set(f.ctx, add, f.mockPerms)
@@ -35,7 +36,7 @@ func TestQueryAccount(t *testing.T) {
 	// test invalid address
 	res, err = qs.Account(f.ctx, &types.QueryAccountRequest{Address: "invalid"})
 	require.Error(t, err)
-	require.ErrorContains(t, err, "invalid bech32 string")
+	require.ErrorContains(t, err, "invalid address")
 	require.Nil(t, res)
 
 	// test account not found
@@ -49,7 +50,7 @@ func TestQueryAccounts(t *testing.T) {
 	t.Parallel()
 	f := initFixture(t)
 
-	add, err := f.ac.StringToBytes(addresses[0])
+	add, err := sdk.AccAddressFromHexUnsafe(addresses[0])
 	require.NoError(t, err)
 
 	// create a new query server

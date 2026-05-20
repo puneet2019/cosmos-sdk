@@ -7,7 +7,6 @@ import (
 
 	"cosmossdk.io/log"
 	"cosmossdk.io/store"
-	"cosmossdk.io/store/gaskv"
 	"cosmossdk.io/store/metrics"
 	storetypes "cosmossdk.io/store/types"
 )
@@ -77,6 +76,14 @@ func (d debuggingGasMeter) String() string {
 	return d.g.String()
 }
 
+func (d debuggingGasMeter) RwConsumed() storetypes.Gas {
+	return d.g.RwConsumed()
+}
+
+func (d debuggingGasMeter) ConsumeRw(amount storetypes.Gas, descriptor string) {
+	d.g.ConsumeRw(amount, descriptor)
+}
+
 type GasCountingMockContext struct {
 	GasMeter storetypes.GasMeter
 }
@@ -88,7 +95,7 @@ func NewGasCountingMockContext() *GasCountingMockContext {
 }
 
 func (g GasCountingMockContext) KVStore(store storetypes.KVStore) storetypes.KVStore {
-	return gaskv.NewStore(store, g.GasMeter, storetypes.KVGasConfig())
+	return store
 }
 
 func (g GasCountingMockContext) GasConsumed() storetypes.Gas {

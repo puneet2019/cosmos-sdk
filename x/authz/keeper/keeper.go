@@ -12,6 +12,7 @@ import (
 
 	corestoretypes "cosmossdk.io/core/store"
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/log"
 	storetypes "cosmossdk.io/store/types"
 
@@ -20,14 +21,8 @@ import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 )
-
-// TODO: Revisit this once we have propoer gas fee framework.
-// Tracking issues https://github.com/cosmos/cosmos-sdk/issues/9054,
-// https://github.com/cosmos/cosmos-sdk/discussions/9072
-const gasCostPerIteration = uint64(20)
 
 type Keeper struct {
 	storeService corestoretypes.KVStoreService
@@ -76,7 +71,12 @@ func (k Keeper) getGrant(ctx context.Context, skey []byte) (grant authz.Grant, f
 	return grant, true
 }
 
-func (k Keeper) update(ctx context.Context, grantee, granter sdk.AccAddress, updated authz.Authorization) error {
+func (k Keeper) GetGrant(ctx context.Context, grantee, granter sdk.AccAddress, msgType string) (grant authz.Grant, found bool) {
+	skey := grantStoreKey(grantee, granter, msgType)
+	return k.getGrant(ctx, skey)
+}
+
+func (k Keeper) Update(ctx context.Context, grantee, granter sdk.AccAddress, updated authz.Authorization) error {
 	skey := grantStoreKey(grantee, granter, updated.MsgTypeURL())
 	grant, found := k.getGrant(ctx, skey)
 	if !found {
@@ -147,7 +147,7 @@ func (k Keeper) DispatchActions(ctx context.Context, grantee sdk.AccAddress, msg
 			if resp.Delete {
 				err = k.DeleteGrant(ctx, grantee, granter, sdk.MsgTypeURL(msg))
 			} else if resp.Updated != nil {
-				err = k.update(ctx, grantee, granter, resp.Updated)
+				err = k.Update(ctx, grantee, granter, resp.Updated)
 			}
 			if err != nil {
 				return nil, err
@@ -391,9 +391,8 @@ func (k Keeper) removeFromGrantQueue(ctx context.Context, grantKey []byte, grant
 	_, _, msgType := parseGrantStoreKey(grantKey)
 	queueItems := queueItem.MsgTypeUrls
 
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	for index, typeURL := range queueItems {
-		sdkCtx.GasMeter().ConsumeGas(gasCostPerIteration, "grant queue")
+		// sdkCtx.GasMeter().ConsumeGas(gasCostPerIteration, "grant queue")
 
 		if typeURL == msgType {
 			end := len(queueItem.MsgTypeUrls) - 1

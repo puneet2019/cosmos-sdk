@@ -3,7 +3,6 @@ package simulation
 import (
 	"math/rand"
 
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/x/feegrant"
 	"cosmossdk.io/x/feegrant/keeper"
 
@@ -37,7 +36,6 @@ func WeightedOperations(
 	ak feegrant.AccountKeeper,
 	bk feegrant.BankKeeper,
 	k keeper.Keeper,
-	ac address.Codec,
 ) simulation.WeightedOperations {
 	var (
 		weightMsgGrantAllowance  int
@@ -65,7 +63,7 @@ func WeightedOperations(
 		),
 		simulation.NewWeightedOperation(
 			weightMsgRevokeAllowance,
-			SimulateMsgRevokeAllowance(pCdc, txConfig, ak, bk, k, ac),
+			SimulateMsgRevokeAllowance(pCdc, txConfig, ak, bk, k),
 		),
 	}
 }
@@ -132,7 +130,6 @@ func SimulateMsgRevokeAllowance(
 	ak feegrant.AccountKeeper,
 	bk feegrant.BankKeeper,
 	k keeper.Keeper,
-	ac address.Codec,
 ) simtypes.Operation {
 	return func(
 		r *rand.Rand, app *baseapp.BaseApp, ctx sdk.Context, accs []simtypes.Account, chainID string,
@@ -141,11 +138,11 @@ func SimulateMsgRevokeAllowance(
 		var granterAddr sdk.AccAddress
 		var granteeAddr sdk.AccAddress
 		k.IterateAllFeeAllowances(ctx, func(grant feegrant.Grant) bool {
-			granter, err := ac.StringToBytes(grant.Granter)
+			granter, err := sdk.AccAddressFromHexUnsafe(grant.Granter)
 			if err != nil {
 				panic(err)
 			}
-			grantee, err := ac.StringToBytes(grant.Grantee)
+			grantee, err := sdk.AccAddressFromHexUnsafe(grant.Grantee)
 			if err != nil {
 				panic(err)
 			}

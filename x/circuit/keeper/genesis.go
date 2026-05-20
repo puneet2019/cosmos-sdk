@@ -4,6 +4,7 @@ import (
 	context "context"
 
 	"cosmossdk.io/x/circuit/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func (k *Keeper) ExportGenesis(ctx context.Context) (data *types.GenesisState) {
@@ -13,10 +14,7 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (data *types.GenesisState) {
 	)
 
 	err := k.Permissions.Walk(ctx, nil, func(address []byte, perm types.Permissions) (stop bool, err error) {
-		add, err := k.addressCodec.BytesToString(address)
-		if err != nil {
-			return true, err
-		}
+		add := sdk.AccAddress(address).String()
 		// Convert the Permissions struct to a GenesisAccountPermissions struct
 		// and add it to the permissions slice
 		permissions = append(permissions, &types.GenesisAccountPermissions{
@@ -46,7 +44,7 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (data *types.GenesisState) {
 // InitGenesis initializes the circuit module's state from a given genesis state.
 func (k *Keeper) InitGenesis(ctx context.Context, genState *types.GenesisState) {
 	for _, accounts := range genState.AccountPermissions {
-		add, err := k.addressCodec.StringToBytes(accounts.Address)
+		add, err := sdk.AccAddressFromHexUnsafe(accounts.Address)
 		if err != nil {
 			panic(err)
 		}

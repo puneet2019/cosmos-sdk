@@ -18,7 +18,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data *nft.GenesisState) {
 	}
 	for _, entry := range data.Entries {
 		for _, nft := range entry.Nfts {
-			owner, err := k.ac.StringToBytes(entry.Owner)
+			owner, err := sdk.AccAddressFromHexUnsafe(entry.Owner)
 			if err != nil {
 				panic(err)
 			}
@@ -38,10 +38,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *nft.GenesisState {
 		nfts := k.GetNFTsOfClass(ctx, class.Id)
 		for i, n := range nfts {
 			owner := k.GetOwner(ctx, n.ClassId, n.Id)
-			ownerStr, err := k.ac.BytesToString(owner.Bytes())
-			if err != nil {
-				panic(err)
-			}
+			ownerStr := sdk.AccAddress(owner.Bytes()).String()
 			nftArr, ok := nftMap[ownerStr]
 			if !ok {
 				nftArr = make([]*nft.NFT, 0)

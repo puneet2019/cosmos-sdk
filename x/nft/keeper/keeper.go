@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"cosmossdk.io/core/address"
 	store "cosmossdk.io/core/store"
 	"cosmossdk.io/x/nft"
 
@@ -13,7 +12,6 @@ type Keeper struct {
 	cdc          codec.BinaryCodec
 	storeService store.KVStoreService
 	bk           nft.BankKeeper
-	ac           address.Codec
 }
 
 // NewKeeper creates a new nft Keeper instance
@@ -29,6 +27,5 @@ func NewKeeper(storeService store.KVStoreService,
 		cdc:          cdc,
 		storeService: storeService,
 		bk:           bk,
-		ac:           ak.AddressCodec(),
 	}
 }

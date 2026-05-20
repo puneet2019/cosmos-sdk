@@ -21,14 +21,8 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 	}
 
 	for _, dwi := range data.DelegatorWithdrawInfos {
-		delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(dwi.DelegatorAddress)
-		if err != nil {
-			panic(err)
-		}
-		withdrawAddress, err := k.authKeeper.AddressCodec().StringToBytes(dwi.WithdrawAddress)
-		if err != nil {
-			panic(err)
-		}
+		delegatorAddress := sdk.MustAccAddressFromHex(dwi.DelegatorAddress)
+		withdrawAddress := sdk.MustAccAddressFromHex(dwi.WithdrawAddress)
 		err = k.SetDelegatorWithdrawAddr(ctx, delegatorAddress, withdrawAddress)
 		if err != nil {
 			panic(err)
@@ -38,7 +32,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 	var previousProposer sdk.ConsAddress
 	if data.PreviousProposer != "" {
 		var err error
-		previousProposer, err = k.stakingKeeper.ConsensusAddressCodec().StringToBytes(data.PreviousProposer)
+		previousProposer, err = sdk.ConsAddressFromHex(data.PreviousProposer)
 		if err != nil {
 			panic(err)
 		}
@@ -49,7 +43,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 	}
 
 	for _, rew := range data.OutstandingRewards {
-		valAddr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(rew.ValidatorAddress)
+		valAddr, err := sdk.AccAddressFromHexUnsafe(rew.ValidatorAddress)
 		if err != nil {
 			panic(err)
 		}
@@ -60,7 +54,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 		moduleHoldings = moduleHoldings.Add(rew.OutstandingRewards...)
 	}
 	for _, acc := range data.ValidatorAccumulatedCommissions {
-		valAddr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(acc.ValidatorAddress)
+		valAddr, err := sdk.AccAddressFromHexUnsafe(acc.ValidatorAddress)
 		if err != nil {
 			panic(err)
 		}
@@ -70,7 +64,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 		}
 	}
 	for _, his := range data.ValidatorHistoricalRewards {
-		valAddr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(his.ValidatorAddress)
+		valAddr, err := sdk.AccAddressFromHexUnsafe(his.ValidatorAddress)
 		if err != nil {
 			panic(err)
 		}
@@ -80,7 +74,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 		}
 	}
 	for _, cur := range data.ValidatorCurrentRewards {
-		valAddr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(cur.ValidatorAddress)
+		valAddr, err := sdk.AccAddressFromHexUnsafe(cur.ValidatorAddress)
 		if err != nil {
 			panic(err)
 		}
@@ -90,14 +84,11 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 		}
 	}
 	for _, del := range data.DelegatorStartingInfos {
-		valAddr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(del.ValidatorAddress)
+		valAddr, err := sdk.AccAddressFromHexUnsafe(del.ValidatorAddress)
 		if err != nil {
 			panic(err)
 		}
-		delegatorAddress, err := k.authKeeper.AddressCodec().StringToBytes(del.DelegatorAddress)
-		if err != nil {
-			panic(err)
-		}
+		delegatorAddress := sdk.MustAccAddressFromHex(del.DelegatorAddress)
 
 		err = k.SetDelegatorStartingInfo(ctx, valAddr, delegatorAddress, del.StartingInfo)
 		if err != nil {
@@ -105,7 +96,7 @@ func (k Keeper) InitGenesis(ctx sdk.Context, data types.GenesisState) {
 		}
 	}
 	for _, evt := range data.ValidatorSlashEvents {
-		valAddr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(evt.ValidatorAddress)
+		valAddr, err := sdk.AccAddressFromHexUnsafe(evt.ValidatorAddress)
 		if err != nil {
 			panic(err)
 		}
@@ -162,7 +153,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 	outstanding := make([]types.ValidatorOutstandingRewardsRecord, 0)
 
 	k.IterateValidatorOutstandingRewards(ctx,
-		func(addr sdk.ValAddress, rewards types.ValidatorOutstandingRewards) (stop bool) {
+		func(addr sdk.AccAddress, rewards types.ValidatorOutstandingRewards) (stop bool) {
 			outstanding = append(outstanding, types.ValidatorOutstandingRewardsRecord{
 				ValidatorAddress:   addr.String(),
 				OutstandingRewards: rewards.Rewards,
@@ -173,7 +164,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 
 	acc := make([]types.ValidatorAccumulatedCommissionRecord, 0)
 	k.IterateValidatorAccumulatedCommissions(ctx,
-		func(addr sdk.ValAddress, commission types.ValidatorAccumulatedCommission) (stop bool) {
+		func(addr sdk.AccAddress, commission types.ValidatorAccumulatedCommission) (stop bool) {
 			acc = append(acc, types.ValidatorAccumulatedCommissionRecord{
 				ValidatorAddress: addr.String(),
 				Accumulated:      commission,
@@ -184,7 +175,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 
 	his := make([]types.ValidatorHistoricalRewardsRecord, 0)
 	k.IterateValidatorHistoricalRewards(ctx,
-		func(val sdk.ValAddress, period uint64, rewards types.ValidatorHistoricalRewards) (stop bool) {
+		func(val sdk.AccAddress, period uint64, rewards types.ValidatorHistoricalRewards) (stop bool) {
 			his = append(his, types.ValidatorHistoricalRewardsRecord{
 				ValidatorAddress: val.String(),
 				Period:           period,
@@ -196,7 +187,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 
 	cur := make([]types.ValidatorCurrentRewardsRecord, 0)
 	k.IterateValidatorCurrentRewards(ctx,
-		func(val sdk.ValAddress, rewards types.ValidatorCurrentRewards) (stop bool) {
+		func(val sdk.AccAddress, rewards types.ValidatorCurrentRewards) (stop bool) {
 			cur = append(cur, types.ValidatorCurrentRewardsRecord{
 				ValidatorAddress: val.String(),
 				Rewards:          rewards,
@@ -207,7 +198,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 
 	dels := make([]types.DelegatorStartingInfoRecord, 0)
 	k.IterateDelegatorStartingInfos(ctx,
-		func(val sdk.ValAddress, del sdk.AccAddress, info types.DelegatorStartingInfo) (stop bool) {
+		func(val, del sdk.AccAddress, info types.DelegatorStartingInfo) (stop bool) {
 			dels = append(dels, types.DelegatorStartingInfoRecord{
 				ValidatorAddress: val.String(),
 				DelegatorAddress: del.String(),
@@ -219,7 +210,7 @@ func (k Keeper) ExportGenesis(ctx sdk.Context) *types.GenesisState {
 
 	slashes := make([]types.ValidatorSlashEventRecord, 0)
 	k.IterateValidatorSlashEvents(ctx,
-		func(val sdk.ValAddress, height uint64, event types.ValidatorSlashEvent) (stop bool) {
+		func(val sdk.AccAddress, height uint64, event types.ValidatorSlashEvent) (stop bool) {
 			slashes = append(slashes, types.ValidatorSlashEventRecord{
 				ValidatorAddress:    val.String(),
 				Height:              height,

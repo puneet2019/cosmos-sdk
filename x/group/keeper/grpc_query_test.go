@@ -12,7 +12,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
@@ -60,7 +59,6 @@ func initKeeper(t *testing.T) *fixture {
 	for _, addr := range addrs {
 		accountKeeper.EXPECT().GetAccount(gomock.Any(), addr).Return(authtypes.NewBaseAccountWithAddress(addr)).AnyTimes()
 	}
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	// group policy expected calls
 	accountKeeper.EXPECT().GetAccount(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -152,7 +150,7 @@ func TestQueryGroupPolicyInfo(t *testing.T) {
 		{
 			name:      "invalid address",
 			req:       group.QueryGroupPolicyInfoRequest{Address: "invalid address"},
-			expErrMsg: "decoding bech32 failed",
+			expErrMsg: "invalid address",
 		},
 	}
 
@@ -237,7 +235,7 @@ func TestQueryGroupsByAdmin(t *testing.T) {
 		{
 			name:      "invalid address",
 			req:       group.QueryGroupsByAdminRequest{Admin: "invalid address"},
-			expErrMsg: "decoding bech32 failed",
+			expErrMsg: "invalid address",
 		},
 	}
 
@@ -322,7 +320,7 @@ func TestQueryGroupPoliciesByAdmin(t *testing.T) {
 		{
 			name:      "invalid address",
 			req:       group.QueryGroupPoliciesByAdminRequest{Admin: "invalid address"},
-			expErrMsg: "decoding bech32 failed",
+			expErrMsg: "invalid address",
 		},
 	}
 

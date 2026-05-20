@@ -4,9 +4,10 @@ import (
 	"context"
 
 	"cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/x/slashing/types"
 )
@@ -46,7 +47,7 @@ func (k msgServer) UpdateParams(goCtx context.Context, msg *types.MsgUpdateParam
 // Validators must submit a transaction to unjail itself after
 // having been jailed (and thus unbonded) for downtime
 func (k msgServer) Unjail(goCtx context.Context, msg *types.MsgUnjail) (*types.MsgUnjailResponse, error) {
-	valAddr, err := k.sk.ValidatorAddressCodec().StringToBytes(msg.ValidatorAddr)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddr)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("validator input address: %s", err)
 	}
@@ -57,4 +58,44 @@ func (k msgServer) Unjail(goCtx context.Context, msg *types.MsgUnjail) (*types.M
 	}
 
 	return &types.MsgUnjailResponse{}, nil
+}
+
+// Impeach defines a method for removing an existing validator after gov proposal passes.
+func (k msgServer) Impeach(goCtx context.Context, msg *types.MsgImpeach) (*types.MsgImpeachResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	signers := msg.GetSigners()
+	if len(signers) != 1 || !signers[0].Equals(authtypes.NewModuleAddress(govtypes.ModuleName)) {
+		return nil, types.ErrSignerNotGovModule
+	}
+
+	valAddr, err := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	// validator must already be registered
+	validator, err := k.sk.Validator(ctx, valAddr)
+	if err != nil {
+		return nil, err
+	}
+	if validator == nil {
+		return nil, types.ErrNoValidatorForAddress
+	}
+
+	consAddr, err := validator.GetConsAddr()
+	if err != nil {
+		return nil, err
+	}
+
+	// Jail the validator if not already jailed. This will begin unbonding the
+	// validator if not already unbonding (tombstoned).
+	if !validator.IsJailed() {
+		k.Jail(ctx, consAddr)
+	}
+
+	// Jail forever.
+	k.JailForever(ctx, consAddr)
+
+	return &types.MsgImpeachResponse{}, nil
 }

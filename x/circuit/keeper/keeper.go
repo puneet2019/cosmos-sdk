@@ -4,11 +4,11 @@ import (
 	context "context"
 
 	"cosmossdk.io/collections"
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/x/circuit/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // Keeper defines the circuit module's keeper.
@@ -18,8 +18,6 @@ type Keeper struct {
 
 	authority []byte
 
-	addressCodec address.Codec
-
 	Schema collections.Schema
 	// Permissions contains the permissions for each account
 	Permissions collections.Map[[]byte, types.Permissions]
@@ -28,8 +26,8 @@ type Keeper struct {
 }
 
 // NewKeeper constructs a new Circuit Keeper instance
-func NewKeeper(cdc codec.BinaryCodec, storeService store.KVStoreService, authority string, addressCodec address.Codec) Keeper {
-	auth, err := addressCodec.StringToBytes(authority)
+func NewKeeper(cdc codec.BinaryCodec, storeService store.KVStoreService, authority string) Keeper {
+	auth, err := sdk.AccAddressFromHexUnsafe(authority)
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +38,6 @@ func NewKeeper(cdc codec.BinaryCodec, storeService store.KVStoreService, authori
 		cdc:          cdc,
 		storeService: storeService,
 		authority:    auth,
-		addressCodec: addressCodec,
 		Permissions: collections.NewMap(
 			sb,
 			types.AccountPermissionPrefix,

@@ -3,8 +3,6 @@ package nft
 import (
 	context "context"
 
-	"cosmossdk.io/core/address"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -18,5 +16,4 @@ type BankKeeper interface {
 type AccountKeeper interface {
 	GetModuleAddress(name string) sdk.AccAddress
 	GetAccount(ctx context.Context, addr sdk.AccAddress) sdk.AccountI
-	AddressCodec() address.Codec
 }

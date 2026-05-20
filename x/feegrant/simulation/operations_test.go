@@ -19,9 +19,9 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
-	codecaddress "github.com/cosmos/cosmos-sdk/codec/address"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
+	sdktestutil "github.com/cosmos/cosmos-sdk/testutil"
 	"github.com/cosmos/cosmos-sdk/testutil/configurator"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -29,6 +29,7 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/x/auth"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
+	_ "github.com/cosmos/cosmos-sdk/x/authz/module"
 	_ "github.com/cosmos/cosmos-sdk/x/bank"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktestutil "github.com/cosmos/cosmos-sdk/x/bank/testutil"
@@ -59,6 +60,7 @@ func (suite *SimTestSuite) SetupTest() {
 		depinject.Configs(
 			configurator.NewAppConfig(
 				configurator.AuthModule(),
+				configurator.AuthzModule(),
 				configurator.BankModule(),
 				configurator.StakingModule(),
 				configurator.TxModule(),
@@ -79,7 +81,7 @@ func (suite *SimTestSuite) SetupTest() {
 	)
 	suite.Require().NoError(err)
 
-	suite.ctx = suite.app.BaseApp.NewContextLegacy(false, cmtproto.Header{Time: time.Now()})
+	suite.ctx = suite.app.BaseApp.NewContextLegacy(false, cmtproto.Header{ChainID: sdktestutil.DefaultChainId, Time: time.Now()})
 }
 
 func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Account {
@@ -99,14 +101,14 @@ func (suite *SimTestSuite) getTestingAccounts(r *rand.Rand, n int) []simtypes.Ac
 func (suite *SimTestSuite) TestWeightedOperations() {
 	require := suite.Require()
 
-	suite.ctx.WithChainID("test-chain")
+	suite.ctx.WithChainID(sdktestutil.DefaultChainId)
 
 	appParams := make(simtypes.AppParams)
 
 	weightedOps := simulation.WeightedOperations(
 		suite.interfaceRegistry,
 		appParams, suite.cdc, suite.txConfig, suite.accountKeeper,
-		suite.bankKeeper, suite.feegrantKeeper, codecaddress.NewBech32Codec("cosmos"),
+		suite.bankKeeper, suite.feegrantKeeper,
 	)
 
 	s := rand.NewSource(1)
@@ -157,7 +159,7 @@ func (suite *SimTestSuite) TestSimulateMsgGrantAllowance() {
 
 	// execute operation
 	op := simulation.SimulateMsgGrantAllowance(codec.NewProtoCodec(suite.interfaceRegistry), suite.txConfig, suite.accountKeeper, suite.bankKeeper, suite.feegrantKeeper)
-	operationMsg, futureOperations, err := op(r, app.BaseApp, ctx, accounts, "")
+	operationMsg, futureOperations, err := op(r, app.BaseApp, ctx, accounts, sdktestutil.DefaultChainId)
 	require.NoError(err)
 
 	var msg feegrant.MsgGrantAllowance
@@ -198,8 +200,8 @@ func (suite *SimTestSuite) TestSimulateMsgRevokeAllowance() {
 	require.NoError(err)
 
 	// execute operation
-	op := simulation.SimulateMsgRevokeAllowance(codec.NewProtoCodec(suite.interfaceRegistry), suite.txConfig, suite.accountKeeper, suite.bankKeeper, suite.feegrantKeeper, codecaddress.NewBech32Codec("cosmos"))
-	operationMsg, futureOperations, err := op(r, app.BaseApp, ctx, accounts, "")
+	op := simulation.SimulateMsgRevokeAllowance(codec.NewProtoCodec(suite.interfaceRegistry), suite.txConfig, suite.accountKeeper, suite.bankKeeper, suite.feegrantKeeper)
+	operationMsg, futureOperations, err := op(r, app.BaseApp, ctx, accounts, sdktestutil.DefaultChainId)
 	require.NoError(err)
 
 	var msg feegrant.MsgRevokeAllowance

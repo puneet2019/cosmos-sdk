@@ -11,13 +11,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	address "cosmossdk.io/core/address"
 	"cosmossdk.io/errors"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -29,14 +27,14 @@ import (
 )
 
 // GenTxCmd builds the application's gentx command.
-func GenTxCmd(mbm module.BasicManager, txEncCfg client.TxEncodingConfig, genBalIterator types.GenesisBalancesIterator, defaultNodeHome string, valAdddressCodec address.Codec) *cobra.Command {
+func GenTxCmd(mbm module.BasicManager, txEncCfg client.TxEncodingConfig, genBalIterator types.GenesisBalancesIterator, defaultNodeHome string) *cobra.Command {
 	ipDefault, _ := server.ExternalIP()
 	fsCreateValidator, defaultsDesc := cli.CreateValidatorMsgFlagSet(ipDefault)
 
 	cmd := &cobra.Command{
-		Use:   "gentx [key_name] [amount]",
+		Use:   "gentx [key_name] [amount] [validator] [delegator] [relayer] [challenger] [blskey] [blsProof]",
 		Short: "Generate a genesis tx carrying a self delegation",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(8),
 		Long: fmt.Sprintf(`Generate a genesis transaction that creates a validator with a self-delegation,
 that is signed by the key in the Keyring referenced by a given name. A node ID and consensus
 pubkey may optionally be provided. If they are omitted, they will be retrieved from the priv_validator.json
@@ -44,7 +42,13 @@ file. The following default parameters are included:
     %s
 
 Example:
-$ %s gentx my-key-name 1000000stake --home=/path/to/home/dir --keyring-backend=os --chain-id=test-chain-1 \
+$ %s gentx my-key-name 1000000stake \
+	0x6D967dc83b625603c963713eABd5B43A281E595e \
+	0x6D967dc83b625603c963713eABd5B43A281E595e \
+	0xcdd393723f1Af81faa3F3c87B51dAB72B6c68154 \
+	ac1e598ae0ccbeeaafa31bc6faefa85c2ae3138699cac79169cd718f1a38445201454ec092a86f200e08a15266bdc6e9 \
+	b68b819c2d431bd8ea800326bbcd91bbbbec5404b8f456b23c87de368c7f48507e7be120f32354ebf3df38c2b5808cebd4c07254f0b4626007c6d46fc05b260901 \
+	--home=/path/to/home/dir --keyring-backend=os --chain-id=moca_1000000-1 \
     --moniker="myvalidator" \
     --commission-max-change-rate=0.01 \
     --commission-max-rate=1.0 \
@@ -99,7 +103,7 @@ $ %s gentx my-key-name 1000000stake --home=/path/to/home/dir --keyring-backend=o
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 
 			name := args[0]
-			key, err := clientCtx.Keyring.Key(name)
+			_, err = clientCtx.Keyring.Key(name)
 			if err != nil {
 				return errors.Wrapf(err, "failed to fetch '%s' from the keyring", name)
 			}
@@ -120,11 +124,32 @@ $ %s gentx my-key-name 1000000stake --home=/path/to/home/dir --keyring-backend=o
 			if err != nil {
 				return errors.Wrap(err, "failed to parse coins")
 			}
-			addr, err := key.GetAddress()
+			validator, err := sdk.AccAddressFromHexUnsafe(args[2])
 			if err != nil {
 				return err
 			}
-			err = genutil.ValidateAccountInGenesis(genesisState, genBalIterator, addr, coins, cdc)
+			delegator, err := sdk.AccAddressFromHexUnsafe(args[3])
+			if err != nil {
+				return err
+			}
+			relayer, err := sdk.AccAddressFromHexUnsafe(args[4])
+			if err != nil {
+				return err
+			}
+			challenger, err := sdk.AccAddressFromHexUnsafe(args[5])
+			if err != nil {
+				return err
+			}
+			blsPk := args[6]
+			if len(blsPk) != 2*sdk.BLSPubKeyLength {
+				return fmt.Errorf("invalid bls pubkey")
+			}
+			blsProof := args[7]
+			if len(blsProof) != 2*sdk.BLSSignatureLength {
+				return fmt.Errorf("invalid bls proof, len: %d", len(blsProof))
+			}
+
+			err = genutil.ValidateAccountInGenesis(genesisState, genBalIterator, delegator, coins, cdc)
 			if err != nil {
 				return errors.Wrap(err, "failed to validate account in genesis")
 			}
@@ -134,11 +159,7 @@ $ %s gentx my-key-name 1000000stake --home=/path/to/home/dir --keyring-backend=o
 				return err
 			}
 
-			pub, err := key.GetAddress()
-			if err != nil {
-				return err
-			}
-			clientCtx = clientCtx.WithInput(inBuf).WithFromAddress(pub)
+			clientCtx = clientCtx.WithInput(inBuf).WithFromAddress(delegator)
 
 			// The following line comes from a discrepancy between the `gentx`
 			// and `create-validator` commands:
@@ -152,16 +173,17 @@ $ %s gentx my-key-name 1000000stake --home=/path/to/home/dir --keyring-backend=o
 			// config file instead of so many flags.
 			// ref: https://github.com/cosmos/cosmos-sdk/issues/8177
 			createValCfg.Amount = amount
+			createValCfg.Validator = validator
+			createValCfg.Delegator = delegator
+			createValCfg.Relayer = relayer
+			createValCfg.Challenger = challenger
+			createValCfg.BlsKey = blsPk
+			createValCfg.BLSProof = blsProof
 
 			// create a 'create-validator' message
-			txBldr, msg, err := cli.BuildCreateValidatorMsg(clientCtx, createValCfg, txFactory, true, valAdddressCodec)
+			txBldr, msg, err := cli.BuildCreateValidatorMsg(clientCtx, createValCfg, txFactory, true)
 			if err != nil {
 				return errors.Wrap(err, "failed to build create-validator message")
-			}
-
-			if key.GetType() == keyring.TypeOffline || key.GetType() == keyring.TypeMulti {
-				cmd.PrintErrln("Offline key passed in. Use `tx sign` command to sign.")
-				return txBldr.PrintUnsignedTx(clientCtx, msg)
 			}
 
 			// write the unsigned transaction to the buffer

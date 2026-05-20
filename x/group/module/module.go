@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 
 	modulev1 "cosmossdk.io/api/cosmos/group/module/v1"
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/depinject"
 	store "cosmossdk.io/store/types"
@@ -52,7 +51,7 @@ type AppModule struct {
 // NewAppModule creates a new AppModule object
 func NewAppModule(cdc codec.Codec, keeper keeper.Keeper, ak group.AccountKeeper, bk group.BankKeeper, registry cdctypes.InterfaceRegistry) AppModule {
 	return AppModule{
-		AppModuleBasic: AppModuleBasic{cdc: cdc, ac: ak.AddressCodec()},
+		AppModuleBasic: AppModuleBasic{cdc: cdc},
 		keeper:         keeper,
 		bankKeeper:     bk,
 		accKeeper:      ak,
@@ -68,7 +67,6 @@ func (am AppModule) IsAppModule() {}
 
 type AppModuleBasic struct {
 	cdc codec.Codec
-	ac  address.Codec
 }
 
 // Name returns the group module's name.
@@ -93,7 +91,7 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, config sdkclient.TxEn
 
 // GetTxCmd returns the transaction commands for the group module
 func (a AppModuleBasic) GetTxCmd() *cobra.Command {
-	return cli.TxCmd(a.Name(), a.ac)
+	return cli.TxCmd(a.Name())
 }
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the group module.

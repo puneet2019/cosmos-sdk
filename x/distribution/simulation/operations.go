@@ -137,7 +137,7 @@ func SimulateMsgWithdrawDelegatorReward(txConfig client.TxConfig, ak types.Accou
 
 		delegation := delegations[r.Intn(len(delegations))]
 
-		delAddr, err := sk.ValidatorAddressCodec().StringToBytes(delegation.GetValidatorAddr())
+		delAddr, err := sdk.AccAddressFromHexUnsafe(delegation.GetValidatorAddr())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, sdk.MsgTypeURL(&types.MsgWithdrawDelegatorReward{}), "error converting validator address"), nil, err
 		}
@@ -189,7 +189,7 @@ func SimulateMsgWithdrawValidatorCommission(txConfig client.TxConfig, ak types.A
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "random validator is not ok"), nil, nil
 		}
 
-		valBz, err := sk.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+		valBz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 		if err != nil {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "error converting validator address"), nil, err
 		}
@@ -204,7 +204,7 @@ func SimulateMsgWithdrawValidatorCommission(txConfig client.TxConfig, ak types.A
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "validator commission is zero"), nil, nil
 		}
 
-		simAccount, found := simtypes.FindAccount(accs, sdk.AccAddress(valBz))
+		simAccount, found := simtypes.FindAccount(accs, valBz)
 		if !found {
 			return simtypes.NoOpMsg(types.ModuleName, msgType, "could not find account"), nil, fmt.Errorf("validator %s not found", validator.GetOperator())
 		}

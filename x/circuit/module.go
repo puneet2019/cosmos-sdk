@@ -8,7 +8,6 @@ import (
 	gwruntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	modulev1 "cosmossdk.io/api/cosmos/circuit/module/v1"
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/depinject"
@@ -135,8 +134,6 @@ type ModuleInputs struct {
 	Config       *modulev1.Module
 	Cdc          codec.Codec
 	StoreService store.KVStoreService
-
-	AddressCodec address.Codec
 }
 
 type ModuleOutputs struct {
@@ -158,7 +155,6 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		in.Cdc,
 		in.StoreService,
 		authority.String(),
-		in.AddressCodec,
 	)
 	m := NewAppModule(in.Cdc, circuitkeeper)
 

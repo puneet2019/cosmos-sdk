@@ -13,13 +13,13 @@ import (
 
 func CreateValidator(pk cryptotypes.PubKey, stake math.Int) (stakingtypes.Validator, error) {
 	valConsAddr := sdk.GetConsAddress(pk)
-	val, err := stakingtypes.NewValidator(sdk.ValAddress(valConsAddr).String(), pk, stakingtypes.Description{Moniker: "TestValidator"})
+	val, err := stakingtypes.NewSimpleValidator(sdk.AccAddress(valConsAddr).String(), pk, stakingtypes.Description{Moniker: "TestValidator"})
 	val.Tokens = stake
 	val.DelegatorShares = math.LegacyNewDecFromInt(val.Tokens)
 	return val, err
 }
 
-func CallCreateValidatorHooks(ctx sdk.Context, k keeper.Keeper, addr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func CallCreateValidatorHooks(ctx sdk.Context, k keeper.Keeper, addr, valAddr sdk.AccAddress) error {
 	err := k.Hooks().AfterValidatorCreated(ctx, valAddr)
 	if err != nil {
 		return err
@@ -55,7 +55,7 @@ func SlashValidator(
 		panic(fmt.Errorf("attempted to slash with a negative slash factor: %v", slashFactor))
 	}
 
-	valBz, err := sk.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+	valBz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		panic(err)
 	}
@@ -117,7 +117,7 @@ func Delegate(
 	updatedDel stakingtypes.Delegation,
 	err error,
 ) {
-	valBz, err := sk.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+	valBz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	if err != nil {
 		return math.LegacyZeroDec(), stakingtypes.Delegation{}, err
 	}

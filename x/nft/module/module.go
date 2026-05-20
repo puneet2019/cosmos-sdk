@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc"
 
 	modulev1 "cosmossdk.io/api/cosmos/nft/module/v1"
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/depinject"
@@ -37,7 +36,6 @@ var (
 // AppModuleBasic defines the basic application module used by the nft module.
 type AppModuleBasic struct {
 	cdc codec.Codec
-	ac  address.Codec
 }
 
 // Name returns the nft module's name.
@@ -74,7 +72,7 @@ func (ab AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, config sdkclient.T
 		return errors.Wrapf(err, "failed to unmarshal %s genesis state", nft.ModuleName)
 	}
 
-	return nft.ValidateGenesis(data, ab.ac)
+	return nft.ValidateGenesis(data)
 }
 
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the nft module.
@@ -97,7 +95,7 @@ type AppModule struct {
 // NewAppModule creates a new AppModule object
 func NewAppModule(cdc codec.Codec, keeper keeper.Keeper, ak nft.AccountKeeper, bk nft.BankKeeper, registry cdctypes.InterfaceRegistry) AppModule {
 	return AppModule{
-		AppModuleBasic: AppModuleBasic{cdc: cdc, ac: ak.AddressCodec()},
+		AppModuleBasic: AppModuleBasic{cdc: cdc},
 		keeper:         keeper,
 		accountKeeper:  ak,
 		bankKeeper:     bk,
@@ -135,7 +133,7 @@ func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // GenerateGenesisState creates a randomized GenState of the nft module.
 func (am AppModule) GenerateGenesisState(simState *module.SimulationState) {
-	simulation.RandomizedGenState(simState, am.accountKeeper.AddressCodec())
+	simulation.RandomizedGenState(simState)
 }
 
 // RegisterStoreDecoder registers a decoder for nft module's types

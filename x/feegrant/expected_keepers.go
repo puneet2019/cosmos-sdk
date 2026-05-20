@@ -3,15 +3,11 @@ package feegrant
 import (
 	"context"
 
-	"cosmossdk.io/core/address"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // AccountKeeper defines the expected auth Account Keeper (noalias)
 type AccountKeeper interface {
-	AddressCodec() address.Codec
-
 	GetModuleAddress(moduleName string) sdk.AccAddress
 	GetModuleAccount(ctx context.Context, moduleName string) sdk.ModuleAccountI
 

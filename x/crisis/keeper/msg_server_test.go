@@ -9,7 +9,6 @@ import (
 	sdkmath "cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil"
@@ -38,7 +37,7 @@ func (s *KeeperTestSuite) SetupTest() {
 	storeService := runtime.NewKVStoreService(key)
 	testCtx := testutil.DefaultContextWithDB(s.T(), key, storetypes.NewTransientStoreKey("transient_test"))
 	encCfg := moduletestutil.MakeTestEncodingConfig(crisis.AppModuleBasic{})
-	keeper := keeper.NewKeeper(encCfg.Codec, storeService, 5, supplyKeeper, "", sdk.AccAddress([]byte("addr1_______________")).String(), addresscodec.NewBech32Codec("cosmos"))
+	keeper := keeper.NewKeeper(encCfg.Codec, storeService, 5, supplyKeeper, "", sdk.AccAddress([]byte("addr1_______________")).String())
 
 	s.ctx = testCtx.Ctx
 	s.keeper = keeper
@@ -74,7 +73,7 @@ func (s *KeeperTestSuite) TestMsgVerifyInvariant() {
 				InvariantRoute:      "total-supply",
 			},
 			expErr:    true,
-			expErrMsg: "empty address string is not allowed",
+			expErrMsg: "empty address",
 		},
 		{
 			name: "invalid sender address",
@@ -84,7 +83,7 @@ func (s *KeeperTestSuite) TestMsgVerifyInvariant() {
 				InvariantRoute:      "total-supply",
 			},
 			expErr:    true,
-			expErrMsg: "decoding bech32 failed",
+			expErrMsg: "invalid address hex length",
 		},
 		{
 			name: "unregistered invariant route",

@@ -10,7 +10,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -46,7 +45,7 @@ func (s *GenesisTestSuite) SetupTest() {
 
 	supplyKeeper := crisistestutil.NewMockSupplyKeeper(ctrl)
 
-	s.keeper = *keeper.NewKeeper(s.cdc, storeService, 5, supplyKeeper, "", "", addresscodec.NewBech32Codec("cosmos"))
+	s.keeper = *keeper.NewKeeper(s.cdc, storeService, 5, supplyKeeper, "", "")
 }
 
 func (s *GenesisTestSuite) TestImportExportGenesis() {

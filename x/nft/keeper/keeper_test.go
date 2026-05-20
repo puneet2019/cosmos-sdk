@@ -15,7 +15,6 @@ import (
 	nfttestutil "cosmossdk.io/x/nft/testutil"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
@@ -63,11 +62,9 @@ func (s *TestSuite) SetupTest() {
 	accountKeeper := nfttestutil.NewMockAccountKeeper(ctrl)
 	bankKeeper := nfttestutil.NewMockBankKeeper(ctrl)
 	accountKeeper.EXPECT().GetModuleAddress("nft").Return(s.addrs[0]).AnyTimes()
-	accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	for _, addr := range s.addrs {
-		st, err := accountKeeper.AddressCodec().BytesToString(addr.Bytes())
-		s.Require().NoError(err)
+		st := sdk.AccAddress(addr.Bytes()).String()
 		s.encodedAddrs = append(s.encodedAddrs, st)
 	}
 

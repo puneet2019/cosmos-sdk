@@ -15,7 +15,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/server"
@@ -97,7 +96,7 @@ func TestAddGenesisAccountCmd(t *testing.T) {
 			ctx = context.WithValue(ctx, client.ClientContextKey, &clientCtx)
 			ctx = context.WithValue(ctx, server.ServerContextKey, serverCtx)
 
-			cmd := genutilcli.AddGenesisAccountCmd(home, addresscodec.NewBech32Codec("cosmos"))
+			cmd := genutilcli.AddGenesisAccountCmd(home)
 			cmd.SetArgs([]string{
 				tc.addr,
 				tc.denom,
@@ -230,7 +229,7 @@ func TestBulkAddGenesisAccountCmd(t *testing.T) {
 				err = os.WriteFile(filePath, bz, 0o600)
 				require.NoError(t, err)
 
-				cmd := genutilcli.AddBulkGenesisAccountCmd(home, addresscodec.NewBech32Codec("cosmos"))
+				cmd := genutilcli.AddBulkGenesisAccountCmd(home)
 				args := []string{filePath}
 				if tc.appendFlag {
 					args = append(args, "--append")

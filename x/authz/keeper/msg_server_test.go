@@ -1,13 +1,13 @@
 package keeper_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang/mock/gomock"
 
 	sdkmath "cosmossdk.io/math"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -17,6 +17,7 @@ import (
 
 func (suite *TestSuite) createAccounts(accs int) []sdk.AccAddress {
 	addrs := simtestutil.CreateIncrementalAccounts(2)
+	fmt.Println(suite.addrs[0].String())
 	suite.accountKeeper.EXPECT().GetAccount(gomock.Any(), suite.addrs[0]).Return(authtypes.NewBaseAccountWithAddress(suite.addrs[0])).AnyTimes()
 	suite.accountKeeper.EXPECT().GetAccount(gomock.Any(), suite.addrs[1]).Return(authtypes.NewBaseAccountWithAddress(suite.addrs[1])).AnyTimes()
 	return addrs
@@ -26,8 +27,6 @@ func (suite *TestSuite) TestGrant() {
 	ctx := suite.ctx.WithBlockTime(time.Now())
 	addrs := suite.createAccounts(2)
 	curBlockTime := ctx.BlockTime()
-
-	suite.accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	oneHour := curBlockTime.Add(time.Hour)
 	oneYear := curBlockTime.AddDate(1, 0, 0)
@@ -68,7 +67,7 @@ func (suite *TestSuite) TestGrant() {
 				}
 			},
 			expErr: true,
-			errMsg: "invalid bech32 string",
+			errMsg: "invalid address hex length",
 		},
 		{
 			name: "invalid grantee",
@@ -82,7 +81,7 @@ func (suite *TestSuite) TestGrant() {
 				}
 			},
 			expErr: true,
-			errMsg: "invalid bech32 string",
+			errMsg: "invalid address hex length",
 		},
 		{
 			name: "invalid grant",
@@ -119,7 +118,7 @@ func (suite *TestSuite) TestGrant() {
 		{
 			name: "grantee account does not exist on chain: valid grant",
 			malleate: func() *authz.MsgGrant {
-				newAcc := sdk.AccAddress("valid")
+				newAcc, _ := sdk.AccAddressFromHexUnsafe(sdk.AccAddress("valid").String())
 				suite.accountKeeper.EXPECT().GetAccount(gomock.Any(), newAcc).Return(nil).AnyTimes()
 				acc := authtypes.NewBaseAccountWithAddress(newAcc)
 				suite.accountKeeper.EXPECT().NewAccountWithAddress(gomock.Any(), newAcc).Return(acc).AnyTimes()
@@ -239,7 +238,7 @@ func (suite *TestSuite) TestRevoke() {
 				}
 			},
 			expErr: true,
-			errMsg: "invalid bech32 string",
+			errMsg: "invalid address hex length",
 		},
 		{
 			name: "invalid grantee",
@@ -251,7 +250,7 @@ func (suite *TestSuite) TestRevoke() {
 				}
 			},
 			expErr: true,
-			errMsg: "invalid bech32 string",
+			errMsg: "invalid address hex length",
 		},
 		{
 			name: "no msg given",
@@ -328,7 +327,7 @@ func (suite *TestSuite) TestExec() {
 				return authz.NewMsgExec(sdk.AccAddress{}, []sdk.Msg{msg})
 			},
 			expErr: true,
-			errMsg: "empty address string is not allowed",
+			errMsg: "empty address",
 		},
 		{
 			name: "non existing grant",

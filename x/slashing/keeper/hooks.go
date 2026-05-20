@@ -25,7 +25,7 @@ func (k Keeper) Hooks() Hooks {
 }
 
 // AfterValidatorBonded updates the signing info start height or create a new signing info
-func (h Hooks) AfterValidatorBonded(ctx context.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) error {
+func (h Hooks) AfterValidatorBonded(ctx context.Context, consAddr sdk.ConsAddress, valAddr sdk.AccAddress) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	signingInfo, err := h.k.GetValidatorSigningInfo(ctx, consAddr)
 	if err == nil {
@@ -45,12 +45,12 @@ func (h Hooks) AfterValidatorBonded(ctx context.Context, consAddr sdk.ConsAddres
 }
 
 // AfterValidatorRemoved deletes the address-pubkey relation when a validator is removed,
-func (h Hooks) AfterValidatorRemoved(ctx context.Context, consAddr sdk.ConsAddress, _ sdk.ValAddress) error {
+func (h Hooks) AfterValidatorRemoved(ctx context.Context, consAddr sdk.ConsAddress, _ sdk.AccAddress) error {
 	return h.k.deleteAddrPubkeyRelation(ctx, crypto.Address(consAddr))
 }
 
 // AfterValidatorCreated adds the address-pubkey relation when a validator is created.
-func (h Hooks) AfterValidatorCreated(ctx context.Context, valAddr sdk.ValAddress) error {
+func (h Hooks) AfterValidatorCreated(ctx context.Context, valAddr sdk.AccAddress) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	validator, err := h.k.sk.Validator(ctx, valAddr)
 	if err != nil {
@@ -65,31 +65,31 @@ func (h Hooks) AfterValidatorCreated(ctx context.Context, valAddr sdk.ValAddress
 	return h.k.AddPubkey(sdkCtx, consPk)
 }
 
-func (h Hooks) AfterValidatorBeginUnbonding(_ context.Context, _ sdk.ConsAddress, _ sdk.ValAddress) error {
+func (h Hooks) AfterValidatorBeginUnbonding(_ context.Context, _ sdk.ConsAddress, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) BeforeValidatorModified(_ context.Context, _ sdk.ValAddress) error {
+func (h Hooks) BeforeValidatorModified(_ context.Context, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) BeforeDelegationCreated(_ context.Context, _ sdk.AccAddress, _ sdk.ValAddress) error {
+func (h Hooks) BeforeDelegationCreated(_ context.Context, _, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) BeforeDelegationSharesModified(_ context.Context, _ sdk.AccAddress, _ sdk.ValAddress) error {
+func (h Hooks) BeforeDelegationSharesModified(_ context.Context, _, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) BeforeDelegationRemoved(_ context.Context, _ sdk.AccAddress, _ sdk.ValAddress) error {
+func (h Hooks) BeforeDelegationRemoved(_ context.Context, _, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) AfterDelegationModified(_ context.Context, _ sdk.AccAddress, _ sdk.ValAddress) error {
+func (h Hooks) AfterDelegationModified(_ context.Context, _, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) BeforeValidatorSlashed(_ context.Context, _ sdk.ValAddress, _ sdkmath.LegacyDec) error {
+func (h Hooks) BeforeValidatorSlashed(_ context.Context, _ sdk.AccAddress, _ sdkmath.LegacyDec) error {
 	return nil
 }
 

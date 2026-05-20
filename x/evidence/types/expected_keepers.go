@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/comet"
 	"cosmossdk.io/math"
 
@@ -17,7 +16,6 @@ type (
 	// StakingKeeper defines the staking module interface contract needed by the
 	// evidence module.
 	StakingKeeper interface {
-		ConsensusAddressCodec() address.Codec
 		ValidatorByConsAddr(context.Context, sdk.ConsAddress) (stakingtypes.ValidatorI, error)
 		GetParams(ctx context.Context) (params stakingtypes.Params, err error)
 	}
@@ -43,9 +41,9 @@ type (
 
 	// BankKeeper define the account keeper interface contracted needed by the evidence module
 	BankKeeper interface {
-		MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) error
-		SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
-		GetAllBalances(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins
+		MintCoins(ctx context.Context, moduleName string, amt sdk.Coins) error
+		SendCoinsFromModuleToAccount(ctx context.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
+		GetAllBalances(ctx context.Context, addr sdk.AccAddress) sdk.Coins
 	}
 
 	Cometinfo interface {

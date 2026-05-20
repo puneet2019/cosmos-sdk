@@ -3,7 +3,6 @@ package simulation
 import (
 	"math/rand"
 
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/x/nft"
 
 	"github.com/cosmos/cosmos-sdk/types/module"
@@ -12,6 +11,9 @@ import (
 
 // genClasses returns a slice of nft class.
 func genClasses(r *rand.Rand, accounts []simtypes.Account) []*nft.Class {
+	if len(accounts) < 1 {
+		return make([]*nft.Class, 0)
+	}
 	classes := make([]*nft.Class, len(accounts)-1)
 	for i := 0; i < len(accounts)-1; i++ {
 		classes[i] = &nft.Class{
@@ -26,16 +28,12 @@ func genClasses(r *rand.Rand, accounts []simtypes.Account) []*nft.Class {
 }
 
 // genNFT returns a slice of nft.
-func genNFT(r *rand.Rand, classID string, accounts []simtypes.Account, ac address.Codec) []*nft.Entry {
+func genNFT(r *rand.Rand, classID string, accounts []simtypes.Account) []*nft.Entry {
 	entries := make([]*nft.Entry, len(accounts)-1)
 	for i := 0; i < len(accounts)-1; i++ {
 		owner := accounts[i]
-		oast, err := ac.BytesToString(owner.Address.Bytes())
-		if err != nil {
-			panic(err)
-		}
 		entries[i] = &nft.Entry{
-			Owner: oast,
+			Owner: owner.Address.String(),
 			Nfts: []*nft.NFT{
 				{
 					ClassId: classID,
@@ -49,7 +47,7 @@ func genNFT(r *rand.Rand, classID string, accounts []simtypes.Account, ac addres
 }
 
 // RandomizedGenState generates a random GenesisState for nft.
-func RandomizedGenState(simState *module.SimulationState, ac address.Codec) {
+func RandomizedGenState(simState *module.SimulationState) {
 	var classes []*nft.Class
 	simState.AppParams.GetOrGenerate(
 		"nft", &classes, simState.Rand,
@@ -61,7 +59,7 @@ func RandomizedGenState(simState *module.SimulationState, ac address.Codec) {
 		"nft", &entries, simState.Rand,
 		func(r *rand.Rand) {
 			class := classes[r.Int63n(int64(len(classes)))]
-			entries = genNFT(r, class.Id, simState.Accounts, ac)
+			entries = genNFT(r, class.Id, simState.Accounts)
 		},
 	)
 

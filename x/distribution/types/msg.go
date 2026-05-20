@@ -28,10 +28,22 @@ func NewMsgWithdrawDelegatorReward(delAddr, valAddr string) *MsgWithdrawDelegato
 	}
 }
 
+// Return address that must sign over msg.GetSignBytes()
+func (msg MsgWithdrawDelegatorReward) GetSigners() []sdk.AccAddress {
+	delegator, _ := sdk.AccAddressFromHexUnsafe(msg.DelegatorAddress)
+	return []sdk.AccAddress{delegator}
+}
+
 func NewMsgWithdrawValidatorCommission(valAddr string) *MsgWithdrawValidatorCommission {
 	return &MsgWithdrawValidatorCommission{
 		ValidatorAddress: valAddr,
 	}
+}
+
+// Return address that must sign over msg.GetSignBytes()
+func (msg MsgWithdrawValidatorCommission) GetSigners() []sdk.AccAddress {
+	valAddr, _ := sdk.AccAddressFromHexUnsafe(msg.ValidatorAddress)
+	return []sdk.AccAddress{valAddr}
 }
 
 // NewMsgFundCommunityPool returns a new MsgFundCommunityPool with a sender and

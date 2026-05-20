@@ -8,7 +8,7 @@ import (
 )
 
 // get outstanding rewards
-func (k Keeper) GetValidatorOutstandingRewardsCoins(ctx context.Context, val sdk.ValAddress) (sdk.DecCoins, error) {
+func (k Keeper) GetValidatorOutstandingRewardsCoins(ctx context.Context, val sdk.AccAddress) (sdk.DecCoins, error) {
 	rewards, err := k.GetValidatorOutstandingRewards(ctx, val)
 	if err != nil {
 		return nil, err

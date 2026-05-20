@@ -9,9 +9,9 @@ import (
 	"cosmossdk.io/collections"
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/x/circuit/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 type msgServer struct {
@@ -27,7 +27,7 @@ func NewMsgServerImpl(keeper Keeper) types.MsgServer {
 }
 
 func (srv msgServer) AuthorizeCircuitBreaker(ctx context.Context, msg *types.MsgAuthorizeCircuitBreaker) (*types.MsgAuthorizeCircuitBreakerResponse, error) {
-	address, err := srv.addressCodec.StringToBytes(msg.Granter)
+	address, err := sdk.AccAddressFromHexUnsafe(msg.Granter)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (srv msgServer) AuthorizeCircuitBreaker(ctx context.Context, msg *types.Msg
 		}
 	}
 
-	grantee, err := srv.addressCodec.StringToBytes(msg.Grantee)
+	grantee, err := sdk.AccAddressFromHexUnsafe(msg.Grantee)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (srv msgServer) AuthorizeCircuitBreaker(ctx context.Context, msg *types.Msg
 }
 
 func (srv msgServer) TripCircuitBreaker(ctx context.Context, msg *types.MsgTripCircuitBreaker) (*types.MsgTripCircuitBreakerResponse, error) {
-	address, err := srv.addressCodec.StringToBytes(msg.Authority)
+	address, err := sdk.AccAddressFromHexUnsafe(msg.Authority)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (srv msgServer) TripCircuitBreaker(ctx context.Context, msg *types.MsgTripC
 // have been been paused using TripCircuitBreaker.
 func (srv msgServer) ResetCircuitBreaker(ctx context.Context, msg *types.MsgResetCircuitBreaker) (*types.MsgResetCircuitBreakerResponse, error) {
 	keeper := srv.Keeper
-	address, err := srv.addressCodec.StringToBytes(msg.Authority)
+	address, err := sdk.AccAddressFromHexUnsafe(msg.Authority)
 	if err != nil {
 		return nil, err
 	}

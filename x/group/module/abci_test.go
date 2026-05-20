@@ -9,16 +9,15 @@ import (
 	cmttime "github.com/cometbft/cometbft/types/time"
 	"github.com/stretchr/testify/suite"
 
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
 
-	codecaddress "github.com/cosmos/cosmos-sdk/codec/address"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -37,10 +36,9 @@ type IntegrationTestSuite struct {
 	addrs             []sdk.AccAddress
 	groupKeeper       keeper.Keeper
 	bankKeeper        bankkeeper.Keeper
+	authzKeeper       authzkeeper.Keeper
 	stakingKeeper     *stakingkeeper.Keeper
 	interfaceRegistry codectypes.InterfaceRegistry
-
-	addressCodec address.Codec
 }
 
 func TestIntegrationTestSuite(t *testing.T) {
@@ -55,6 +53,7 @@ func (s *IntegrationTestSuite) SetupTest() {
 		),
 		&s.interfaceRegistry,
 		&s.bankKeeper,
+		&s.authzKeeper,
 		&s.stakingKeeper,
 		&s.groupKeeper,
 	)
@@ -67,8 +66,6 @@ func (s *IntegrationTestSuite) SetupTest() {
 	s.ctx = ctx
 
 	s.addrs = simtestutil.AddTestAddrsIncremental(s.bankKeeper, s.stakingKeeper, ctx, 4, math.NewInt(30000000))
-
-	s.addressCodec = codecaddress.NewBech32Codec("cosmos")
 }
 
 func (s *IntegrationTestSuite) TestEndBlockerPruning() {
@@ -77,8 +74,7 @@ func (s *IntegrationTestSuite) TestEndBlockerPruning() {
 	addr2 := s.addrs[1]
 	addr3 := s.addrs[2]
 
-	addr1st, err := s.addressCodec.BytesToString(addr1)
-	s.Require().NoError(err)
+	addr1st := sdk.AccAddress(addr1).String()
 
 	// Initial group, group policy and balance setup
 	members := []group.MemberRequest{
@@ -132,11 +128,11 @@ func (s *IntegrationTestSuite) TestEndBlockerPruning() {
 	policyRes2, err := s.groupKeeper.CreateGroupPolicy(ctx, policyReq2)
 	s.Require().NoError(err)
 
-	groupPolicyAddr, err := s.addressCodec.StringToBytes(policyRes.Address)
+	groupPolicyAddr, err := sdk.AccAddressFromHexUnsafe(policyRes.Address)
 	s.Require().NoError(err)
 	s.Require().NoError(testutil.FundAccount(ctx, s.bankKeeper, groupPolicyAddr, sdk.Coins{sdk.NewInt64Coin("test", 10000)}))
 
-	groupPolicyAddr2, err := s.addressCodec.StringToBytes(policyRes2.Address)
+	groupPolicyAddr2, err := sdk.AccAddressFromHexUnsafe(policyRes2.Address)
 	s.Require().NoError(err)
 	s.Require().NoError(testutil.FundAccount(ctx, s.bankKeeper, groupPolicyAddr2, sdk.Coins{sdk.NewInt64Coin("test", 10000)}))
 
@@ -407,7 +403,7 @@ func (s *IntegrationTestSuite) TestEndBlockerTallying() {
 	policyRes, err := s.groupKeeper.CreateGroupPolicy(ctx, policyReq)
 	s.Require().NoError(err)
 
-	groupPolicyAddr, err := s.addressCodec.StringToBytes(policyRes.Address)
+	groupPolicyAddr, err := sdk.AccAddressFromHexUnsafe(policyRes.Address)
 	s.Require().NoError(err)
 
 	votingPeriod := policy.GetVotingPeriod()

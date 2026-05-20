@@ -33,12 +33,12 @@ func (k msgServer) GrantAllowance(goCtx context.Context, msg *feegrant.MsgGrantA
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	grantee, err := k.authKeeper.AddressCodec().StringToBytes(msg.Grantee)
+	grantee, err := sdk.AccAddressFromHexUnsafe(msg.Grantee)
 	if err != nil {
 		return nil, err
 	}
 
-	granter, err := k.authKeeper.AddressCodec().StringToBytes(msg.Granter)
+	granter, err := sdk.AccAddressFromHexUnsafe(msg.Granter)
 	if err != nil {
 		return nil, err
 	}
@@ -72,12 +72,12 @@ func (k msgServer) RevokeAllowance(goCtx context.Context, msg *feegrant.MsgRevok
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
-	grantee, err := k.authKeeper.AddressCodec().StringToBytes(msg.Grantee)
+	grantee, err := sdk.AccAddressFromHexUnsafe(msg.Grantee)
 	if err != nil {
 		return nil, err
 	}
 
-	granter, err := k.authKeeper.AddressCodec().StringToBytes(msg.Granter)
+	granter, err := sdk.AccAddressFromHexUnsafe(msg.Granter)
 	if err != nil {
 		return nil, err
 	}

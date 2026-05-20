@@ -7,11 +7,11 @@ import (
 	"cosmossdk.io/collections"
 	"cosmossdk.io/core/store"
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
 
@@ -104,7 +104,7 @@ func (k Keeper) SetWithdrawAddr(ctx context.Context, delegatorAddr, withdrawAddr
 }
 
 // withdraw rewards from a delegation
-func (k Keeper) WithdrawDelegationRewards(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (sdk.Coins, error) {
+func (k Keeper) WithdrawDelegationRewards(ctx context.Context, delAddr, valAddr sdk.AccAddress) (sdk.Coins, error) {
 	val, err := k.stakingKeeper.Validator(ctx, valAddr)
 	if err != nil {
 		return nil, err
@@ -138,7 +138,7 @@ func (k Keeper) WithdrawDelegationRewards(ctx context.Context, delAddr sdk.AccAd
 }
 
 // withdraw validator commission
-func (k Keeper) WithdrawValidatorCommission(ctx context.Context, valAddr sdk.ValAddress) (sdk.Coins, error) {
+func (k Keeper) WithdrawValidatorCommission(ctx context.Context, valAddr sdk.AccAddress) (sdk.Coins, error) {
 	// fetch validator accumulated commission
 	accumCommission, err := k.GetValidatorAccumulatedCommission(ctx, valAddr)
 	if err != nil {
@@ -164,7 +164,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx context.Context, valAddr sdk.Val
 	}
 
 	if !commission.IsZero() {
-		accAddr := sdk.AccAddress(valAddr)
+		accAddr := valAddr
 		withdrawAddr, err := k.GetDelegatorWithdrawAddr(ctx, accAddr)
 		if err != nil {
 			return nil, err
@@ -190,7 +190,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx context.Context, valAddr sdk.Val
 // GetTotalRewards returns the total amount of fee distribution rewards held in the store
 func (k Keeper) GetTotalRewards(ctx context.Context) (totalRewards sdk.DecCoins) {
 	k.IterateValidatorOutstandingRewards(ctx,
-		func(_ sdk.ValAddress, rewards types.ValidatorOutstandingRewards) (stop bool) {
+		func(_ sdk.AccAddress, rewards types.ValidatorOutstandingRewards) (stop bool) {
 			totalRewards = totalRewards.Add(rewards.Rewards...)
 			return false
 		},

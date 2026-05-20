@@ -14,7 +14,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -60,8 +59,6 @@ func (s *TestSuite) SetupTest() {
 	for i := range s.addrs {
 		s.accountKeeper.EXPECT().GetAccount(gomock.Any(), s.addrs[i]).Return(authtypes.NewBaseAccountWithAddress(s.addrs[i])).AnyTimes()
 	}
-	s.accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
-
 	s.bankKeeper = grouptestutil.NewMockBankKeeper(ctrl)
 
 	bApp := baseapp.NewBaseApp(
@@ -111,7 +108,7 @@ func (s *TestSuite) SetupTest() {
 	policyRes, err := s.groupKeeper.CreateGroupPolicy(s.ctx, policyReq)
 	s.Require().NoError(err)
 
-	addrbz, err := address.NewBech32Codec("cosmos").StringToBytes(policyRes.Address)
+	addrbz, err := sdk.AccAddressFromHexUnsafe(policyRes.Address)
 	s.Require().NoError(err)
 	s.policy = policy
 	s.groupPolicyAddr = addrbz
@@ -424,7 +421,7 @@ func (s *TestSuite) TestTallyProposalsAtVPEnd() {
 	groupRes, err := s.groupKeeper.CreateGroupWithPolicy(s.ctx, groupMsg)
 	s.Require().NoError(err)
 	accountAddr := groupRes.GetGroupPolicyAddress()
-	groupPolicy, err := s.accountKeeper.AddressCodec().StringToBytes(accountAddr)
+	groupPolicy, err := sdk.AccAddressFromHexUnsafe(accountAddr)
 	s.Require().NoError(err)
 	s.Require().NotNil(groupPolicy)
 
@@ -484,7 +481,7 @@ func (s *TestSuite) TestTallyProposalsAtVPEnd_GroupMemberLeaving() {
 	groupRes, err := s.groupKeeper.CreateGroupWithPolicy(s.ctx, groupMsg)
 	s.Require().NoError(err)
 	accountAddr := groupRes.GetGroupPolicyAddress()
-	groupPolicy, err := sdk.AccAddressFromBech32(accountAddr)
+	groupPolicy, err := sdk.AccAddressFromHexUnsafe(accountAddr)
 	s.Require().NoError(err)
 	s.Require().NotNil(groupPolicy)
 

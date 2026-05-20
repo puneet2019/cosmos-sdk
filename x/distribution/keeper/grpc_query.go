@@ -46,7 +46,7 @@ func (k Querier) ValidatorDistributionInfo(ctx context.Context, req *types.Query
 		return nil, status.Error(codes.InvalidArgument, "empty validator address")
 	}
 
-	valAdr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(req.ValidatorAddress)
+	valAdr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (k Querier) ValidatorDistributionInfo(ctx context.Context, req *types.Query
 		return nil, errors.Wrap(types.ErrNoValidatorExists, req.ValidatorAddress)
 	}
 
-	delAdr := sdk.AccAddress(valAdr)
+	delAdr := valAdr
 
 	del, err := k.stakingKeeper.Delegation(ctx, delAdr, valAdr)
 	if err != nil {
@@ -105,7 +105,7 @@ func (k Querier) ValidatorOutstandingRewards(ctx context.Context, req *types.Que
 		return nil, status.Error(codes.InvalidArgument, "empty validator address")
 	}
 
-	valAdr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(req.ValidatorAddress)
+	valAdr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (k Querier) ValidatorCommission(ctx context.Context, req *types.QueryValida
 		return nil, status.Error(codes.InvalidArgument, "empty validator address")
 	}
 
-	valAdr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(req.ValidatorAddress)
+	valAdr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (k Querier) ValidatorSlashes(ctx context.Context, req *types.QueryValidator
 		return nil, status.Errorf(codes.InvalidArgument, "starting height greater than ending height (%d > %d)", req.StartingHeight, req.EndingHeight)
 	}
 
-	valAddr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(req.ValidatorAddress)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddress)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "invalid validator address")
 	}
@@ -215,7 +215,7 @@ func (k Querier) DelegationRewards(ctx context.Context, req *types.QueryDelegati
 		return nil, status.Error(codes.InvalidArgument, "empty validator address")
 	}
 
-	valAdr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(req.ValidatorAddress)
+	valAdr, err := sdk.AccAddressFromHexUnsafe(req.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (k Querier) DelegationRewards(ctx context.Context, req *types.QueryDelegati
 		return nil, errors.Wrap(types.ErrNoValidatorExists, req.ValidatorAddress)
 	}
 
-	delAdr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddress)
+	delAdr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +268,7 @@ func (k Querier) DelegationTotalRewards(ctx context.Context, req *types.QueryDel
 	total := sdk.DecCoins{}
 	var delRewards []types.DelegationDelegatorReward
 
-	delAdr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddress)
+	delAdr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func (k Querier) DelegationTotalRewards(ctx context.Context, req *types.QueryDel
 	err = k.stakingKeeper.IterateDelegations(
 		ctx, delAdr,
 		func(_ int64, del stakingtypes.DelegationI) (stop bool) {
-			valAddr, err := k.stakingKeeper.ValidatorAddressCodec().StringToBytes(del.GetValidatorAddr())
+			valAddr, err := sdk.AccAddressFromHexUnsafe(del.GetValidatorAddr())
 			if err != nil {
 				panic(err)
 			}
@@ -318,7 +318,7 @@ func (k Querier) DelegatorValidators(ctx context.Context, req *types.QueryDelega
 		return nil, status.Error(codes.InvalidArgument, "empty delegator address")
 	}
 
-	delAdr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddress)
+	delAdr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +348,7 @@ func (k Querier) DelegatorWithdrawAddress(ctx context.Context, req *types.QueryD
 	if req.DelegatorAddress == "" {
 		return nil, status.Error(codes.InvalidArgument, "empty delegator address")
 	}
-	delAdr, err := k.authKeeper.AddressCodec().StringToBytes(req.DelegatorAddress)
+	delAdr, err := sdk.AccAddressFromHexUnsafe(req.DelegatorAddress)
 	if err != nil {
 		return nil, err
 	}

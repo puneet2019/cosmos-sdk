@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"cosmossdk.io/core/address"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -163,7 +161,6 @@ type GenesisAccount struct {
 // `appendAcct` updates the account if already exists, and `genesisFileURL` is the path/url of the current genesis file.
 func AddGenesisAccounts(
 	cdc codec.Codec,
-	ac address.Codec,
 	accounts []GenesisAccount,
 	appendAcct bool,
 	genesisFileURL string,
@@ -195,7 +192,7 @@ func AddGenesisAccounts(
 		addr := acc.Address
 		coins := acc.Coins
 
-		accAddr, err := ac.StringToBytes(addr)
+		accAddr, err := sdk.AccAddressFromHexUnsafe(addr)
 		if err != nil {
 			return fmt.Errorf("failed to parse account address %s: %w", addr, err)
 		}

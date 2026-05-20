@@ -12,7 +12,6 @@ import (
 	"cosmossdk.io/x/circuit/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -42,13 +41,12 @@ func (s *GenesisTestSuite) SetupTest() {
 	s.ctx = sdkCtx
 	s.cdc = codec.NewProtoCodec(encCfg.InterfaceRegistry)
 	authority := authtypes.NewModuleAddress("gov")
-	ac := addresscodec.NewBech32Codec("cosmos")
 
-	bz, err := ac.StringToBytes(authority.String())
+	bz, err := sdk.AccAddressFromHexUnsafe(authority.String())
 	s.Require().NoError(err)
 	s.addrBytes = bz
 
-	s.keeper = keeper.NewKeeper(s.cdc, runtime.NewKVStoreService(key), authority.String(), ac)
+	s.keeper = keeper.NewKeeper(s.cdc, runtime.NewKVStoreService(key), authority.String())
 }
 
 func (s *GenesisTestSuite) TestInitExportGenesis() {

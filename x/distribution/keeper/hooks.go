@@ -23,7 +23,7 @@ func (k Keeper) Hooks() Hooks {
 }
 
 // initialize validator distribution record
-func (h Hooks) AfterValidatorCreated(ctx context.Context, valAddr sdk.ValAddress) error {
+func (h Hooks) AfterValidatorCreated(ctx context.Context, valAddr sdk.AccAddress) error {
 	val, err := h.k.stakingKeeper.Validator(ctx, valAddr)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (h Hooks) AfterValidatorCreated(ctx context.Context, valAddr sdk.ValAddress
 }
 
 // AfterValidatorRemoved performs clean up after a validator is removed
-func (h Hooks) AfterValidatorRemoved(ctx context.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) error {
+func (h Hooks) AfterValidatorRemoved(ctx context.Context, _ sdk.ConsAddress, valAddr sdk.AccAddress) error {
 	// fetch outstanding
 	outstanding, err := h.k.GetValidatorOutstandingRewardsCoins(ctx, valAddr)
 	if err != nil {
@@ -68,7 +68,7 @@ func (h Hooks) AfterValidatorRemoved(ctx context.Context, _ sdk.ConsAddress, val
 
 		// add to validator account
 		if !coins.IsZero() {
-			accAddr := sdk.AccAddress(valAddr)
+			accAddr := valAddr
 			withdrawAddr, err := h.k.GetDelegatorWithdrawAddr(ctx, accAddr)
 			if err != nil {
 				return err
@@ -122,7 +122,7 @@ func (h Hooks) AfterValidatorRemoved(ctx context.Context, _ sdk.ConsAddress, val
 }
 
 // increment period
-func (h Hooks) BeforeDelegationCreated(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (h Hooks) BeforeDelegationCreated(ctx context.Context, delAddr, valAddr sdk.AccAddress) error {
 	val, err := h.k.stakingKeeper.Validator(ctx, valAddr)
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (h Hooks) BeforeDelegationCreated(ctx context.Context, delAddr sdk.AccAddre
 }
 
 // withdraw delegation rewards (which also increments period)
-func (h Hooks) BeforeDelegationSharesModified(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (h Hooks) BeforeDelegationSharesModified(ctx context.Context, delAddr, valAddr sdk.AccAddress) error {
 	val, err := h.k.stakingKeeper.Validator(ctx, valAddr)
 	if err != nil {
 		return err
@@ -152,28 +152,28 @@ func (h Hooks) BeforeDelegationSharesModified(ctx context.Context, delAddr sdk.A
 }
 
 // create new delegation period record
-func (h Hooks) AfterDelegationModified(ctx context.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) error {
+func (h Hooks) AfterDelegationModified(ctx context.Context, delAddr, valAddr sdk.AccAddress) error {
 	return h.k.initializeDelegation(ctx, valAddr, delAddr)
 }
 
 // record the slash event
-func (h Hooks) BeforeValidatorSlashed(ctx context.Context, valAddr sdk.ValAddress, fraction sdkmath.LegacyDec) error {
+func (h Hooks) BeforeValidatorSlashed(ctx context.Context, valAddr sdk.AccAddress, fraction sdkmath.LegacyDec) error {
 	return h.k.updateValidatorSlashFraction(ctx, valAddr, fraction)
 }
 
-func (h Hooks) BeforeValidatorModified(_ context.Context, _ sdk.ValAddress) error {
+func (h Hooks) BeforeValidatorModified(_ context.Context, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) AfterValidatorBonded(_ context.Context, _ sdk.ConsAddress, _ sdk.ValAddress) error {
+func (h Hooks) AfterValidatorBonded(_ context.Context, _ sdk.ConsAddress, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) AfterValidatorBeginUnbonding(_ context.Context, _ sdk.ConsAddress, _ sdk.ValAddress) error {
+func (h Hooks) AfterValidatorBeginUnbonding(_ context.Context, _ sdk.ConsAddress, _ sdk.AccAddress) error {
 	return nil
 }
 
-func (h Hooks) BeforeDelegationRemoved(_ context.Context, _ sdk.AccAddress, _ sdk.ValAddress) error {
+func (h Hooks) BeforeDelegationRemoved(_ context.Context, _, _ sdk.AccAddress) error {
 	return nil
 }
 

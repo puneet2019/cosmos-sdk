@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"cosmossdk.io/x/nft"
-
-	"github.com/cosmos/cosmos-sdk/codec/address"
 )
 
 func TestGRPCQuery(t *testing.T) {
@@ -18,7 +16,6 @@ func TestGRPCQuery(t *testing.T) {
 }
 
 func (s *TestSuite) TestBalance() {
-	s.accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 	var req *nft.QueryBalanceRequest
 	testCases := []struct {
 		msg      string
@@ -44,7 +41,7 @@ func (s *TestSuite) TestBalance() {
 					Owner:   "owner",
 				}
 			},
-			"decoding bech32 failed",
+			"invalid address hex length",
 			0,
 			func(index int, require *require.Assertions, res *nft.QueryBalanceResponse, expBalance uint64) {},
 		},

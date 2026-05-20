@@ -24,7 +24,7 @@ func (k Keeper) Balance(goCtx context.Context, r *nft.QueryBalanceRequest) (*nft
 		return nil, nft.ErrEmptyClassID
 	}
 
-	owner, err := k.ac.StringToBytes(r.Owner)
+	owner, err := sdk.AccAddressFromHexUnsafe(r.Owner)
 	if err != nil {
 		return nil, err
 	}
@@ -53,10 +53,7 @@ func (k Keeper) Owner(goCtx context.Context, r *nft.QueryOwnerRequest) (*nft.Que
 	if owner.Empty() {
 		return &nft.QueryOwnerResponse{Owner: ""}, nil
 	}
-	ownerstr, err := k.ac.BytesToString(owner.Bytes())
-	if err != nil {
-		return nil, err
-	}
+	ownerstr := sdk.AccAddress(owner.Bytes()).String()
 	return &nft.QueryOwnerResponse{Owner: ownerstr}, nil
 }
 
@@ -84,7 +81,7 @@ func (k Keeper) NFTs(goCtx context.Context, r *nft.QueryNFTsRequest) (*nft.Query
 	var owner sdk.AccAddress
 
 	if len(r.Owner) > 0 {
-		owner, err = k.ac.StringToBytes(r.Owner)
+		owner, err = sdk.AccAddressFromHexUnsafe(r.Owner)
 		if err != nil {
 			return nil, err
 		}

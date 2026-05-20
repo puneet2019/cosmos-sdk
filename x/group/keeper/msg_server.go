@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmos/cosmos-sdk/x/group"
@@ -22,12 +22,8 @@ import (
 
 var _ group.MsgServer = Keeper{}
 
-// TODO: Revisit this once we have proper gas fee framework.
-// Tracking issues https://github.com/cosmos/cosmos-sdk/issues/9054, https://github.com/cosmos/cosmos-sdk/discussions/9072
-const gasCostPerIteration = uint64(20)
-
 func (k Keeper) CreateGroup(goCtx context.Context, msg *group.MsgCreateGroup) (*group.MsgCreateGroupResponse, error) {
-	if _, err := k.accKeeper.AddressCodec().StringToBytes(msg.Admin); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.Admin); err != nil {
 		return nil, errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid admin address: %s", msg.Admin)
 	}
 
@@ -231,11 +227,11 @@ func (k Keeper) UpdateGroupAdmin(goCtx context.Context, msg *group.MsgUpdateGrou
 		return nil, errorsmod.Wrap(errors.ErrInvalid, "new and old admin are the same")
 	}
 
-	if _, err := k.accKeeper.AddressCodec().StringToBytes(msg.Admin); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.Admin); err != nil {
 		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidAddress, "admin address")
 	}
 
-	if _, err := k.accKeeper.AddressCodec().StringToBytes(msg.NewAdmin); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.NewAdmin); err != nil {
 		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidAddress, "new admin address")
 	}
 
@@ -263,7 +259,7 @@ func (k Keeper) UpdateGroupMetadata(goCtx context.Context, msg *group.MsgUpdateG
 		return nil, err
 	}
 
-	if _, err := k.accKeeper.AddressCodec().StringToBytes(msg.Admin); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.Admin); err != nil {
 		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidAddress, "admin address")
 	}
 
@@ -347,7 +343,7 @@ func (k Keeper) CreateGroupPolicy(goCtx context.Context, msg *group.MsgCreateGro
 		return nil, errorsmod.Wrap(err, "decision policy")
 	}
 
-	reqGroupAdmin, err := k.accKeeper.AddressCodec().StringToBytes(msg.GetAdmin())
+	reqGroupAdmin, err := sdk.AccAddressFromHexUnsafe(msg.GetAdmin())
 	if err != nil {
 		return nil, errorsmod.Wrap(err, "request admin")
 	}
@@ -358,7 +354,7 @@ func (k Keeper) CreateGroupPolicy(goCtx context.Context, msg *group.MsgCreateGro
 		return nil, err
 	}
 
-	groupAdmin, err := k.accKeeper.AddressCodec().StringToBytes(groupInfo.Admin)
+	groupAdmin, err := sdk.AccAddressFromHexUnsafe(groupInfo.Admin)
 	if err != nil {
 		return nil, errorsmod.Wrap(err, "group admin")
 	}
@@ -433,7 +429,7 @@ func (k Keeper) UpdateGroupPolicyAdmin(goCtx context.Context, msg *group.MsgUpda
 		return nil, errorsmod.Wrap(errors.ErrInvalid, "new and old admin are same")
 	}
 
-	if _, err := k.accKeeper.AddressCodec().StringToBytes(msg.NewAdmin); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.NewAdmin); err != nil {
 		return nil, errorsmod.Wrap(sdkerrors.ErrInvalidAddress, "new admin address")
 	}
 
@@ -520,7 +516,7 @@ func (k Keeper) SubmitProposal(goCtx context.Context, msg *group.MsgSubmitPropos
 		return nil, err
 	}
 
-	groupPolicyAddr, err := k.accKeeper.AddressCodec().StringToBytes(msg.GroupPolicyAddress)
+	groupPolicyAddr, err := sdk.AccAddressFromHexUnsafe(msg.GroupPolicyAddress)
 	if err != nil {
 		return nil, errorsmod.Wrap(err, "request account address of group policy")
 	}
@@ -629,7 +625,7 @@ func (k Keeper) SubmitProposal(goCtx context.Context, msg *group.MsgSubmitPropos
 	if msg.Exec == group.Exec_EXEC_TRY {
 		// Consider proposers as Yes votes
 		for _, proposer := range msg.Proposers {
-			ctx.GasMeter().ConsumeGas(gasCostPerIteration, "vote on proposal")
+			// ctx.GasMeter().ConsumeGas(gasCostPerIteration, "vote on proposal")
 			_, err = k.Vote(ctx, &group.MsgVote{
 				ProposalId: id,
 				Voter:      proposer,
@@ -660,7 +656,7 @@ func (k Keeper) WithdrawProposal(goCtx context.Context, msg *group.MsgWithdrawPr
 		return nil, errorsmod.Wrap(errors.ErrEmpty, "proposal id")
 	}
 
-	if _, err := k.accKeeper.AddressCodec().StringToBytes(msg.Address); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.Address); err != nil {
 		return nil, errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid group policy admin / proposer address: %s", msg.Address)
 	}
 
@@ -715,7 +711,7 @@ func (k Keeper) Vote(goCtx context.Context, msg *group.MsgVote) (*group.MsgVoteR
 		return nil, err
 	}
 
-	if _, err := k.accKeeper.AddressCodec().StringToBytes(msg.Voter); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.Voter); err != nil {
 		return nil, errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "invalid voter address: %s", msg.Voter)
 	}
 
@@ -863,7 +859,7 @@ func (k Keeper) Exec(goCtx context.Context, msg *group.MsgExec) (*group.MsgExecR
 		// Caching context so that we don't update the store in case of failure.
 		cacheCtx, flush := ctx.CacheContext()
 
-		addr, err := k.accKeeper.AddressCodec().StringToBytes(policyInfo.Address)
+		addr, err := sdk.AccAddressFromHexUnsafe(policyInfo.Address)
 		if err != nil {
 			return nil, err
 		}
@@ -926,7 +922,7 @@ func (k Keeper) LeaveGroup(goCtx context.Context, msg *group.MsgLeaveGroup) (*gr
 		return nil, errorsmod.Wrap(errors.ErrEmpty, "group-id")
 	}
 
-	_, err := k.accKeeper.AddressCodec().StringToBytes(msg.Address)
+	_, err := sdk.AccAddressFromHexUnsafe(msg.Address)
 	if err != nil {
 		return nil, errorsmod.Wrap(err, "group member")
 	}
@@ -1010,12 +1006,12 @@ type (
 // doUpdateGroupPolicy first makes sure that the group policy admin initiated the group policy update,
 // before performing the group policy update and emitting an event.
 func (k Keeper) doUpdateGroupPolicy(ctx sdk.Context, reqGroupPolicy, reqAdmin string, action groupPolicyActionFn, note string) error {
-	groupPolicyAddr, err := k.accKeeper.AddressCodec().StringToBytes(reqGroupPolicy)
+	groupPolicyAddr, err := sdk.AccAddressFromHexUnsafe(reqGroupPolicy)
 	if err != nil {
 		return errorsmod.Wrap(err, "group policy address")
 	}
 
-	_, err = k.accKeeper.AddressCodec().StringToBytes(reqAdmin)
+	_, err = sdk.AccAddressFromHexUnsafe(reqAdmin)
 	if err != nil {
 		return errorsmod.Wrap(err, "group policy admin")
 	}
@@ -1123,7 +1119,7 @@ func (k Keeper) validateProposers(proposers []string) error {
 			return errorsmod.Wrapf(errors.ErrDuplicate, "address: %s", proposer)
 		}
 
-		_, err := k.accKeeper.AddressCodec().StringToBytes(proposer)
+		_, err := sdk.AccAddressFromHexUnsafe(proposer)
 		if err != nil {
 			return errorsmod.Wrapf(err, "proposer address %s", proposer)
 		}
@@ -1148,7 +1144,7 @@ func (k Keeper) validateMembers(members []group.MemberRequest) error {
 			return errorsmod.Wrapf(errors.ErrDuplicate, "address: %s", member.Address)
 		}
 
-		_, err := k.accKeeper.AddressCodec().StringToBytes(member.Address)
+		_, err := sdk.AccAddressFromHexUnsafe(member.Address)
 		if err != nil {
 			return errorsmod.Wrapf(err, "member address %s", member.Address)
 		}

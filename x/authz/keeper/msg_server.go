@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/authz"
 )
 
@@ -20,12 +20,12 @@ func (k Keeper) Grant(goCtx context.Context, msg *authz.MsgGrant) (*authz.MsgGra
 		return nil, authz.ErrGranteeIsGranter
 	}
 
-	grantee, err := k.authKeeper.AddressCodec().StringToBytes(msg.Grantee)
+	grantee, err := sdk.AccAddressFromHexUnsafe(msg.Grantee)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid grantee address: %s", err)
 	}
 
-	granter, err := k.authKeeper.AddressCodec().StringToBytes(msg.Granter)
+	granter, err := sdk.AccAddressFromHexUnsafe(msg.Granter)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid granter address: %s", err)
 	}
@@ -70,12 +70,12 @@ func (k Keeper) Revoke(goCtx context.Context, msg *authz.MsgRevoke) (*authz.MsgR
 		return nil, authz.ErrGranteeIsGranter
 	}
 
-	grantee, err := k.authKeeper.AddressCodec().StringToBytes(msg.Grantee)
+	grantee, err := sdk.AccAddressFromHexUnsafe(msg.Grantee)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid grantee address: %s", err)
 	}
 
-	granter, err := k.authKeeper.AddressCodec().StringToBytes(msg.Granter)
+	granter, err := sdk.AccAddressFromHexUnsafe(msg.Granter)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid granter address: %s", err)
 	}
@@ -99,7 +99,7 @@ func (k Keeper) Exec(goCtx context.Context, msg *authz.MsgExec) (*authz.MsgExecR
 		return nil, errors.New("empty address string is not allowed")
 	}
 
-	grantee, err := k.authKeeper.AddressCodec().StringToBytes(msg.Grantee)
+	grantee, err := sdk.AccAddressFromHexUnsafe(msg.Grantee)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid grantee address: %s", err)
 	}

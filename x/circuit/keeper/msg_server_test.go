@@ -19,16 +19,15 @@ func TestAuthorizeCircuitBreaker(t *testing.T) {
 	ft := initFixture(t)
 
 	srv := keeper.NewMsgServerImpl(ft.keeper)
-	authority, err := ft.ac.BytesToString(ft.mockAddr)
-	require.NoError(t, err)
+	authority := sdk.AccAddress(ft.mockAddr).String()
 
 	// add a new super admin
 	adminPerms := types.Permissions{Level: types.Permissions_LEVEL_SUPER_ADMIN, LimitTypeUrls: []string{""}}
 	msg := &types.MsgAuthorizeCircuitBreaker{Granter: authority, Grantee: addresses[1], Permissions: &adminPerms}
-	_, err = srv.AuthorizeCircuitBreaker(ft.ctx, msg)
+	_, err := srv.AuthorizeCircuitBreaker(ft.ctx, msg)
 	require.NoError(t, err)
 
-	add1, err := ft.ac.StringToBytes(addresses[1])
+	add1, err := sdk.AccAddressFromHexUnsafe(addresses[1])
 	require.NoError(t, err)
 
 	perms, err := ft.keeper.Permissions.Get(ft.ctx, add1)
@@ -52,7 +51,7 @@ func TestAuthorizeCircuitBreaker(t *testing.T) {
 		lastEvent(ft.ctx),
 	)
 
-	add2, err := ft.ac.StringToBytes(addresses[2])
+	add2, err := sdk.AccAddressFromHexUnsafe(addresses[2])
 	require.NoError(t, err)
 
 	perms, err = ft.keeper.Permissions.Get(ft.ctx, add2)
@@ -88,7 +87,7 @@ func TestAuthorizeCircuitBreaker(t *testing.T) {
 		lastEvent(ft.ctx),
 	)
 
-	add3, err := ft.ac.StringToBytes(addresses[3])
+	add3, err := sdk.AccAddressFromHexUnsafe(addresses[3])
 	require.NoError(t, err)
 
 	perms, err = ft.keeper.Permissions.Get(ft.ctx, add3)
@@ -96,7 +95,7 @@ func TestAuthorizeCircuitBreaker(t *testing.T) {
 
 	require.Equal(t, somemsgs, perms)
 
-	add4, err := ft.ac.StringToBytes(addresses[4])
+	add4, err := sdk.AccAddressFromHexUnsafe(addresses[4])
 	require.NoError(t, err)
 
 	perms, err = ft.keeper.Permissions.Get(ft.ctx, add4)
@@ -117,12 +116,11 @@ func TestTripCircuitBreaker(t *testing.T) {
 	srv := keeper.NewMsgServerImpl(ft.keeper)
 	url := msgSend
 
-	authority, err := ft.ac.BytesToString(ft.mockAddr)
-	require.NoError(t, err)
+	authority := sdk.AccAddress(ft.mockAddr).String()
 
 	// admin trips circuit breaker
 	admintrip := &types.MsgTripCircuitBreaker{Authority: authority, MsgTypeUrls: []string{url}}
-	_, err = srv.TripCircuitBreaker(ft.ctx, admintrip)
+	_, err := srv.TripCircuitBreaker(ft.ctx, admintrip)
 	require.NoError(t, err)
 	require.Equal(
 		t,
@@ -202,8 +200,7 @@ func TestTripCircuitBreaker(t *testing.T) {
 
 func TestResetCircuitBreaker(t *testing.T) {
 	ft := initFixture(t)
-	authority, err := ft.ac.BytesToString(ft.mockAddr)
-	require.NoError(t, err)
+	authority := sdk.AccAddress(ft.mockAddr).String()
 
 	srv := keeper.NewMsgServerImpl(ft.keeper)
 
@@ -211,7 +208,7 @@ func TestResetCircuitBreaker(t *testing.T) {
 	url := msgSend
 	// admin trips circuit breaker
 	admintrip := &types.MsgTripCircuitBreaker{Authority: authority, MsgTypeUrls: []string{url}}
-	_, err = srv.TripCircuitBreaker(ft.ctx, admintrip)
+	_, err := srv.TripCircuitBreaker(ft.ctx, admintrip)
 	require.NoError(t, err)
 
 	allowed, err := ft.keeper.IsAllowed(ft.ctx, url)
@@ -319,8 +316,7 @@ func lastEvent(ctx context.Context) sdk.Event {
 
 func TestResetCircuitBreakerSomeMsgs(t *testing.T) {
 	ft := initFixture(t)
-	authority, err := ft.ac.BytesToString(ft.mockAddr)
-	require.NoError(t, err)
+	authority := sdk.AccAddress(ft.mockAddr).String()
 
 	srv := keeper.NewMsgServerImpl(ft.keeper)
 
@@ -337,7 +333,7 @@ func TestResetCircuitBreakerSomeMsgs(t *testing.T) {
 			LimitTypeUrls: []string{url2},
 		},
 	}
-	_, err = srv.AuthorizeCircuitBreaker(ft.ctx, authmsg)
+	_, err := srv.AuthorizeCircuitBreaker(ft.ctx, authmsg)
 	require.NoError(t, err)
 
 	// admin trips circuit breaker

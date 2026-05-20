@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"cosmossdk.io/collections"
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/comet"
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/errors"
@@ -28,7 +27,6 @@ type Keeper struct {
 	router         types.Router
 	stakingKeeper  types.StakingKeeper
 	slashingKeeper types.SlashingKeeper
-	addressCodec   address.Codec
 
 	cometInfo comet.BlockInfoService
 
@@ -39,7 +37,7 @@ type Keeper struct {
 // NewKeeper creates a new Keeper object.
 func NewKeeper(
 	cdc codec.BinaryCodec, storeService store.KVStoreService, stakingKeeper types.StakingKeeper,
-	slashingKeeper types.SlashingKeeper, ac address.Codec, ci comet.BlockInfoService,
+	slashingKeeper types.SlashingKeeper, ci comet.BlockInfoService,
 ) *Keeper {
 	sb := collections.NewSchemaBuilder(storeService)
 	k := &Keeper{
@@ -47,7 +45,6 @@ func NewKeeper(
 		storeService:   storeService,
 		stakingKeeper:  stakingKeeper,
 		slashingKeeper: slashingKeeper,
-		addressCodec:   ac,
 		cometInfo:      ci,
 		Evidences:      collections.NewMap(sb, types.KeyPrefixEvidence, "evidences", collections.BytesKey, codec.CollInterfaceValue[exported.Evidence](cdc)),
 	}

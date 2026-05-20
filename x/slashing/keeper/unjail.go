@@ -11,7 +11,7 @@ import (
 
 // Unjail calls the staking Unjail function to unjail a validator if the
 // jailed period has concluded
-func (k Keeper) Unjail(ctx context.Context, validatorAddr sdk.ValAddress) error {
+func (k Keeper) Unjail(ctx context.Context, validatorAddr sdk.AccAddress) error {
 	validator, err := k.sk.Validator(ctx, validatorAddr)
 	if err != nil {
 		return err
@@ -20,8 +20,12 @@ func (k Keeper) Unjail(ctx context.Context, validatorAddr sdk.ValAddress) error 
 		return types.ErrNoValidatorForAddress
 	}
 
+	delegatorAddress, err := sdk.AccAddressFromHexUnsafe(validator.GetSelfDelegator())
+	if err != nil {
+		return types.ErrBadValidatorAddr
+	}
 	// cannot be unjailed if no self-delegation exists
-	selfDel, err := k.sk.Delegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr)
+	selfDel, err := k.sk.Delegation(ctx, delegatorAddress, validatorAddr)
 	if err != nil {
 		return err
 	}

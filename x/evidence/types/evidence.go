@@ -6,7 +6,6 @@ import (
 
 	"github.com/cometbft/cometbft/crypto/tmhash"
 
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/comet"
 	"cosmossdk.io/x/evidence/exported"
 
@@ -50,8 +49,8 @@ func (e *Equivocation) ValidateBasic() error {
 
 // GetConsensusAddress returns the validator's consensus address at time of the
 // Equivocation infraction.
-func (e Equivocation) GetConsensusAddress(consAc address.Codec) sdk.ConsAddress {
-	addr, _ := consAc.StringToBytes(e.ConsensusAddress)
+func (e Equivocation) GetConsensusAddress() sdk.ConsAddress {
+	addr, _ := sdk.ConsAddressFromHex(e.ConsensusAddress)
 	return addr
 }
 
@@ -76,16 +75,13 @@ func (e Equivocation) GetTotalPower() int64 { return 0 }
 
 // FromABCIEvidence converts a CometBFT concrete Evidence type to
 // SDK Evidence using Equivocation as the concrete type.
-func FromABCIEvidence(e comet.Evidence, conAc address.Codec) *Equivocation {
-	consAddr, err := conAc.BytesToString(e.Validator().Address())
-	if err != nil {
-		panic(err)
-	}
+func FromABCIEvidence(e comet.Evidence) *Equivocation {
+	consAddr := sdk.ConsAddress(e.Validator().Address())
 
 	return &Equivocation{
 		Height:           e.Height(),
 		Power:            e.Validator().Power(),
-		ConsensusAddress: consAddr,
+		ConsensusAddress: consAddr.String(),
 		Time:             e.Time(),
 	}
 }

@@ -34,12 +34,12 @@ func CommandsWithCustomMigrationMap(txConfig client.TxConfig, moduleBasics modul
 	gentxModule := moduleBasics[genutiltypes.ModuleName].(genutil.AppModuleBasic)
 
 	cmd.AddCommand(
-		GenTxCmd(moduleBasics, txConfig, banktypes.GenesisBalancesIterator{}, defaultNodeHome, txConfig.SigningContext().ValidatorAddressCodec()),
+		GenTxCmd(moduleBasics, txConfig, banktypes.GenesisBalancesIterator{}, defaultNodeHome),
 		MigrateGenesisCmd(migrationMap),
-		CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, defaultNodeHome, gentxModule.GenTxValidator, txConfig.SigningContext().ValidatorAddressCodec()),
+		CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, defaultNodeHome, gentxModule.GenTxValidator),
 		ValidateGenesisCmd(moduleBasics),
-		AddGenesisAccountCmd(defaultNodeHome, txConfig.SigningContext().AddressCodec()),
-		AddBulkGenesisAccountCmd(defaultNodeHome, txConfig.SigningContext().AddressCodec()),
+		AddGenesisAccountCmd(defaultNodeHome),
+		AddBulkGenesisAccountCmd(defaultNodeHome),
 	)
 
 	return cmd

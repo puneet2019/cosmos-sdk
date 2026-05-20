@@ -27,7 +27,7 @@ import (
 func (k Keeper) handleEquivocationEvidence(ctx context.Context, evidence *types.Equivocation) error {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	logger := k.Logger(ctx)
-	consAddr := evidence.GetConsensusAddress(k.stakingKeeper.ConsensusAddressCodec())
+	consAddr := evidence.GetConsensusAddress()
 
 	validator, err := k.stakingKeeper.ValidatorByConsAddr(ctx, consAddr)
 	if err != nil {

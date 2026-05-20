@@ -11,7 +11,6 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/golang/mock/gomock"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -40,7 +39,6 @@ func (s *TestSuite) createGroupAndGetMembers(numMembers int) []*group.GroupMembe
 			Address: addressPool[i].String(),
 			Weight:  "1",
 		}
-		s.accountKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 	}
 
 	g, err := s.groupKeeper.CreateGroup(s.ctx, &group.MsgCreateGroup{
@@ -288,7 +286,7 @@ func (s *TestSuite) TestUpdateGroupMembers() {
 				},
 			},
 			expErr:    true,
-			expErrMsg: "empty address string is not allowed",
+			expErrMsg: "empty address",
 		},
 		"invalid member metadata too long": {
 			req: &group.MsgUpdateGroupMembers{
@@ -884,7 +882,7 @@ func (s *TestSuite) TestCreateGroupWithPolicy() {
 				0,
 			),
 			expErr:    true,
-			expErrMsg: "decoding bech32 failed",
+			expErrMsg: "invalid address",
 		},
 		"decision policy threshold > total group weight": {
 			req: &group.MsgCreateGroupWithPolicy{
@@ -1655,7 +1653,7 @@ func (s *TestSuite) TestSubmitProposal() {
 	res, err := s.groupKeeper.CreateGroupPolicy(s.ctx, policyReq)
 	s.Require().NoError(err)
 
-	noMinExecPeriodPolicyAddr, err := s.accountKeeper.AddressCodec().StringToBytes(res.Address)
+	noMinExecPeriodPolicyAddr, err := sdk.AccAddressFromHexUnsafe(res.Address)
 	s.Require().NoError(err)
 
 	// Create a new group policy with super high threshold
@@ -1767,7 +1765,7 @@ func (s *TestSuite) TestSubmitProposal() {
 				Proposers: []string{addr2.String()},
 			},
 			expErr:    true,
-			expErrMsg: "empty address string is not allowed",
+			expErrMsg: "empty address",
 			postRun:   func(sdkCtx sdk.Context) {},
 		},
 		"existing group policy required": {
@@ -2076,7 +2074,7 @@ func (s *TestSuite) TestVote() {
 	s.Require().NoError(err)
 	accountAddr := policyRes.Address
 	// module account will be created and returned
-	groupPolicy, err := s.accountKeeper.AddressCodec().StringToBytes(accountAddr)
+	groupPolicy, err := sdk.AccAddressFromHexUnsafe(accountAddr)
 	s.Require().NoError(err)
 	s.Require().NotNil(groupPolicy)
 
@@ -3097,7 +3095,7 @@ func (s *TestSuite) TestLeaveGroup() {
 				Address: "invalid",
 			},
 			true,
-			"decoding bech32 failed",
+			"invalid address",
 			0,
 			math.NewDecFromInt64(0),
 		},

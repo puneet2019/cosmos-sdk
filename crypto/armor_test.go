@@ -11,33 +11,32 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/depinject"
 	"cosmossdk.io/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/codec/legacy"
 	"github.com/cosmos/cosmos-sdk/crypto"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/bcrypt"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/crypto/xsalsa20symmetric"
-	"github.com/cosmos/cosmos-sdk/runtime"
+	_ "github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil/configurator"
 	"github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestArmorUnarmorPrivKey(t *testing.T) {
-	priv := secp256k1.GenPrivKey()
-	armored := crypto.EncryptArmorPrivKey(priv, "passphrase", "")
-	_, _, err := crypto.UnarmorDecryptPrivKey(armored, "wrongpassphrase")
+	priv, err := ethsecp256k1.GenPrivKey()
+	require.NoError(t, err)
+	armored := crypto.EncryptArmorPrivKey(priv, "passphrase", string(hd.EthSecp256k1Type))
+	_, _, err = crypto.UnarmorDecryptPrivKey(armored, "wrongpassphrase")
 	require.Error(t, err)
 	decrypted, algo, err := crypto.UnarmorDecryptPrivKey(armored, "passphrase")
 	require.NoError(t, err)
-	require.Equal(t, string(hd.Secp256k1Type), algo)
+	require.Equal(t, string(hd.EthSecp256k1Type), algo)
 	require.True(t, priv.Equals(decrypted))
 
 	// empty string
@@ -82,27 +81,23 @@ func TestArmorUnarmorPubKey(t *testing.T) {
 
 	err := depinject.Inject(depinject.Configs(
 		configurator.NewAppConfig(),
-		depinject.Supply(log.NewNopLogger(),
-			func() address.Codec { return addresscodec.NewBech32Codec("cosmos") },
-			func() runtime.ValidatorAddressCodec { return addresscodec.NewBech32Codec("cosmosvaloper") },
-			func() runtime.ConsensusAddressCodec { return addresscodec.NewBech32Codec("cosmosvalcons") },
-		),
+		depinject.Supply(log.NewNopLogger()),
 	), &cdc)
 	require.NoError(t, err)
 
-	cstore := keyring.NewInMemory(cdc)
+	cstore := keyring.NewInMemory(cdc, keyring.ETHAlgoOption())
 
 	// Add keys and see they return in alphabetical order
-	k, _, err := cstore.NewMnemonic("Bob", keyring.English, types.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
+	k, _, err := cstore.NewMnemonic("Bob", keyring.English, types.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.EthSecp256k1)
 	require.NoError(t, err)
 	key, err := k.GetPubKey()
 	require.NoError(t, err)
-	armored := crypto.ArmorPubKeyBytes(legacy.Cdc.Amino.MustMarshalBinaryBare(key), "")
+	armored := crypto.ArmorPubKeyBytes(legacy.Cdc.Amino.MustMarshalBinaryBare(key), string(hd.EthSecp256k1Type))
 	pubBytes, algo, err := crypto.UnarmorPubKeyBytes(armored)
 	require.NoError(t, err)
 	pub, err := legacy.PubKeyFromBytes(pubBytes)
 	require.NoError(t, err)
-	require.Equal(t, string(hd.Secp256k1Type), algo)
+	require.Equal(t, string(hd.EthSecp256k1Type), algo)
 	require.True(t, pub.Equals(key))
 
 	armored = crypto.ArmorPubKeyBytes(legacy.Cdc.Amino.MustMarshalBinaryBare(key), "unknown")
@@ -208,7 +203,8 @@ func TestArmor(t *testing.T) {
 }
 
 func TestBcryptLegacyEncryption(t *testing.T) {
-	privKey := secp256k1.GenPrivKey()
+	privKey, err := ethsecp256k1.GenPrivKey()
+	require.NoError(t, err)
 	saltBytes := cmtcrypto.CRandBytes(16)
 	passphrase := "passphrase"
 	privKeyBytes := legacy.Cdc.MustMarshal(privKey)
@@ -254,7 +250,7 @@ func TestBcryptLegacyEncryption(t *testing.T) {
 		"salt": fmt.Sprintf("%X", saltBytes),
 	}
 
-	_, _, err := crypto.UnarmorDecryptPrivKey(crypto.EncodeArmor("TENDERMINT PRIVATE KEY", headerWithoutKdf, encBytesBcryptXsalsa20symetric), "passphrase")
+	_, _, err = crypto.UnarmorDecryptPrivKey(crypto.EncodeArmor("TENDERMINT PRIVATE KEY", headerWithoutKdf, encBytesBcryptXsalsa20symetric), "passphrase")
 	require.Error(t, err)
 	require.Equal(t, "unrecognized KDF type: wrongKdf", err.Error())
 }

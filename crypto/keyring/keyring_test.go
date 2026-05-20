@@ -23,6 +23,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cosmosbcrypt "github.com/cosmos/cosmos-sdk/crypto/keys/bcrypt"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/types"
@@ -223,7 +224,7 @@ func TestNewKey(t *testing.T) {
 			_, err = kb.KeyByAddress(addr)
 			require.NoError(t, err)
 
-			addr, err = sdk.AccAddressFromBech32("cosmos1yq8lgssgxlx9smjhes6ryjasmqmd3ts2559g0t")
+			addr, err = sdk.AccAddressFromHexUnsafe("0xdEDfFD0A90e61639D4519354E07363179AF3b9CA")
 			require.NoError(t, err)
 			_, err = kb.KeyByAddress(addr)
 			require.NotNil(t, err)
@@ -1149,11 +1150,13 @@ func TestNewAccount(t *testing.T) {
 }
 
 func TestInMemoryWithKeyring(t *testing.T) {
-	priv := types.PrivKey(secp256k1.GenPrivKey())
+	pk, err := ethsecp256k1.GenPrivKey()
+	require.NoError(t, err)
+	priv := types.PrivKey(pk)
 	pub := priv.PubKey()
 
 	cdc := getCodec()
-	_, err := NewLocalRecord("test record", priv, pub)
+	_, err = NewLocalRecord("test record", priv, pub)
 	require.NoError(t, err)
 
 	multi := multisig.NewLegacyAminoPubKey(

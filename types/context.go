@@ -65,6 +65,8 @@ type Context struct {
 	streamingManager     storetypes.StreamingManager
 	cometInfo            comet.BlockInfo
 	headerInfo           header.Info
+	txSize               uint64 // The tx bytes length
+	enableUnsafeQuery    bool
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -93,6 +95,11 @@ func (c Context) TransientKVGasConfig() storetypes.GasConfig    { return c.trans
 func (c Context) StreamingManager() storetypes.StreamingManager { return c.streamingManager }
 func (c Context) CometInfo() comet.BlockInfo                    { return c.cometInfo }
 func (c Context) HeaderInfo() header.Info                       { return c.headerInfo }
+func (c Context) TxSize() uint64                             { return c.txSize }
+
+func (c Context) IsEnableUnsafeQuery() bool {
+	return c.enableUnsafeQuery
+}
 
 // clone the header before returning
 func (c Context) BlockHeader() cmtproto.Header {
@@ -319,6 +326,18 @@ func (c Context) WithHeaderInfo(headerInfo header.Info) Context {
 	return c
 }
 
+// WithTxSize returns a Context with an updated tx bytes length
+func (c Context) WithTxSize(s uint64) Context {
+	c.txSize = s
+	return c
+}
+
+// WithEnableUnsafeQuery returns a Context with unsafe query enabled
+func (c Context) WithEnableUnsafeQuery(enabled bool) Context {
+	c.enableUnsafeQuery = enabled
+	return c
+}
+
 // TODO: remove???
 func (c Context) IsZero() bool {
 	return c.ms == nil
@@ -341,14 +360,19 @@ func (c Context) Value(key interface{}) interface{} {
 // Store / Caching
 // ----------------------------------------------------------------------------
 
+// KVStoreWithZeroRead fetches a KVStore from the MultiStore.
+func (c Context) KVStoreWithZeroRead(key storetypes.StoreKey) storetypes.KVStore {
+	return gaskv.NewStore(c.ms.GetKVStore(key), c.gasMeter, storetypes.KVGasConfigAfterNagqu())
+}
+
 // KVStore fetches a KVStore from the MultiStore.
 func (c Context) KVStore(key storetypes.StoreKey) storetypes.KVStore {
-	return gaskv.NewStore(c.ms.GetKVStore(key), c.gasMeter, c.kvGasConfig)
+	return gaskv.NewStore(c.ms.GetKVStore(key), c.gasMeter, storetypes.KVGasConfigAfterNagqu())
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
 func (c Context) TransientStore(key storetypes.StoreKey) storetypes.KVStore {
-	return gaskv.NewStore(c.ms.GetKVStore(key), c.gasMeter, c.transientKVGasConfig)
+	return c.ms.GetKVStore(key)
 }
 
 // CacheContext returns a new Context with the multi-store cached and a new

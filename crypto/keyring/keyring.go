@@ -10,12 +10,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/0xPolygon/polygon-edge/bls"
 	"github.com/99designs/keyring"
 	"github.com/cockroachdb/errors"
 	"github.com/cosmos/go-bip39"
 	"golang.org/x/crypto/bcrypt"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -24,7 +26,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/ledger"
 	"github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 )
 
@@ -121,6 +122,9 @@ type Importer interface {
 	ImportPrivKeyHex(uid, privKey, algoStr string) error
 	// ImportPubKey imports ASCII armored public keys.
 	ImportPubKey(uid, armor string) error
+
+	// WriteLocalKey persists a private key object into storage.
+	WriteLocalKey(name string, privKey types.PrivKey) (*Record, error)
 }
 
 // Migrator is implemented by key stores and enables migration of keys from amino to proto
@@ -202,8 +206,8 @@ func newKeystore(kr keyring.Keyring, cdc codec.Codec, backend string, opts ...Op
 	// Default options for keybase, these can be overwritten using the
 	// Option function
 	options := Options{
-		SupportedAlgos:       SigningAlgoList{hd.Secp256k1},
-		SupportedAlgosLedger: SigningAlgoList{hd.Secp256k1},
+		SupportedAlgos:       SigningAlgoList{hd.EthSecp256k1, hd.EthBLS, hd.Secp256k1},
+		SupportedAlgosLedger: SigningAlgoList{hd.EthSecp256k1, hd.EthBLS, hd.Secp256k1},
 	}
 
 	for _, optionFn := range opts {
@@ -565,10 +569,17 @@ func (ks keystore) NewAccount(name, mnemonic, bip39Passphrase, hdPath string, al
 		return nil, ErrUnsupportedSigningAlgo
 	}
 
-	// create master key and derive first key for keyring
-	derivedPriv, err := algo.Derive()(mnemonic, bip39Passphrase, hdPath)
-	if err != nil {
-		return nil, err
+	var derivedPriv []byte
+	var err error
+	if algo.Name() != hd.BLSType {
+		// create master key and derive first key for keyring
+		derivedPriv, err = algo.Derive()(mnemonic, bip39Passphrase, hdPath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		blskey, _ := bls.GenerateBlsKey()
+		derivedPriv, _ = blskey.Marshal()
 	}
 
 	privKey := algo.Generate()(derivedPriv)
@@ -779,6 +790,11 @@ func newRealPrompt(dir string, buf io.Reader) func(string) (string, error) {
 			return pass, nil
 		}
 	}
+}
+
+// WriteLocalKey persists a local key to the keyring.
+func (ks keystore) WriteLocalKey(name string, privKey types.PrivKey) (*Record, error) {
+	return ks.writeLocalKey(name, privKey)
 }
 
 func (ks keystore) writeLocalKey(name string, privKey types.PrivKey) (*Record, error) {
@@ -1029,5 +1045,10 @@ func (ks keystore) convertFromLegacyInfo(info LegacyInfo) (*Record, error) {
 }
 
 func addrHexKeyAsString(address sdk.Address) string {
-	return fmt.Sprintf("%s.%s", hex.EncodeToString(address.Bytes()), addressSuffix)
+	result := fmt.Sprintf("%s.%s", hex.EncodeToString(address.Bytes()), addressSuffix)
+	// The maximum length of linux file name is 255 bytes, so truncate
+	if len(result) > 255 {
+		result = result[:128]
+	}
+	return result
 }

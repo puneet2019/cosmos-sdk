@@ -6,11 +6,12 @@ import (
 	cmtprotocrypto "github.com/cometbft/cometbft/proto/tendermint/crypto"
 
 	"cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // FromCmtProtoPublicKey converts a CMT's cmtprotocrypto.PublicKey into our own PubKey.
@@ -21,7 +22,7 @@ func FromCmtProtoPublicKey(protoPk cmtprotocrypto.PublicKey) (cryptotypes.PubKey
 			Key: protoPk.Ed25519,
 		}, nil
 	case *cmtprotocrypto.PublicKey_Secp256K1:
-		return &secp256k1.PubKey{
+		return &ethsecp256k1.PubKey{
 			Key: protoPk.Secp256K1,
 		}, nil
 	default:
@@ -39,6 +40,12 @@ func ToCmtProtoPublicKey(pk cryptotypes.PubKey) (cmtprotocrypto.PublicKey, error
 			},
 		}, nil
 	case *secp256k1.PubKey:
+		return cmtprotocrypto.PublicKey{
+			Sum: &cmtprotocrypto.PublicKey_Secp256K1{
+				Secp256K1: pk.Key,
+			},
+		}, nil
+	case *ethsecp256k1.PubKey:
 		return cmtprotocrypto.PublicKey{
 			Sum: &cmtprotocrypto.PublicKey_Secp256K1{
 				Secp256K1: pk.Key,

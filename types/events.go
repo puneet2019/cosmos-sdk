@@ -24,6 +24,36 @@ type EventManagerI interface {
 	EmitEvents(events Events)
 }
 
+// EventingOptionEverything will allow to emit all events.
+const EventingOptionEverything = "everything"
+
+// EventingOptionNothing will emit none events.
+const EventingOptionNothing = "nothing"
+
+type emittingStrategy int
+
+const (
+	// emittingEverything strategy will emit everything.
+	emittingEverything emittingStrategy = iota
+	// emittingNothing strategy will emit nothing.
+	emittingNothing
+)
+
+var strategy emittingStrategy
+
+func SetEventingOption(option string) {
+	switch option {
+	case "":
+		strategy = emittingEverything
+	case EventingOptionEverything:
+		strategy = emittingEverything
+	case EventingOptionNothing:
+		strategy = emittingNothing
+	default:
+		panic("invalid eventing option")
+	}
+}
+
 // ----------------------------------------------------------------------------
 // Event Manager
 // ----------------------------------------------------------------------------
@@ -45,12 +75,18 @@ func (em *EventManager) Events() Events { return em.events }
 // EmitEvent stores a single Event object.
 // Deprecated: Use EmitTypedEvent
 func (em *EventManager) EmitEvent(event Event) {
+	if strategy == emittingNothing {
+		return
+	}
 	em.events = em.events.AppendEvent(event)
 }
 
 // EmitEvents stores a series of Event objects.
 // Deprecated: Use EmitTypedEvents
 func (em *EventManager) EmitEvents(events Events) {
+	if strategy == emittingNothing {
+		return
+	}
 	em.events = em.events.AppendEvents(events)
 }
 
@@ -61,6 +97,9 @@ func (em EventManager) ABCIEvents() []abci.Event {
 
 // EmitTypedEvent takes typed event and emits converting it into Event
 func (em *EventManager) EmitTypedEvent(tev proto.Message) error {
+	if strategy == emittingNothing {
+		return nil
+	}
 	event, err := TypedEventToEvent(tev)
 	if err != nil {
 		return err
@@ -72,6 +111,9 @@ func (em *EventManager) EmitTypedEvent(tev proto.Message) error {
 
 // EmitTypedEvents takes series of typed events and emit
 func (em *EventManager) EmitTypedEvents(tevs ...proto.Message) error {
+	if strategy == emittingNothing {
+		return nil
+	}
 	events := make(Events, len(tevs))
 	for i, tev := range tevs {
 		res, err := TypedEventToEvent(tev)
@@ -139,7 +181,16 @@ func ParseTypedEvent(event abci.Event) (proto.Message, error) {
 
 	attrMap := make(map[string]json.RawMessage)
 	for _, attr := range event.Attributes {
-		attrMap[attr.Key] = json.RawMessage(attr.Value)
+		// Check if attr.Value is valid JSON, if not, treat it as a string value
+		var rawValue json.RawMessage
+		if json.Valid([]byte(attr.Value)) {
+			rawValue = json.RawMessage(attr.Value)
+		} else {
+			// If not valid JSON, treat it as a string and add quotes
+			quotedValue := fmt.Sprintf(`"%s"`, attr.Value)
+			rawValue = json.RawMessage(quotedValue)
+		}
+		attrMap[attr.Key] = rawValue
 	}
 
 	attrBytes, err := json.Marshal(attrMap)

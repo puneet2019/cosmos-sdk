@@ -6,12 +6,12 @@ import (
 	protov2 "google.golang.org/protobuf/proto"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
 
 // MaxGasWanted defines the max gas allowed.
@@ -34,6 +34,10 @@ func (t *Tx) GetMsgs() []sdk.Msg {
 		panic(err)
 	}
 	return res
+}
+
+func (t *Tx) GetMsgsV2() ([]protov2.Message, error) {
+	return nil, nil
 }
 
 // ValidateBasic implements the ValidateBasic method on sdk.Tx.
@@ -79,7 +83,7 @@ func (t *Tx) ValidateBasic() error {
 	}
 
 	if fee.Payer != "" {
-		_, err := sdk.AccAddressFromBech32(fee.Payer)
+		_, err := sdk.AccAddressFromHexUnsafe(fee.Payer)
 		if err != nil {
 			return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid fee payer address (%s)", err)
 		}
@@ -123,7 +127,7 @@ func (t *Tx) GetSigners(cdc codec.Codec) ([][]byte, []protov2.Message, error) {
 	var feePayerAddr []byte
 	if feePayer != "" {
 		var err error
-		feePayerAddr, err = cdc.InterfaceRegistry().SigningContext().AddressCodec().StringToBytes(feePayer)
+		feePayerAddr, err = sdk.AccAddressFromHexUnsafe(feePayer)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -147,7 +151,7 @@ func (t *Tx) GetFee() sdk.Coins {
 func (t *Tx) FeePayer(cdc codec.Codec) []byte {
 	feePayer := t.AuthInfo.Fee.Payer
 	if feePayer != "" {
-		feePayerAddr, err := cdc.InterfaceRegistry().SigningContext().AddressCodec().StringToBytes(feePayer)
+		feePayerAddr, err := sdk.AccAddressFromHexUnsafe(feePayer)
 		if err != nil {
 			panic(err)
 		}
@@ -165,7 +169,7 @@ func (t *Tx) FeePayer(cdc codec.Codec) []byte {
 func (t *Tx) FeeGranter(cdc codec.Codec) []byte {
 	feeGranter := t.AuthInfo.Fee.Granter
 	if feeGranter != "" {
-		feeGranterAddr, err := cdc.InterfaceRegistry().SigningContext().AddressCodec().StringToBytes(feeGranter)
+		feeGranterAddr, err := sdk.AccAddressFromHexUnsafe(feeGranter)
 		if err != nil {
 			panic(err)
 		}
@@ -232,5 +236,5 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterInterface("cosmos.tx.v1beta1.Tx", (*sdk.HasMsgs)(nil))
 	registry.RegisterImplementations((*sdk.HasMsgs)(nil), &Tx{})
 
-	registry.RegisterInterface("cosmos.tx.v1beta1.TxExtensionOptionI", (*TxExtensionOptionI)(nil))
+	registry.RegisterInterface("cosmos.tx.v1beta1.TxExtensionOptionI", (*ExtensionOptionI)(nil))
 }

@@ -71,9 +71,9 @@ func TestCollectionPagination(t *testing.T) {
 				Limit: 149,
 			},
 			expResp: &PageResponse{
-				NextKey: encodeKey(249),
+				NextKey: encodeKey(200), // limit 100
 			},
-			expResults: createResults(100, 248),
+			expResults: createResults(100, 199), // limit 100
 		},
 		"with reverse": {
 			req: &PageRequest{

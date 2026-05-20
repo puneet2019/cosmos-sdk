@@ -41,9 +41,7 @@ var (
 )
 
 // AppModuleBasic defines the basic application module used by the auth module.
-type AppModuleBasic struct {
-	ac address.Codec
-}
+type AppModuleBasic struct{}
 
 // Name returns the auth module's name.
 func (AppModuleBasic) Name() string {
@@ -103,7 +101,7 @@ func (am AppModule) IsAppModule() {}
 // NewAppModule creates a new AppModule object
 func NewAppModule(cdc codec.Codec, accountKeeper keeper.AccountKeeper, randGenAccountsFn types.RandomGenesisAccountsFn, ss exported.Subspace) AppModule {
 	return AppModule{
-		AppModuleBasic:    AppModuleBasic{ac: accountKeeper.AddressCodec()},
+		AppModuleBasic:    AppModuleBasic{},
 		accountKeeper:     accountKeeper,
 		randGenAccountsFn: randGenAccountsFn,
 		legacySubspace:    ss,
@@ -190,8 +188,8 @@ type ModuleInputs struct {
 	Config       *modulev1.Module
 	StoreService store.KVStoreService
 	Cdc          codec.Codec
+	AddressCodec address.Codec
 
-	AddressCodec            address.Codec
 	RandomGenesisAccountsFn types.RandomGenesisAccountsFn `optional:"true"`
 	AccountI                func() sdk.AccountI           `optional:"true"`
 
@@ -215,7 +213,7 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 	// default to governance authority if not provided
 	authority := types.NewModuleAddress(GovModuleName)
 	if in.Config.Authority != "" {
-		authority = types.NewModuleAddressOrBech32Address(in.Config.Authority)
+		authority = types.NewModuleAddressOrHexAddress(in.Config.Authority)
 	}
 
 	if in.RandomGenesisAccountsFn == nil {
@@ -226,7 +224,7 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 		in.AccountI = types.ProtoBaseAccount
 	}
 
-	k := keeper.NewAccountKeeper(in.Cdc, in.StoreService, in.AccountI, maccPerms, in.AddressCodec, in.Config.Bech32Prefix, authority.String())
+	k := keeper.NewAccountKeeper(in.Cdc, in.StoreService, in.AccountI, maccPerms, in.AddressCodec, authority.String())
 	m := NewAppModule(in.Cdc, k, in.RandomGenesisAccountsFn, in.LegacySubspace)
 
 	return ModuleOutputs{AccountKeeper: k, Module: m}

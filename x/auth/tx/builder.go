@@ -8,13 +8,13 @@ import (
 	protov2 "google.golang.org/protobuf/proto"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
@@ -192,7 +192,7 @@ func (w *wrapper) GetFee() sdk.Coins {
 func (w *wrapper) FeePayer() []byte {
 	feePayer := w.tx.AuthInfo.Fee.Payer
 	if feePayer != "" {
-		feePayerAddr, err := w.cdc.InterfaceRegistry().SigningContext().AddressCodec().StringToBytes(feePayer)
+		feePayerAddr, err := sdk.AccAddressFromHexUnsafe(feePayer)
 		if err != nil {
 			panic(err)
 		}
@@ -514,7 +514,7 @@ func (w *wrapper) AddAuxSignerData(data tx.AuxSignerData) error {
 	}
 
 	for i, signer := range signers {
-		addrBz, err := w.cdc.InterfaceRegistry().SigningContext().AddressCodec().StringToBytes(data.Address)
+		addrBz, err := sdk.AccAddressFromHexUnsafe(data.Address)
 		if err != nil {
 			return err
 		}

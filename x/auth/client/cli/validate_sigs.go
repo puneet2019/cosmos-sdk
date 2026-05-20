@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 )
@@ -66,8 +67,7 @@ func printAndValidateSigs(
 	cmd *cobra.Command, clientCtx client.Context, chainID string, tx sdk.Tx, offline bool,
 ) bool {
 	sigTx := tx.(authsigning.SigVerifiableTx)
-	signModeHandler := clientCtx.TxConfig.SignModeHandler()
-	addrCdc := clientCtx.TxConfig.SigningContext().AddressCodec()
+	// signModeHandler := clientCtx.TxConfig.SignModeHandler()
 
 	cmd.Println("Signers:")
 	signers, err := sigTx.GetSigners()
@@ -76,10 +76,7 @@ func printAndValidateSigs(
 	}
 
 	for i, signer := range signers {
-		signerStr, err := addrCdc.BytesToString(signer)
-		if err != nil {
-			panic(err)
-		}
+		signerStr := sdk.AccAddress(signer).String()
 		cmd.Printf("  %v: %v\n", i, signerStr)
 	}
 
@@ -147,12 +144,25 @@ func printAndValidateSigs(
 				return false
 			}
 			txData := adaptableTx.GetSigningTxData()
-
-			err = authsigning.VerifySignature(cmd.Context(), pubKey, txSignerData, sig.Data, signModeHandler, txData)
-			if err != nil {
-				cmd.PrintErrf("failed to verify signature: %v", err)
+			switch data := sig.Data.(type) {
+			case *signing.SingleSignatureData:
+				err = authsigning.EIP712VerifySignature(cmd.Context(), txSignerData, tx, data.Signature, pubKey)
+				if err != nil {
+					cmd.PrintErrf("signature verification failed; please verify account number (%d) and chain-id (%s): (%s), pubkeyType: %s, txData: (%+v)", accNum, chainID, err.Error(), pubKey.Type(), txData)
+					return false
+				}
+			case *signing.MultiSignatureData:
+				cmd.PrintErrf("multi signature is not allowed")
+				return false
+			default:
+				cmd.PrintErrf("unexpected SignatureData %T", sig.Data)
 				return false
 			}
+			// err = authsigning.VerifySignature(cmd.Context(), pubKey, txSignerData, sig.Data, signModeHandler, txData)
+			// if err != nil {
+			// 	cmd.PrintErrf("failed to verify signature: %v", err)
+			// 	return false
+			// }
 		}
 
 		cmd.Printf("  %d: %s\t\t\t[%s]%s%s\n", i, sigAddr.String(), sigSanity, multiSigHeader, multiSigMsg)

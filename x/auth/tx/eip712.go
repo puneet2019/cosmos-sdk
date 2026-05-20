@@ -1,8 +1,7 @@
-package signing
+package tx
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,156 +11,88 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cosmos/gogoproto/jsonpb"
-	"github.com/ethereum/go-ethereum/common"
-	ethmath "github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/crypto"
-	ethersecp256k1 "github.com/ethereum/go-ethereum/crypto/secp256k1"
-	"github.com/ethereum/go-ethereum/signer/core/apitypes"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	errorsmod "cosmossdk.io/errors"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	sdkmath "cosmossdk.io/math"
-	txsigning "cosmossdk.io/x/tx/signing"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/signer/core/apitypes"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	txtypes "github.com/cosmos/cosmos-sdk/types/tx"
-	"github.com/cosmos/cosmos-sdk/types/tx/signing"
+	types "github.com/cosmos/cosmos-sdk/types/tx"
+	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
+	"github.com/cosmos/cosmos-sdk/x/auth/signing"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/cosmos/gogoproto/jsonpb"
 )
 
-// V2AdaptableTx is an interface that wraps the GetSigningTxData method.
-// GetSigningTxData returns an x/tx/signing.TxData representation of a transaction for use in signing
-// interoperability with x/tx.
-type V2AdaptableTx interface {
-	GetSigningTxData() txsigning.TxData
-	GetMsgs() []sdk.Msg
-	GetTimeoutHeight() uint64
-	GetFee() sdk.Coins
-	GetGas() uint64
-	FeePayer() []byte
-	FeeGranter() []byte
-	GetMemo() string
+var (
+	domain = &apitypes.TypedDataDomain{
+		Name:              "Moca Tx",
+		Version:           "1.0.0",
+		VerifyingContract: "moca",
+		Salt:              "0",
+	}
+
+	gnfdVerifyingContract = "0x4b0Eef77EdFDEF30965F0F365f942E38810882bE" // keccak256("moca")[12:]
+)
+
+// signModeEip712Handler defines the SIGN_MODE_DIRECT SignModeHandler
+type signModeEip712Handler struct{}
+
+var _ signing.SignModeHandler = signModeEip712Handler{}
+
+// DefaultMode implements SignModeHandler.DefaultMode
+func (signModeEip712Handler) DefaultMode() signingtypes.SignMode {
+	return signingtypes.SignMode_SIGN_MODE_EIP_712
 }
 
-// GetSignBytesAdapter returns the sign bytes for a given transaction and sign mode.  It accepts the arguments expected
-// for signing in x/auth/tx and converts them to the arguments expected by the txsigning.HandlerMap, then applies
-// HandlerMap.GetSignBytes to get the sign bytes.
-func GetSignBytesAdapter(
-	ctx context.Context,
-	handlerMap *txsigning.HandlerMap,
-	mode signing.SignMode,
-	signerData SignerData,
-	tx sdk.Tx,
-) ([]byte, error) {
-	// adaptableTx, ok := tx.(V2AdaptableTx)
-	// if !ok {
-	// 	return nil, fmt.Errorf("expected tx to be V2AdaptableTx, got %T", tx)
-	// }
-	// txData := adaptableTx.GetSigningTxData()
-
-	// txSignMode, err := internalSignModeToAPI(mode)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	var pubKey *anypb.Any
-	if signerData.PubKey != nil {
-		anyPk, err := codectypes.NewAnyWithValue(signerData.PubKey)
-		if err != nil {
-			return nil, err
-		}
-
-		pubKey = &anypb.Any{
-			TypeUrl: anyPk.TypeUrl,
-			Value:   anyPk.Value,
-		}
-	}
-	txSignerData := txsigning.SignerData{
-		ChainID:       signerData.ChainID,
-		AccountNumber: signerData.AccountNumber,
-		Sequence:      signerData.Sequence,
-		Address:       signerData.Address,
-		PubKey:        pubKey,
-	}
-	// Generate the bytes to be signed.
-	return EIP712GetSignBytes(ctx, txSignerData, tx)
-	// if mode == signing.SignMode_SIGN_MODE_EIP_712 {
-	// 	return EIP712GetSignBytes(ctx, txSignerData, tx)
-	// } else {
-	// 	return handlerMap.GetSignBytes(ctx, txSignMode, txSignerData, txData)
-	// }
+// Modes implements SignModeHandler.Modes
+func (signModeEip712Handler) Modes() []signingtypes.SignMode {
+	return []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_EIP_712}
 }
 
-func EIP712VerifySignature(ctx context.Context, signerData txsigning.SignerData, tx sdk.Tx, sig []byte, pubKey cryptotypes.PubKey) error {
-	sigHash, err := EIP712GetSignBytes(ctx, signerData, tx)
-	if err != nil {
-		return err
-	}
-	// check signature length
-	if len(sig) != crypto.SignatureLength {
-		return errorsmod.Wrap(sdkerrors.ErrorInvalidSigner, "signature length doesn't match typical [R||S||V] signature 65 bytes")
-	}
-
-	// remove the recovery offset if needed (ie. Metamask eip712 signature)
-	if sig[crypto.RecoveryIDOffset] == 27 || sig[crypto.RecoveryIDOffset] == 28 {
-		sig[crypto.RecoveryIDOffset] -= 27
-	}
-
-	// recover the pubkey from the signature
-	feePayerPubkey, err := ethersecp256k1.RecoverPubkey(sigHash, sig)
-	if err != nil {
-		return errorsmod.Wrap(err, "failed to recover fee payer from sig")
-	}
-	ecPubKey, err := crypto.UnmarshalPubkey(feePayerPubkey)
-	if err != nil {
-		return errorsmod.Wrap(err, "failed to unmarshal recovered fee payer pubkey")
-	}
-
-	// check that the recovered pubkey matches the one in the signerData data
-	pk := &ethsecp256k1.PubKey{
-		Key: crypto.CompressPubkey(ecPubKey),
-	}
-	if !pubKey.Equals(pk) {
-		return errorsmod.Wrapf(sdkerrors.ErrorInvalidSigner, "feePayer's pubkey %s is different from signature's pubkey %s, %s, %s", pubKey, pk, pubKey.Type(), pk.Type())
-	}
-	return nil
+// GetSignBytes implements SignModeHandler.GetSignBytes
+func (h signModeEip712Handler) GetSignBytes(mode signingtypes.SignMode, signerData signing.SignerData, tx sdk.Tx) ([]byte, error) {
+	return getSignBytes(mode, signerData, tx)
 }
 
-func EIP712GetSignBytes(ctx context.Context, signerData txsigning.SignerData, tx sdk.Tx) ([]byte, error) {
+func getSignBytes(mode signingtypes.SignMode, signerData signing.SignerData, tx sdk.Tx) ([]byte, error) {
+	if mode != signingtypes.SignMode_SIGN_MODE_EIP_712 {
+		return nil, fmt.Errorf("expected %s, got %s", signingtypes.SignMode_SIGN_MODE_EIP_712, mode)
+	}
+
 	chainID, err := sdk.ParseChainID(signerData.ChainID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse chainID: %s", signerData.ChainID)
 	}
 
-	msgTypes, signDoc, err := getMsgTypes(signerData, tx, chainID)
+	msgTypes, signDoc, err := GetMsgTypes(signerData, tx, chainID)
 	if err != nil {
 		return nil, errorsmod.Wrap(err, "failed to get msg types")
 	}
-	typedDataDomain := apitypes.TypedDataDomain{
-		Name:              "Moca Tx",
-		Version:           "1.0.0",
-		ChainId:           ethmath.NewHexOrDecimal256(chainID.Int64()),
-		VerifyingContract: "moca",
-		Salt:              "0",
-	}
-	typedData, err := wrapTxToTypedData(signDoc, msgTypes, typedDataDomain)
+
+	typedDataDomain := *domain
+	typedDataDomain.ChainId = math.NewHexOrDecimal256(chainID.Int64())
+
+	typedData, err := WrapTxToTypedData(signDoc, msgTypes, typedDataDomain)
 	if err != nil {
 		return nil, errorsmod.Wrap(err, "failed to pack tx data in EIP712 object")
 	}
-	return computeTypedDataHash(typedData)
+
+	return ComputeTypedDataHash(typedData)
 }
 
-func getMsgTypes(signerData txsigning.SignerData, tx sdk.Tx, typedChainID *big.Int) (apitypes.Types, *txtypes.SignDocEip712, error) {
-	protoTx, ok := tx.(V2AdaptableTx)
+func GetMsgTypes(signerData signing.SignerData, tx sdk.Tx, typedChainID *big.Int) (apitypes.Types, *types.SignDocEip712, error) {
+	protoTx, ok := tx.(*wrapper)
 	if !ok {
-		return nil, nil, fmt.Errorf("expected tx to be V2AdaptableTx, got %T", tx)
+		return nil, nil, fmt.Errorf("can only handle a protobuf Tx, got %T", tx)
 	}
 
 	// construct the signDoc
@@ -170,12 +101,12 @@ func getMsgTypes(signerData txsigning.SignerData, tx sdk.Tx, typedChainID *big.I
 		msgAny, _ := codectypes.NewAnyWithValue(msg)
 		msgAnys = append(msgAnys, msgAny)
 	}
-	signDoc := &txtypes.SignDocEip712{
+	signDoc := &types.SignDocEip712{
 		AccountNumber: signerData.AccountNumber,
 		Sequence:      signerData.Sequence,
 		ChainId:       typedChainID.Uint64(),
 		TimeoutHeight: protoTx.GetTimeoutHeight(),
-		Fee: txtypes.Fee{
+		Fee: types.Fee{
 			Amount:   protoTx.GetFee(),
 			GasLimit: protoTx.GetGas(),
 			Payer:    string(protoTx.FeePayer()),
@@ -257,7 +188,7 @@ func getMsgTypes(signerData txsigning.SignerData, tx sdk.Tx, typedChainID *big.I
 }
 
 // ComputeTypedDataHash computes keccak hash of typed data for signing.
-func computeTypedDataHash(typedData apitypes.TypedData) ([]byte, error) {
+func ComputeTypedDataHash(typedData apitypes.TypedData) ([]byte, error) {
 	domainSeparator, err := typedData.HashStruct("EIP712Domain", typedData.Domain.Map())
 	if err != nil {
 		err = errorsmod.Wrap(err, "failed to pack and hash typedData EIP712Domain")
@@ -274,8 +205,8 @@ func computeTypedDataHash(typedData apitypes.TypedData) ([]byte, error) {
 	return crypto.Keccak256(rawData), nil
 }
 
-func wrapTxToTypedData(
-	signDoc *txtypes.SignDocEip712,
+func WrapTxToTypedData(
+	signDoc *types.SignDocEip712,
 	msgTypes apitypes.Types,
 	typedDataDomain apitypes.TypedDataDomain,
 ) (apitypes.TypedData, error) {
@@ -692,7 +623,7 @@ var (
 	timeType         = reflect.TypeOf(time.Time{})
 	timePtrType      = reflect.TypeOf(&time.Time{})
 	timeDurationType = reflect.TypeOf(time.Duration(1))
-	enumType         = reflect.TypeOf(signing.SignMode(0))
+	enumType         = reflect.TypeOf(stakingtypes.AuthorizationType(0))
 	edType           = reflect.TypeOf(ed25519.PubKey{})
 	secpType         = reflect.TypeOf(ethsecp256k1.PubKey{})
 

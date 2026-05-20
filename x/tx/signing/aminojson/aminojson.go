@@ -19,6 +19,7 @@ type SignModeHandler struct {
 	fileResolver signing.ProtoFileResolver
 	typeResolver protoregistry.MessageTypeResolver
 	encoder      Encoder
+	isEIP712     bool
 }
 
 // SignModeHandlerOptions are the options for the SignModeHandler.
@@ -26,6 +27,7 @@ type SignModeHandlerOptions struct {
 	FileResolver signing.ProtoFileResolver
 	TypeResolver signing.TypeResolver
 	Encoder      *Encoder
+	IsEIP712     bool
 }
 
 // NewSignModeHandler returns a new SignModeHandler.
@@ -50,12 +52,17 @@ func NewSignModeHandler(options SignModeHandlerOptions) *SignModeHandler {
 	} else {
 		h.encoder = *options.Encoder
 	}
+	h.isEIP712 = options.IsEIP712
 	return h
 }
 
 // Mode implements the Mode method of the SignModeHandler interface.
 func (h SignModeHandler) Mode() signingv1beta1.SignMode {
-	return signingv1beta1.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
+	if h.isEIP712 {
+		return signingv1beta1.SignMode_SIGN_MODE_EIP_712
+	} else {
+		return signingv1beta1.SignMode_SIGN_MODE_LEGACY_AMINO_JSON
+	}
 }
 
 // GetSignBytes implements the GetSignBytes method of the SignModeHandler interface.

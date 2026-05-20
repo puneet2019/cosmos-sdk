@@ -13,14 +13,13 @@ import (
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
-
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -28,7 +27,7 @@ import (
 
 // Test that simulate transaction accurately estimates gas cost
 func TestSimulateGasCost(t *testing.T) {
-	// This test has a test case that uses another's output.
+	// This test has a test case that uses another output.
 	var simulatedGas uint64
 
 	// Same data for every test case
@@ -98,9 +97,9 @@ func TestSimulateGasCost(t *testing.T) {
 // Test various error cases in the AnteHandler control flow.
 func TestAnteHandlerSigErrors(t *testing.T) {
 	// This test requires the accounts to not be set, so we create them here
-	priv0, _, addr0 := testdata.KeyTestPubAddr()
-	priv1, _, addr1 := testdata.KeyTestPubAddr()
-	priv2, _, addr2 := testdata.KeyTestPubAddr()
+	priv0, _, addr0 := testdata.KeyTestPubAddrEthSecp256k1(t)
+	priv1, _, addr1 := testdata.KeyTestPubAddrEthSecp256k1(t)
+	priv2, _, addr2 := testdata.KeyTestPubAddrEthSecp256k1(t)
 	msgs := []sdk.Msg{
 		testdata.NewTestMsg(addr0, addr1),
 		testdata.NewTestMsg(addr0, addr2),
@@ -344,8 +343,8 @@ func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 				}
 			},
 			false,
-			false,
-			sdkerrors.ErrUnauthorized,
+			true,
+			nil,
 		},
 		{
 			"new tx with another signer and incorrect account numbers",
@@ -364,8 +363,8 @@ func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 				}
 			},
 			false,
-			false,
-			sdkerrors.ErrUnauthorized,
+			true,
+			nil,
 		},
 		{
 			"new tx with another signer and correct account numbers",
@@ -391,6 +390,7 @@ func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Case %s", tc.desc), func(t *testing.T) {
+			t.Log(tc.desc)
 			suite := SetupTestSuite(t, false)
 			suite.ctx = suite.ctx.WithBlockHeight(0)
 			suite.txBuilder = suite.clientCtx.TxConfig.NewTxBuilder()
@@ -398,6 +398,7 @@ func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 			args := tc.malleate(suite)
 			args.feeAmount = testdata.NewTestFeeAmount()
 			args.gasLimit = testdata.NewTestGasLimit()
+			args.chainID = suite.ctx.ChainID()
 
 			suite.RunTestCase(t, tc, args)
 		})
@@ -598,6 +599,7 @@ func TestAnteHandlerSequences(t *testing.T) {
 			args := tc.malleate(suite)
 			args.feeAmount = feeAmount
 			args.gasLimit = gasLimit
+			args.chainID = suite.ctx.ChainID()
 
 			suite.RunTestCase(t, tc, args)
 		})
@@ -615,7 +617,7 @@ func TestAnteHandlerFees(t *testing.T) {
 			"signer has no funds",
 			func(suite *AnteTestSuite) TestCaseArgs {
 				accs := suite.CreateTestAccounts(1)
-				suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), accs[0].acc.GetAddress(), gomock.Any(), feeAmount).Return(sdkerrors.ErrInsufficientFunds)
+				suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), accs[0].acc.GetAddress(), gomock.Any(), feeAmount).Return(errorsmod.ErrInsufficientFunds)
 
 				return TestCaseArgs{
 					msgs: []sdk.Msg{testdata.NewTestMsg(accs[0].acc.GetAddress())},
@@ -623,7 +625,7 @@ func TestAnteHandlerFees(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrInsufficientFunds,
+			errorsmod.ErrInsufficientFunds,
 		},
 		{
 			"signer has enough funds, should pass",
@@ -648,6 +650,7 @@ func TestAnteHandlerFees(t *testing.T) {
 			args := tc.malleate(suite)
 			args.feeAmount = feeAmount
 			args.gasLimit = gasLimit
+			args.chainID = suite.ctx.ChainID()
 
 			suite.RunTestCase(t, tc, args)
 		})
@@ -663,13 +666,13 @@ func TestAnteHandlerMemoGas(t *testing.T) {
 				accs := suite.CreateTestAccounts(1)
 				return TestCaseArgs{
 					feeAmount: sdk.NewCoins(sdk.NewInt64Coin("atom", 0)),
-					gasLimit:  0,
+					gasLimit:  1,
 					msgs:      []sdk.Msg{testdata.NewTestMsg(accs[0].acc.GetAddress())},
 				}.WithAccountsInfo(accs)
 			},
 			false,
 			false,
-			sdkerrors.ErrOutOfGas,
+			errorsmod.ErrOutOfGas,
 		},
 		{
 			"tx with memo doesn't have enough gas",
@@ -685,7 +688,7 @@ func TestAnteHandlerMemoGas(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrOutOfGas,
+			errorsmod.ErrOutOfGas,
 		},
 		{
 			"memo too large",
@@ -701,7 +704,7 @@ func TestAnteHandlerMemoGas(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrMemoTooLarge,
+			errorsmod.ErrMemoTooLarge,
 		},
 		{
 			"tx with memo has enough gas",
@@ -725,6 +728,7 @@ func TestAnteHandlerMemoGas(t *testing.T) {
 			suite := SetupTestSuite(t, false)
 			suite.txBuilder = suite.clientCtx.TxConfig.NewTxBuilder()
 			args := tc.malleate(suite)
+			args.chainID = suite.ctx.ChainID()
 
 			suite.RunTestCase(t, tc, args)
 		})
@@ -893,7 +897,6 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 			func(suite *AnteTestSuite) TestCaseArgs {
 				accs := suite.CreateTestAccounts(1)
 				msg0 := testdata.NewTestMsg(accs[0].acc.GetAddress())
-				suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 				return TestCaseArgs{
 					chainID:   "wrong-chain-id",
@@ -904,7 +907,7 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrUnauthorized,
+			fmt.Errorf("failed to parse chainID"),
 		},
 		{
 			"test wrong accSeqs",
@@ -959,7 +962,7 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrInvalidPubKey,
+			errorsmod.ErrInvalidPubKey,
 		},
 		{
 			"test wrong signer if public key exist",
@@ -980,7 +983,7 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrInvalidPubKey,
+			errorsmod.ErrInvalidPubKey,
 		},
 		{
 			"test wrong signer if public doesn't exist",
@@ -1000,7 +1003,7 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrInvalidPubKey,
+			errorsmod.ErrInvalidPubKey,
 		},
 	}
 
@@ -1072,7 +1075,7 @@ func TestAnteHandlerSetPubKey(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrInvalidPubKey,
+			errorsmod.ErrInvalidPubKey,
 		},
 		{
 			"make sure public key is not set, when tx has no pubkey or signature",
@@ -1204,7 +1207,7 @@ func generatePubKeysAndSignatures(n int, msg []byte, _ bool) (pubkeys []cryptoty
 		//	privkey = ed25519.GenPrivKey()
 		// } else {
 		//	privkey = secp256k1.GenPrivKey()
-		//}
+		// }
 
 		pubkeys[i] = privkey.PubKey()
 		signatures[i], _ = privkey.Sign(msg)
@@ -1289,7 +1292,7 @@ func TestAnteHandlerSigLimitExceeded(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrTooManySignatures,
+			errorsmod.ErrTooManySignatures,
 		},
 	}
 
@@ -1326,7 +1329,7 @@ func TestCustomSignatureVerificationGasConsumer(t *testing.T) {
 								meter.ConsumeGas(params.SigVerifyCostED25519, "ante verify: ed25519")
 								return nil
 							default:
-								return errorsmod.Wrapf(sdkerrors.ErrInvalidPubKey, "unrecognized public key type: %T", pubkey)
+								return errorsmod.Wrapf(errorsmod.ErrInvalidPubKey, "unrecognized public key type: %T", pubkey)
 							}
 						},
 					},
@@ -1346,7 +1349,7 @@ func TestCustomSignatureVerificationGasConsumer(t *testing.T) {
 			},
 			false,
 			false,
-			sdkerrors.ErrInvalidPubKey,
+			errorsmod.ErrInvalidPubKey,
 		},
 	}
 
@@ -1429,7 +1432,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(sdkerrors.ErrInsufficientFee)
+	suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errorsmod.ErrInsufficientFee)
 	// require that local mempool fee check is still run on recheck since validator may change minFee between check and recheck
 	// create new minimum gas price so antehandler fails on recheck
 	suite.ctx = suite.ctx.WithMinGasPrices([]sdk.DecCoin{{

@@ -2,6 +2,7 @@ package directaux
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -85,10 +86,7 @@ func (h SignModeHandler) GetSignBytes(
 		if err != nil {
 			return nil, err
 		}
-		feePayer, err = h.signersContext.AddressCodec().BytesToString(fp)
-		if err != nil {
-			return nil, err
-		}
+		feePayer = hex.EncodeToString(fp)
 	}
 	if feePayer == signerData.Address {
 		return nil, fmt.Errorf("fee payer %s cannot sign with %s: unauthorized",

@@ -35,7 +35,7 @@ func TestSetPubKey(t *testing.T) {
 	// keys and addresses
 	priv1, pub1, addr1 := testdata.KeyTestPubAddr()
 	priv2, pub2, addr2 := testdata.KeyTestPubAddr()
-	priv3, pub3, addr3 := testdata.KeyTestPubAddrSecp256R1(t)
+	priv3, pub3, addr3 := testdata.KeyTestPubAddr()
 
 	addrs := []sdk.AccAddress{addr1, addr2, addr3}
 	pubs := []cryptotypes.PubKey{pub1, pub2, pub3}
@@ -129,7 +129,7 @@ func TestSigVerification(t *testing.T) {
 	suite := SetupTestSuite(t, true)
 	suite.txBankKeeper.EXPECT().DenomMetadata(gomock.Any(), gomock.Any()).Return(&banktypes.QueryDenomMetadataResponse{}, nil).AnyTimes()
 
-	enabledSignModes := []signing.SignMode{signing.SignMode_SIGN_MODE_DIRECT, signing.SignMode_SIGN_MODE_TEXTUAL, signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON}
+	enabledSignModes := []signing.SignMode{signing.SignMode_SIGN_MODE_EIP_712}
 	// Since TEXTUAL is not enabled by default, we create a custom TxConfig
 	// here which includes it.
 	txConfigOpts := authtx.ConfigOptions{
@@ -148,9 +148,9 @@ func TestSigVerification(t *testing.T) {
 	suite.ctx = suite.ctx.WithBlockHeight(1)
 
 	// keys and addresses
-	priv1, _, addr1 := testdata.KeyTestPubAddr()
-	priv2, _, addr2 := testdata.KeyTestPubAddr()
-	priv3, _, addr3 := testdata.KeyTestPubAddr()
+	priv1, _, addr1 := testdata.KeyTestPubAddrEthSecp256k1(t)
+	priv2, _, addr2 := testdata.KeyTestPubAddrEthSecp256k1(t)
+	priv3, _, addr3 := testdata.KeyTestPubAddrEthSecp256k1(t)
 
 	addrs := []sdk.AccAddress{addr1, addr2, addr3}
 
@@ -249,10 +249,10 @@ func TestSigVerification(t *testing.T) {
 
 func TestSigIntegration(t *testing.T) {
 	// generate private keys
-	privs := []cryptotypes.PrivKey{
-		secp256k1.GenPrivKey(),
-		secp256k1.GenPrivKey(),
-		secp256k1.GenPrivKey(),
+	var privs []cryptotypes.PrivKey
+	for i := 0; i < 3; i++ {
+		priv, _, _ := testdata.KeyTestPubAddrEthSecp256k1(t)
+		privs = append(privs, priv)
 	}
 
 	params := types.DefaultParams()

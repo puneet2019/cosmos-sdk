@@ -5,10 +5,13 @@ import (
 	"fmt"
 
 	signingv1beta1 "cosmossdk.io/api/cosmos/tx/signing/v1beta1"
+	// errorsmod "cosmossdk.io/errors"
 	txsigning "cosmossdk.io/x/tx/signing"
+	// ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	// "github.com/ethereum/go-ethereum/crypto/secp256k1"
 
+	// "github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 )
 
@@ -36,6 +39,8 @@ func APISignModeToInternal(mode signingv1beta1.SignMode) (signing.SignMode, erro
 		return signing.SignMode_SIGN_MODE_TEXTUAL, nil
 	case signingv1beta1.SignMode_SIGN_MODE_DIRECT_AUX:
 		return signing.SignMode_SIGN_MODE_DIRECT_AUX, nil
+	case signingv1beta1.SignMode_SIGN_MODE_EIP_712:
+		return signing.SignMode_SIGN_MODE_EIP_712, nil
 	default:
 		return signing.SignMode_SIGN_MODE_UNSPECIFIED, fmt.Errorf("unsupported sign mode %s", mode)
 	}
@@ -52,6 +57,8 @@ func internalSignModeToAPI(mode signing.SignMode) (signingv1beta1.SignMode, erro
 		return signingv1beta1.SignMode_SIGN_MODE_TEXTUAL, nil
 	case signing.SignMode_SIGN_MODE_DIRECT_AUX:
 		return signingv1beta1.SignMode_SIGN_MODE_DIRECT_AUX, nil
+	case signing.SignMode_SIGN_MODE_EIP_712:
+		return signingv1beta1.SignMode_SIGN_MODE_EIP_712, nil
 	default:
 		return signingv1beta1.SignMode_SIGN_MODE_UNSPECIFIED, fmt.Errorf("unsupported sign mode %s", mode)
 	}
@@ -73,6 +80,43 @@ func VerifySignature(
 		if err != nil {
 			return err
 		}
+		if data.SignMode == signing.SignMode_SIGN_MODE_EIP_712 {
+			// sig := data.Signature
+			// sigHash, err := handler.GetSignBytes(ctx, signMode, signerData, txData)
+			// if err != nil {
+			// 	return err
+			// }
+
+			// // check signature length
+			// if len(sig) != ethcrypto.SignatureLength {
+			// 	return errorsmod.Wrap(errorsmod.ErrorInvalidSigner, "signature length doesn't match typical [R||S||V] signature 65 bytes")
+			// }
+
+			// // remove the recovery offset if needed (ie. Metamask eip712 signature)
+			// if sig[ethcrypto.RecoveryIDOffset] == 27 || sig[ethcrypto.RecoveryIDOffset] == 28 {
+			// 	sig[ethcrypto.RecoveryIDOffset] -= 27
+			// }
+
+			// // recover the pubkey from the signature
+			// feePayerPubkey, err := secp256k1.RecoverPubkey(sigHash, sig)
+			// if err != nil {
+			// 	return errorsmod.Wrap(err, "failed to recover fee payer from sig")
+			// }
+			// ecPubKey, err := ethcrypto.UnmarshalPubkey(feePayerPubkey)
+			// if err != nil {
+			// 	return errorsmod.Wrap(err, "failed to unmarshal recovered fee payer pubkey")
+			// }
+
+			// // check that the recovered pubkey matches the one in the signerData data
+			// pk := &ethsecp256k1.PubKey{
+			// 	Key: ethcrypto.CompressPubkey(ecPubKey),
+			// }
+			// if !pubKey.Equals(pk) {
+			// 	return errorsmod.Wrapf(errorsmod.ErrorInvalidSigner, "feePayer's pubkey %s is different from signature's pubkey %s", pubKey, pk)
+			// }
+			// return nil
+		}
+		// This should never happen, but we add it just for test cases.
 		signBytes, err := handler.GetSignBytes(ctx, signMode, signerData, txData)
 		if err != nil {
 			return err
@@ -83,21 +127,7 @@ func VerifySignature(
 		return nil
 
 	case *signing.MultiSignatureData:
-		multiPK, ok := pubKey.(multisig.PubKey)
-		if !ok {
-			return fmt.Errorf("expected %T, got %T", (multisig.PubKey)(nil), pubKey)
-		}
-		err := multiPK.VerifyMultisignature(func(mode signing.SignMode) ([]byte, error) {
-			signMode, err := internalSignModeToAPI(mode)
-			if err != nil {
-				return nil, err
-			}
-			return handler.GetSignBytes(ctx, signMode, signerData, txData)
-		}, data)
-		if err != nil {
-			return err
-		}
-		return nil
+		return fmt.Errorf("multi signature is not allowed")
 	default:
 		return fmt.Errorf("unexpected SignatureData %T", signatureData)
 	}

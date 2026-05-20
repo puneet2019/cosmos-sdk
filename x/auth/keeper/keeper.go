@@ -10,12 +10,12 @@ import (
 	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/store"
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/log"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
@@ -84,11 +84,9 @@ func (a AccountsIndexes) IndexesList() []collections.Index[sdk.AccAddress, sdk.A
 // encoding/decoding library.
 type AccountKeeper struct {
 	addressCodec address.Codec
-
-	storeService store.KVStoreService
-	cdc          codec.BinaryCodec
-	permAddrs    map[string]types.PermissionsForAddress
-	bech32Prefix string
+	storeService  store.KVStoreService
+	cdc           codec.BinaryCodec
+	permAddrs     map[string]types.PermissionsForAddress
 
 	// The prototypical AccountI constructor.
 	proto func() sdk.AccountI
@@ -106,6 +104,11 @@ type AccountKeeper struct {
 
 var _ AccountKeeperI = &AccountKeeper{}
 
+// AddressCodec returns the account address codec.
+func (ak AccountKeeper) AddressCodec() address.Codec {
+	return ak.addressCodec
+}
+
 // NewAccountKeeper returns a new AccountKeeperI that uses go-amino to
 // (binary) encode and decode concrete sdk.Accounts.
 // `maccPerms` is a map that takes accounts' addresses as keys, and their respective permissions as values. This map is used to construct
@@ -114,7 +117,7 @@ var _ AccountKeeperI = &AccountKeeper{}
 // may use auth.Keeper to access the accounts permissions map.
 func NewAccountKeeper(
 	cdc codec.BinaryCodec, storeService store.KVStoreService, proto func() sdk.AccountI,
-	maccPerms map[string][]string, ac address.Codec, bech32Prefix, authority string,
+	maccPerms map[string][]string, ac address.Codec, authority string,
 ) AccountKeeper {
 	permAddrs := make(map[string]types.PermissionsForAddress)
 	for name, perms := range maccPerms {
@@ -125,7 +128,6 @@ func NewAccountKeeper(
 
 	ak := AccountKeeper{
 		addressCodec:  ac,
-		bech32Prefix:  bech32Prefix,
 		storeService:  storeService,
 		proto:         proto,
 		cdc:           cdc,
@@ -146,12 +148,6 @@ func NewAccountKeeper(
 // GetAuthority returns the x/auth module's authority.
 func (ak AccountKeeper) GetAuthority() string {
 	return ak.authority
-}
-
-// AddressCodec returns the x/auth account address codec.
-// x/auth is tied to bech32 encoded user accounts
-func (ak AccountKeeper) AddressCodec() address.Codec {
-	return ak.addressCodec
 }
 
 // Logger returns a module-specific logger.
@@ -262,11 +258,6 @@ func (ak AccountKeeper) GetModuleAccount(ctx context.Context, moduleName string)
 // SetModuleAccount sets the module account to the auth account store
 func (ak AccountKeeper) SetModuleAccount(ctx context.Context, macc sdk.ModuleAccountI) {
 	ak.SetAccount(ctx, macc)
-}
-
-// add getter for bech32Prefix
-func (ak AccountKeeper) getBech32Prefix() (string, error) {
-	return ak.bech32Prefix, nil
 }
 
 // GetParams gets the auth module's parameters.

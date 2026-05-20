@@ -85,7 +85,6 @@ func TestDirectAuxHandler(t *testing.T) {
 	}
 	signersCtx, err := signing.NewContext(signing.Options{
 		AddressCodec:          dummyAddressCodec{},
-		ValidatorAddressCodec: dummyAddressCodec{},
 	})
 	require.NoError(t, err)
 	modeHandler, err := directaux.NewSignModeHandler(directaux.SignModeHandlerOptions{

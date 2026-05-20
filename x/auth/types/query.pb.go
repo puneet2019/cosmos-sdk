@@ -481,280 +481,6 @@ func (m *QueryModuleAccountByNameResponse) GetAccount() *types.Any {
 	return nil
 }
 
-// Bech32PrefixRequest is the request type for Bech32Prefix rpc method.
-//
-// Since: cosmos-sdk 0.46
-type Bech32PrefixRequest struct {
-}
-
-func (m *Bech32PrefixRequest) Reset()         { *m = Bech32PrefixRequest{} }
-func (m *Bech32PrefixRequest) String() string { return proto.CompactTextString(m) }
-func (*Bech32PrefixRequest) ProtoMessage()    {}
-func (*Bech32PrefixRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{10}
-}
-func (m *Bech32PrefixRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Bech32PrefixRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Bech32PrefixRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Bech32PrefixRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Bech32PrefixRequest.Merge(m, src)
-}
-func (m *Bech32PrefixRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *Bech32PrefixRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_Bech32PrefixRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Bech32PrefixRequest proto.InternalMessageInfo
-
-// Bech32PrefixResponse is the response type for Bech32Prefix rpc method.
-//
-// Since: cosmos-sdk 0.46
-type Bech32PrefixResponse struct {
-	Bech32Prefix string `protobuf:"bytes,1,opt,name=bech32_prefix,json=bech32Prefix,proto3" json:"bech32_prefix,omitempty"`
-}
-
-func (m *Bech32PrefixResponse) Reset()         { *m = Bech32PrefixResponse{} }
-func (m *Bech32PrefixResponse) String() string { return proto.CompactTextString(m) }
-func (*Bech32PrefixResponse) ProtoMessage()    {}
-func (*Bech32PrefixResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{11}
-}
-func (m *Bech32PrefixResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Bech32PrefixResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Bech32PrefixResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Bech32PrefixResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Bech32PrefixResponse.Merge(m, src)
-}
-func (m *Bech32PrefixResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *Bech32PrefixResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_Bech32PrefixResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Bech32PrefixResponse proto.InternalMessageInfo
-
-func (m *Bech32PrefixResponse) GetBech32Prefix() string {
-	if m != nil {
-		return m.Bech32Prefix
-	}
-	return ""
-}
-
-// AddressBytesToStringRequest is the request type for AddressString rpc method.
-//
-// Since: cosmos-sdk 0.46
-type AddressBytesToStringRequest struct {
-	AddressBytes []byte `protobuf:"bytes,1,opt,name=address_bytes,json=addressBytes,proto3" json:"address_bytes,omitempty"`
-}
-
-func (m *AddressBytesToStringRequest) Reset()         { *m = AddressBytesToStringRequest{} }
-func (m *AddressBytesToStringRequest) String() string { return proto.CompactTextString(m) }
-func (*AddressBytesToStringRequest) ProtoMessage()    {}
-func (*AddressBytesToStringRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{12}
-}
-func (m *AddressBytesToStringRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *AddressBytesToStringRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_AddressBytesToStringRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *AddressBytesToStringRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AddressBytesToStringRequest.Merge(m, src)
-}
-func (m *AddressBytesToStringRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *AddressBytesToStringRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_AddressBytesToStringRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AddressBytesToStringRequest proto.InternalMessageInfo
-
-func (m *AddressBytesToStringRequest) GetAddressBytes() []byte {
-	if m != nil {
-		return m.AddressBytes
-	}
-	return nil
-}
-
-// AddressBytesToStringResponse is the response type for AddressString rpc method.
-//
-// Since: cosmos-sdk 0.46
-type AddressBytesToStringResponse struct {
-	AddressString string `protobuf:"bytes,1,opt,name=address_string,json=addressString,proto3" json:"address_string,omitempty"`
-}
-
-func (m *AddressBytesToStringResponse) Reset()         { *m = AddressBytesToStringResponse{} }
-func (m *AddressBytesToStringResponse) String() string { return proto.CompactTextString(m) }
-func (*AddressBytesToStringResponse) ProtoMessage()    {}
-func (*AddressBytesToStringResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{13}
-}
-func (m *AddressBytesToStringResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *AddressBytesToStringResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_AddressBytesToStringResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *AddressBytesToStringResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AddressBytesToStringResponse.Merge(m, src)
-}
-func (m *AddressBytesToStringResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *AddressBytesToStringResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_AddressBytesToStringResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AddressBytesToStringResponse proto.InternalMessageInfo
-
-func (m *AddressBytesToStringResponse) GetAddressString() string {
-	if m != nil {
-		return m.AddressString
-	}
-	return ""
-}
-
-// AddressStringToBytesRequest is the request type for AccountBytes rpc method.
-//
-// Since: cosmos-sdk 0.46
-type AddressStringToBytesRequest struct {
-	AddressString string `protobuf:"bytes,1,opt,name=address_string,json=addressString,proto3" json:"address_string,omitempty"`
-}
-
-func (m *AddressStringToBytesRequest) Reset()         { *m = AddressStringToBytesRequest{} }
-func (m *AddressStringToBytesRequest) String() string { return proto.CompactTextString(m) }
-func (*AddressStringToBytesRequest) ProtoMessage()    {}
-func (*AddressStringToBytesRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{14}
-}
-func (m *AddressStringToBytesRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *AddressStringToBytesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_AddressStringToBytesRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *AddressStringToBytesRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AddressStringToBytesRequest.Merge(m, src)
-}
-func (m *AddressStringToBytesRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *AddressStringToBytesRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_AddressStringToBytesRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AddressStringToBytesRequest proto.InternalMessageInfo
-
-func (m *AddressStringToBytesRequest) GetAddressString() string {
-	if m != nil {
-		return m.AddressString
-	}
-	return ""
-}
-
-// AddressStringToBytesResponse is the response type for AddressBytes rpc method.
-//
-// Since: cosmos-sdk 0.46
-type AddressStringToBytesResponse struct {
-	AddressBytes []byte `protobuf:"bytes,1,opt,name=address_bytes,json=addressBytes,proto3" json:"address_bytes,omitempty"`
-}
-
-func (m *AddressStringToBytesResponse) Reset()         { *m = AddressStringToBytesResponse{} }
-func (m *AddressStringToBytesResponse) String() string { return proto.CompactTextString(m) }
-func (*AddressStringToBytesResponse) ProtoMessage()    {}
-func (*AddressStringToBytesResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{15}
-}
-func (m *AddressStringToBytesResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *AddressStringToBytesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_AddressStringToBytesResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *AddressStringToBytesResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AddressStringToBytesResponse.Merge(m, src)
-}
-func (m *AddressStringToBytesResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *AddressStringToBytesResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_AddressStringToBytesResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_AddressStringToBytesResponse proto.InternalMessageInfo
-
-func (m *AddressStringToBytesResponse) GetAddressBytes() []byte {
-	if m != nil {
-		return m.AddressBytes
-	}
-	return nil
-}
-
 // QueryAccountAddressByIDRequest is the request type for AccountAddressByID rpc method
 //
 // Since: cosmos-sdk 0.46.2
@@ -775,7 +501,7 @@ func (m *QueryAccountAddressByIDRequest) Reset()         { *m = QueryAccountAddr
 func (m *QueryAccountAddressByIDRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryAccountAddressByIDRequest) ProtoMessage()    {}
 func (*QueryAccountAddressByIDRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{16}
+	return fileDescriptor_c451370b3929a27c, []int{10}
 }
 func (m *QueryAccountAddressByIDRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -830,7 +556,7 @@ func (m *QueryAccountAddressByIDResponse) Reset()         { *m = QueryAccountAdd
 func (m *QueryAccountAddressByIDResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryAccountAddressByIDResponse) ProtoMessage()    {}
 func (*QueryAccountAddressByIDResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{17}
+	return fileDescriptor_c451370b3929a27c, []int{11}
 }
 func (m *QueryAccountAddressByIDResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -878,7 +604,7 @@ func (m *QueryAccountInfoRequest) Reset()         { *m = QueryAccountInfoRequest
 func (m *QueryAccountInfoRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryAccountInfoRequest) ProtoMessage()    {}
 func (*QueryAccountInfoRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{18}
+	return fileDescriptor_c451370b3929a27c, []int{12}
 }
 func (m *QueryAccountInfoRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -926,7 +652,7 @@ func (m *QueryAccountInfoResponse) Reset()         { *m = QueryAccountInfoRespon
 func (m *QueryAccountInfoResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryAccountInfoResponse) ProtoMessage()    {}
 func (*QueryAccountInfoResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c451370b3929a27c, []int{19}
+	return fileDescriptor_c451370b3929a27c, []int{13}
 }
 func (m *QueryAccountInfoResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -973,12 +699,6 @@ func init() {
 	proto.RegisterType((*QueryModuleAccountsResponse)(nil), "cosmos.auth.v1beta1.QueryModuleAccountsResponse")
 	proto.RegisterType((*QueryModuleAccountByNameRequest)(nil), "cosmos.auth.v1beta1.QueryModuleAccountByNameRequest")
 	proto.RegisterType((*QueryModuleAccountByNameResponse)(nil), "cosmos.auth.v1beta1.QueryModuleAccountByNameResponse")
-	proto.RegisterType((*Bech32PrefixRequest)(nil), "cosmos.auth.v1beta1.Bech32PrefixRequest")
-	proto.RegisterType((*Bech32PrefixResponse)(nil), "cosmos.auth.v1beta1.Bech32PrefixResponse")
-	proto.RegisterType((*AddressBytesToStringRequest)(nil), "cosmos.auth.v1beta1.AddressBytesToStringRequest")
-	proto.RegisterType((*AddressBytesToStringResponse)(nil), "cosmos.auth.v1beta1.AddressBytesToStringResponse")
-	proto.RegisterType((*AddressStringToBytesRequest)(nil), "cosmos.auth.v1beta1.AddressStringToBytesRequest")
-	proto.RegisterType((*AddressStringToBytesResponse)(nil), "cosmos.auth.v1beta1.AddressStringToBytesResponse")
 	proto.RegisterType((*QueryAccountAddressByIDRequest)(nil), "cosmos.auth.v1beta1.QueryAccountAddressByIDRequest")
 	proto.RegisterType((*QueryAccountAddressByIDResponse)(nil), "cosmos.auth.v1beta1.QueryAccountAddressByIDResponse")
 	proto.RegisterType((*QueryAccountInfoRequest)(nil), "cosmos.auth.v1beta1.QueryAccountInfoRequest")
@@ -988,74 +708,62 @@ func init() {
 func init() { proto.RegisterFile("cosmos/auth/v1beta1/query.proto", fileDescriptor_c451370b3929a27c) }
 
 var fileDescriptor_c451370b3929a27c = []byte{
-	// 1065 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x96, 0xcf, 0x6f, 0xe3, 0x44,
-	0x14, 0xc7, 0xe3, 0x6e, 0x69, 0xbb, 0xaf, 0xd9, 0x22, 0x4d, 0xb3, 0x22, 0x38, 0x6d, 0x12, 0xb9,
-	0xd0, 0xa6, 0x65, 0x63, 0xd3, 0x34, 0x2b, 0xf1, 0xe3, 0x54, 0xef, 0x02, 0xea, 0x61, 0x51, 0x70,
-	0x57, 0x08, 0x71, 0x20, 0x72, 0x62, 0x27, 0xb5, 0xd8, 0x78, 0xb2, 0xb1, 0x03, 0x1b, 0xaa, 0x5c,
-	0x90, 0x90, 0x7a, 0x41, 0x42, 0x82, 0x3f, 0x60, 0x0f, 0x88, 0xf3, 0x22, 0x95, 0x1b, 0x7f, 0xc0,
-	0x6a, 0x4f, 0x2b, 0xb8, 0x70, 0x42, 0xa8, 0x45, 0x82, 0x1b, 0xff, 0x02, 0xca, 0xcc, 0xb3, 0x63,
-	0xb7, 0x93, 0xc4, 0x85, 0x53, 0x9d, 0x99, 0xf7, 0xbe, 0xef, 0x33, 0x6f, 0x9e, 0xfd, 0x2d, 0x14,
-	0x9a, 0xd4, 0xeb, 0x50, 0x4f, 0x33, 0xfb, 0xfe, 0x91, 0xf6, 0xd9, 0x6e, 0xc3, 0xf6, 0xcd, 0x5d,
-	0xed, 0x61, 0xdf, 0xee, 0x0d, 0xd4, 0x6e, 0x8f, 0xfa, 0x94, 0xac, 0xf2, 0x00, 0x75, 0x14, 0xa0,
-	0x62, 0x80, 0xbc, 0x83, 0x59, 0x0d, 0xd3, 0xb3, 0x79, 0x74, 0x98, 0xdb, 0x35, 0xdb, 0x8e, 0x6b,
-	0xfa, 0x0e, 0x75, 0xb9, 0x80, 0x9c, 0x69, 0xd3, 0x36, 0x65, 0x8f, 0xda, 0xe8, 0x09, 0x57, 0x5f,
-	0x6e, 0x53, 0xda, 0x7e, 0x60, 0x6b, 0xec, 0x57, 0xa3, 0xdf, 0xd2, 0x4c, 0x17, 0x2b, 0xca, 0x6b,
-	0xb8, 0x65, 0x76, 0x1d, 0xcd, 0x74, 0x5d, 0xea, 0x33, 0x35, 0x0f, 0x77, 0xf3, 0x22, 0x60, 0x06,
-	0x87, 0xc2, 0x7c, 0xbf, 0xce, 0x2b, 0x22, 0x3c, 0xdf, 0xca, 0x61, 0x6a, 0x00, 0x1c, 0x3d, 0xa7,
-	0xf2, 0x09, 0x64, 0x3e, 0x18, 0xfd, 0xdc, 0x6f, 0x36, 0x69, 0xdf, 0xf5, 0x3d, 0xc3, 0x7e, 0xd8,
-	0xb7, 0x3d, 0x9f, 0xbc, 0x0b, 0x30, 0x3e, 0x52, 0x56, 0x2a, 0x4a, 0xa5, 0xe5, 0xca, 0xa6, 0x8a,
-	0xba, 0xa3, 0xf3, 0xab, 0x5c, 0x05, 0x51, 0xd4, 0x9a, 0xd9, 0xb6, 0x31, 0xd7, 0x88, 0x64, 0x2a,
-	0xa7, 0x12, 0xdc, 0xbc, 0x50, 0xc0, 0xeb, 0x52, 0xd7, 0xb3, 0x89, 0x01, 0x4b, 0x26, 0xae, 0x65,
-	0xa5, 0xe2, 0xb5, 0xd2, 0x72, 0x25, 0xa3, 0xf2, 0x16, 0xa8, 0x41, 0x77, 0xd4, 0x7d, 0x77, 0xa0,
-	0x17, 0x9f, 0x9d, 0x96, 0xd7, 0x04, 0xb7, 0xa1, 0xa2, 0xe2, 0x81, 0x11, 0xea, 0x90, 0xf7, 0x62,
-	0xd4, 0x73, 0x8c, 0x7a, 0x6b, 0x26, 0x35, 0x07, 0x8a, 0x61, 0x1f, 0xc2, 0x6a, 0x94, 0x3a, 0xe8,
-	0x4a, 0x05, 0x16, 0x4d, 0xcb, 0xea, 0xd9, 0x9e, 0xc7, 0x5a, 0x72, 0x5d, 0xcf, 0xfe, 0x72, 0x5a,
-	0xce, 0xa0, 0xfe, 0x3e, 0xdf, 0x39, 0xf4, 0x7b, 0x8e, 0xdb, 0x36, 0x82, 0xc0, 0xb7, 0x96, 0x4e,
-	0x1e, 0x17, 0x52, 0x7f, 0x3f, 0x2e, 0xa4, 0x94, 0xa3, 0x78, 0xaf, 0xc3, 0x4e, 0xd4, 0x60, 0x11,
-	0x4f, 0x80, 0x8d, 0xfe, 0xaf, 0x8d, 0x08, 0x64, 0x94, 0x0c, 0x10, 0x56, 0xa9, 0x66, 0xf6, 0xcc,
-	0x4e, 0x70, 0xa7, 0x4a, 0x0d, 0x0f, 0x15, 0xac, 0x62, 0xf9, 0x37, 0x61, 0xa1, 0xcb, 0x56, 0xb0,
-	0x7a, 0x4e, 0x15, 0x15, 0xe1, 0x49, 0xfa, 0xfc, 0xd3, 0xdf, 0x0b, 0x29, 0x03, 0x13, 0x94, 0x35,
-	0x90, 0x99, 0xe2, 0x3d, 0x6a, 0xf5, 0x1f, 0xd8, 0x17, 0x66, 0x48, 0xf9, 0x1c, 0x72, 0xc2, 0x5d,
-	0xac, 0xfb, 0x51, 0xc2, 0x01, 0xd8, 0x7c, 0x76, 0x5a, 0x56, 0x44, 0x48, 0x31, 0xdd, 0xc8, 0x18,
-	0x28, 0xb7, 0xa1, 0x70, 0xb9, 0xb0, 0x3e, 0x78, 0xdf, 0xec, 0x04, 0x33, 0x4a, 0x08, 0xcc, 0xbb,
-	0x66, 0xc7, 0xe6, 0xd7, 0x68, 0xb0, 0x67, 0xe5, 0x0b, 0x28, 0x4e, 0x4e, 0x43, 0xe8, 0x0f, 0x93,
-	0xdd, 0x55, 0x52, 0xe6, 0xf0, 0xc6, 0x6e, 0xc2, 0xaa, 0x6e, 0x37, 0x8f, 0xf6, 0x2a, 0xb5, 0x9e,
-	0xdd, 0x72, 0x1e, 0x05, 0x2d, 0x7c, 0x1b, 0x32, 0xf1, 0x65, 0xc4, 0xd8, 0x80, 0x1b, 0x0d, 0xb6,
-	0x5e, 0xef, 0xb2, 0x0d, 0x3c, 0x47, 0xba, 0x11, 0x09, 0x56, 0x74, 0xc8, 0xe1, 0x4c, 0xea, 0x03,
-	0xdf, 0xf6, 0xee, 0x53, 0x1c, 0x4d, 0x6c, 0xc1, 0x06, 0xdc, 0xc0, 0x19, 0xad, 0x37, 0x46, 0xfb,
-	0x4c, 0x23, 0x6d, 0xa4, 0xcd, 0x48, 0x8e, 0xf2, 0x0e, 0xac, 0x89, 0x35, 0x10, 0xe4, 0x55, 0x58,
-	0x09, 0x44, 0x3c, 0xb6, 0x83, 0x24, 0x81, 0x34, 0x0f, 0x57, 0xee, 0x86, 0x28, 0x7c, 0xe1, 0x3e,
-	0x65, 0x72, 0x01, 0x4a, 0x42, 0x95, 0x3b, 0x21, 0xcc, 0x05, 0x95, 0x71, 0x57, 0x66, 0x9f, 0xe8,
-	0x10, 0xf2, 0xd1, 0xb7, 0x30, 0x3c, 0xdd, 0xc1, 0xdd, 0xf1, 0x6c, 0xcc, 0x39, 0x16, 0xcb, 0xbd,
-	0xa6, 0xcf, 0x65, 0x25, 0x63, 0xce, 0xb1, 0xc8, 0x3a, 0x00, 0x5e, 0x55, 0xdd, 0xb1, 0xd8, 0x97,
-	0x65, 0xde, 0xb8, 0x8e, 0x2b, 0x07, 0x96, 0x62, 0xe1, 0xc4, 0x89, 0x44, 0x11, 0x6e, 0x1f, 0x5e,
-	0x0c, 0x14, 0x92, 0x7e, 0x43, 0x56, 0xcc, 0x98, 0x9c, 0x72, 0x0f, 0x5e, 0x8a, 0x56, 0x39, 0x70,
-	0x5b, 0xf4, 0x7f, 0x7c, 0x99, 0x94, 0x1a, 0x64, 0x2f, 0xcb, 0x21, 0x6d, 0x15, 0xe6, 0x1d, 0xb7,
-	0x45, 0x71, 0xc8, 0x8b, 0xc2, 0x4f, 0x82, 0x6e, 0x7a, 0xc1, 0x24, 0x1b, 0x2c, 0xba, 0xf2, 0x4f,
-	0x1a, 0x5e, 0x60, 0x92, 0xe4, 0x6b, 0x09, 0x96, 0x82, 0x37, 0x9e, 0x6c, 0x0b, 0xd3, 0x45, 0xbe,
-	0x23, 0xef, 0x24, 0x09, 0xe5, 0x8c, 0xca, 0xce, 0xc9, 0x5f, 0x4f, 0x76, 0xa4, 0x2f, 0x7f, 0xfd,
-	0xf3, 0xdb, 0xb9, 0x02, 0x59, 0xd7, 0x84, 0x0e, 0x19, 0x20, 0x7c, 0x27, 0xc1, 0x22, 0x0a, 0x90,
-	0xd2, 0xcc, 0x1a, 0x01, 0xcd, 0x76, 0x82, 0x48, 0x84, 0xa9, 0x8e, 0x61, 0xb6, 0xc9, 0xd6, 0x54,
-	0x18, 0xed, 0x18, 0x6f, 0x60, 0x48, 0x7e, 0x92, 0x80, 0x5c, 0x9e, 0x19, 0xb2, 0x37, 0xb3, 0xee,
-	0xe5, 0xb1, 0x95, 0xab, 0x57, 0x4b, 0xba, 0x02, 0x77, 0xf8, 0x4e, 0xd5, 0x1d, 0x4b, 0x3b, 0x76,
-	0xac, 0x21, 0xf9, 0x4a, 0x82, 0x05, 0xee, 0x08, 0x64, 0x6b, 0x72, 0xd9, 0x98, 0xfd, 0xc8, 0xa5,
-	0xd9, 0x81, 0xc8, 0x54, 0x1a, 0x33, 0xad, 0x93, 0x9c, 0x90, 0x89, 0x1b, 0x10, 0xf9, 0x41, 0x82,
-	0x95, 0xb8, 0xbd, 0x10, 0x6d, 0x72, 0x19, 0xa1, 0x4d, 0xc9, 0xaf, 0x27, 0x4f, 0x40, 0xbe, 0xdd,
-	0x31, 0xdf, 0x26, 0x79, 0x45, 0xc8, 0xd7, 0x61, 0x99, 0xf5, 0x70, 0xfe, 0x7e, 0x96, 0x60, 0x55,
-	0xe0, 0x2b, 0xa4, 0x9a, 0xb0, 0x78, 0xcc, 0xbd, 0xe4, 0xdb, 0x57, 0xcc, 0x42, 0xee, 0x37, 0xc6,
-	0xdc, 0x65, 0xf2, 0x5a, 0x12, 0x6e, 0xed, 0x78, 0xe4, 0x8c, 0x43, 0x72, 0x22, 0x41, 0x3a, 0x6a,
-	0x44, 0x13, 0xde, 0x21, 0x81, 0x85, 0x4d, 0x78, 0x87, 0x44, 0xae, 0xa6, 0x6c, 0x4c, 0xbd, 0x72,
-	0xee, 0x6d, 0xe4, 0x89, 0x04, 0x19, 0x91, 0x25, 0x11, 0xf1, 0x3d, 0x4e, 0x71, 0x40, 0x79, 0xf7,
-	0x0a, 0x19, 0x88, 0xb8, 0x37, 0xb5, 0x7b, 0x1c, 0x31, 0x7c, 0xbf, 0xb9, 0x0b, 0x0d, 0xc9, 0x8f,
-	0x63, 0xe4, 0x98, 0x71, 0x4d, 0x47, 0x16, 0x39, 0xe5, 0x74, 0x64, 0xa1, 0x2b, 0x2a, 0x55, 0x86,
-	0xac, 0x92, 0x5b, 0x89, 0x90, 0xb9, 0xff, 0x0e, 0xc9, 0xf7, 0x12, 0x2c, 0x47, 0x8c, 0x81, 0xdc,
-	0x9a, 0xf9, 0x75, 0x89, 0xd8, 0x91, 0x5c, 0x4e, 0x18, 0x9d, 0x7c, 0x30, 0x43, 0xf7, 0x75, 0x5b,
-	0x74, 0xfc, 0x01, 0xd5, 0xef, 0x3c, 0x3d, 0xcb, 0x4b, 0xcf, 0xcf, 0xf2, 0xd2, 0x1f, 0x67, 0x79,
-	0xe9, 0x9b, 0xf3, 0x7c, 0xea, 0xf9, 0x79, 0x3e, 0xf5, 0xdb, 0x79, 0x3e, 0xf5, 0xf1, 0x76, 0xdb,
-	0xf1, 0x8f, 0xfa, 0x0d, 0xb5, 0x49, 0x3b, 0x81, 0x20, 0xff, 0x53, 0xf6, 0xac, 0x4f, 0xb5, 0x47,
-	0x5c, 0xdd, 0x1f, 0x74, 0x6d, 0xaf, 0xb1, 0xc0, 0xfe, 0x77, 0xdb, 0xfb, 0x37, 0x00, 0x00, 0xff,
-	0xff, 0x1f, 0xa2, 0x5f, 0xef, 0x16, 0x0e, 0x00, 0x00,
+	// 873 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x95, 0x41, 0x6f, 0xeb, 0x44,
+	0x10, 0xc7, 0xb3, 0x79, 0xa1, 0xcd, 0xdb, 0x4a, 0x0f, 0x69, 0x1b, 0x44, 0x70, 0x5a, 0x27, 0xb2,
+	0x50, 0x9b, 0x04, 0x62, 0xd3, 0xbc, 0x54, 0x02, 0x6e, 0x31, 0x08, 0x94, 0x43, 0x51, 0x70, 0x25,
+	0x84, 0x38, 0x10, 0x6d, 0x62, 0xc7, 0xb5, 0x68, 0xbc, 0x69, 0xec, 0x00, 0xa1, 0xea, 0x05, 0x09,
+	0xa9, 0x17, 0x24, 0x24, 0xf8, 0x00, 0x3d, 0x20, 0xce, 0x1c, 0xc2, 0x8d, 0x0f, 0x50, 0xf5, 0x54,
+	0xc1, 0x85, 0x13, 0x42, 0x2d, 0x12, 0x7c, 0x09, 0x24, 0x94, 0xdd, 0x71, 0x62, 0x37, 0x2e, 0x71,
+	0x79, 0xa7, 0xd8, 0xbb, 0x33, 0xff, 0xff, 0x6f, 0x67, 0xc7, 0x13, 0x5c, 0xec, 0x31, 0x6f, 0xc0,
+	0x3c, 0x8d, 0x8e, 0xfd, 0x23, 0xed, 0xd3, 0xbd, 0xae, 0xe5, 0xd3, 0x3d, 0xed, 0x64, 0x6c, 0x8d,
+	0x26, 0xea, 0x70, 0xc4, 0x7c, 0x46, 0x36, 0x45, 0x80, 0x3a, 0x0b, 0x50, 0x21, 0x40, 0xaa, 0x42,
+	0x56, 0x97, 0x7a, 0x96, 0x88, 0x9e, 0xe7, 0x0e, 0xa9, 0xed, 0xb8, 0xd4, 0x77, 0x98, 0x2b, 0x04,
+	0xa4, 0x9c, 0xcd, 0x6c, 0xc6, 0x1f, 0xb5, 0xd9, 0x13, 0xac, 0xbe, 0x64, 0x33, 0x66, 0x1f, 0x5b,
+	0x1a, 0x7f, 0xeb, 0x8e, 0xfb, 0x1a, 0x75, 0xc1, 0x51, 0xda, 0x82, 0x2d, 0x3a, 0x74, 0x34, 0xea,
+	0xba, 0xcc, 0xe7, 0x6a, 0x1e, 0xec, 0xca, 0x71, 0xc0, 0x1c, 0x0e, 0x84, 0xc5, 0x7e, 0x47, 0x38,
+	0x02, 0xbc, 0xd8, 0x2a, 0x40, 0x6a, 0x00, 0x1c, 0x3e, 0xa7, 0xf2, 0x31, 0xce, 0xbd, 0x3f, 0x7b,
+	0x6d, 0xf6, 0x7a, 0x6c, 0xec, 0xfa, 0x9e, 0x61, 0x9d, 0x8c, 0x2d, 0xcf, 0x27, 0xef, 0x60, 0xbc,
+	0x38, 0x52, 0x1e, 0x95, 0x50, 0x79, 0xa3, 0xbe, 0xa3, 0x82, 0xee, 0xec, 0xfc, 0xaa, 0x50, 0x01,
+	0x14, 0xb5, 0x4d, 0x6d, 0x0b, 0x72, 0x8d, 0x50, 0xa6, 0x32, 0x45, 0xf8, 0x85, 0x3b, 0x06, 0xde,
+	0x90, 0xb9, 0x9e, 0x45, 0x0c, 0x9c, 0xa5, 0xb0, 0x96, 0x47, 0xa5, 0x47, 0xe5, 0x8d, 0x7a, 0x4e,
+	0x15, 0x25, 0x50, 0x83, 0xea, 0xa8, 0x4d, 0x77, 0xa2, 0x97, 0xae, 0xa6, 0xb5, 0xad, 0x98, 0xdb,
+	0x50, 0x41, 0xb1, 0x65, 0xcc, 0x75, 0xc8, 0xbb, 0x11, 0xea, 0x34, 0xa7, 0xde, 0x5d, 0x49, 0x2d,
+	0x80, 0x22, 0xd8, 0x87, 0x78, 0x33, 0x4c, 0x1d, 0x54, 0xa5, 0x8e, 0xd7, 0xa9, 0x69, 0x8e, 0x2c,
+	0xcf, 0xe3, 0x25, 0x79, 0xac, 0xe7, 0x7f, 0x99, 0xd6, 0x72, 0xa0, 0xdf, 0x14, 0x3b, 0x87, 0xfe,
+	0xc8, 0x71, 0x6d, 0x23, 0x08, 0x7c, 0x33, 0x7b, 0x7e, 0x51, 0x4c, 0xfd, 0x7d, 0x51, 0x4c, 0x29,
+	0x47, 0xd1, 0x5a, 0xcf, 0x2b, 0xd1, 0xc6, 0xeb, 0x70, 0x02, 0x28, 0xf4, 0xff, 0x2d, 0x44, 0x20,
+	0xa3, 0xe4, 0x30, 0xe1, 0x4e, 0x6d, 0x3a, 0xa2, 0x83, 0xe0, 0x4e, 0x95, 0x36, 0x1c, 0x2a, 0x58,
+	0x05, 0xfb, 0x37, 0xf0, 0xda, 0x90, 0xaf, 0x80, 0x7b, 0x41, 0x8d, 0x33, 0x11, 0x49, 0x7a, 0xe6,
+	0xf2, 0xf7, 0x62, 0xca, 0x80, 0x04, 0x65, 0x0b, 0x4b, 0x5c, 0xf1, 0x80, 0x99, 0xe3, 0x63, 0xeb,
+	0x4e, 0x0f, 0x29, 0x9f, 0xe1, 0x42, 0xec, 0x2e, 0xf8, 0x7e, 0x98, 0xb0, 0x01, 0x76, 0xae, 0xa6,
+	0x35, 0x25, 0x0e, 0x29, 0xa2, 0x1b, 0x6a, 0x03, 0x65, 0x1f, 0x17, 0x97, 0x8d, 0xf5, 0xc9, 0x7b,
+	0x74, 0x10, 0xf4, 0x28, 0x21, 0x38, 0xe3, 0xd2, 0x81, 0x25, 0xae, 0xd1, 0xe0, 0xcf, 0xca, 0x17,
+	0xb8, 0x74, 0x7f, 0x1a, 0x40, 0x7f, 0x90, 0xec, 0xae, 0x92, 0x32, 0xcf, 0x6f, 0xec, 0x10, 0xcb,
+	0xe1, 0xde, 0x80, 0x5e, 0xd2, 0x27, 0xad, 0xb7, 0x17, 0xc4, 0x69, 0xc7, 0xe4, 0xa6, 0x8f, 0xf4,
+	0x74, 0x1e, 0x19, 0x69, 0xc7, 0x24, 0xdb, 0x18, 0x83, 0x40, 0xc7, 0x31, 0x79, 0xbf, 0x67, 0x8c,
+	0xc7, 0xb0, 0xd2, 0x32, 0x15, 0x13, 0xea, 0x10, 0x27, 0x0a, 0xe7, 0x69, 0xe2, 0xe7, 0x03, 0x85,
+	0xa4, 0x9d, 0xfd, 0x84, 0x46, 0xe4, 0x94, 0x03, 0xfc, 0x62, 0xd8, 0xa5, 0xe5, 0xf6, 0xd9, 0x33,
+	0x7c, 0x2f, 0x4a, 0x1b, 0xe7, 0x97, 0xe5, 0x80, 0xb6, 0x81, 0x33, 0x8e, 0xdb, 0x67, 0x50, 0xfa,
+	0x52, 0x6c, 0xa3, 0xea, 0xd4, 0x0b, 0xea, 0x6b, 0xf0, 0xe8, 0xfa, 0x3f, 0x59, 0xfc, 0x1c, 0x97,
+	0x24, 0x5f, 0x23, 0x9c, 0x0d, 0xfa, 0x90, 0x54, 0x62, 0xd3, 0xe3, 0xa6, 0xa1, 0x54, 0x4d, 0x12,
+	0x2a, 0x18, 0x95, 0xea, 0xf9, 0x5f, 0x3f, 0x56, 0xd1, 0x97, 0xbf, 0xfe, 0xf9, 0x6d, 0xba, 0x48,
+	0xb6, 0xb5, 0xd8, 0xb9, 0x1d, 0x20, 0x7c, 0x87, 0xf0, 0x3a, 0x08, 0x90, 0xf2, 0x4a, 0x8f, 0x80,
+	0xa6, 0x92, 0x20, 0x12, 0x60, 0x1a, 0x0b, 0x98, 0x0a, 0xd9, 0xfd, 0x4f, 0x18, 0xed, 0x14, 0x6e,
+	0xe0, 0x8c, 0xfc, 0x84, 0x30, 0x59, 0xee, 0x19, 0xf2, 0x74, 0xa5, 0xef, 0x72, 0xdb, 0x4a, 0x8d,
+	0x87, 0x25, 0x3d, 0x80, 0x5b, 0xa4, 0x75, 0xba, 0x93, 0x8e, 0x63, 0x6a, 0xa7, 0x8e, 0x79, 0x46,
+	0xbe, 0x42, 0x78, 0x4d, 0xcc, 0x29, 0xb2, 0x7b, 0xbf, 0x6d, 0x64, 0x28, 0x4a, 0xe5, 0xd5, 0x81,
+	0xc0, 0x54, 0x5e, 0x30, 0x6d, 0x93, 0x42, 0x2c, 0x93, 0x18, 0x8b, 0xe4, 0x07, 0x84, 0x9f, 0x44,
+	0x87, 0x1e, 0xd1, 0xee, 0xb7, 0x89, 0x1d, 0x9e, 0xd2, 0x6b, 0xc9, 0x13, 0x80, 0x6f, 0x6f, 0xc1,
+	0xb7, 0x43, 0x5e, 0x8e, 0xe5, 0x1b, 0xf0, 0xcc, 0xce, 0xbc, 0xff, 0x7e, 0x46, 0x78, 0x33, 0x66,
+	0xda, 0x91, 0x46, 0x42, 0xf3, 0xc8, 0x4c, 0x95, 0xf6, 0x1f, 0x98, 0x05, 0xdc, 0xaf, 0x2f, 0xb8,
+	0x6b, 0xe4, 0x95, 0x24, 0xdc, 0xda, 0xe9, 0x6c, 0x5e, 0x9f, 0x91, 0xef, 0x11, 0xde, 0x08, 0x8d,
+	0x09, 0xf2, 0xea, 0xca, 0x5e, 0x0b, 0x0d, 0x27, 0xa9, 0x96, 0x30, 0x3a, 0x39, 0xe6, 0x7c, 0x16,
+	0xbb, 0x7d, 0xb6, 0xf8, 0x9c, 0xf4, 0xb7, 0x2e, 0x6f, 0x64, 0x74, 0x7d, 0x23, 0xa3, 0x3f, 0x6e,
+	0x64, 0xf4, 0xcd, 0xad, 0x9c, 0xba, 0xbe, 0x95, 0x53, 0xbf, 0xdd, 0xca, 0xa9, 0x8f, 0x2a, 0xb6,
+	0xe3, 0x1f, 0x8d, 0xbb, 0x6a, 0x8f, 0x0d, 0x02, 0x41, 0xf1, 0x53, 0xf3, 0xcc, 0x4f, 0xb4, 0xcf,
+	0x85, 0xba, 0x3f, 0x19, 0x5a, 0x5e, 0x77, 0x8d, 0xff, 0xbf, 0x3c, 0xfd, 0x37, 0x00, 0x00, 0xff,
+	0xff, 0x84, 0x25, 0x6c, 0x7f, 0xba, 0x0a, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1091,18 +799,6 @@ type QueryClient interface {
 	ModuleAccounts(ctx context.Context, in *QueryModuleAccountsRequest, opts ...grpc.CallOption) (*QueryModuleAccountsResponse, error)
 	// ModuleAccountByName returns the module account info by module name
 	ModuleAccountByName(ctx context.Context, in *QueryModuleAccountByNameRequest, opts ...grpc.CallOption) (*QueryModuleAccountByNameResponse, error)
-	// Bech32Prefix queries bech32Prefix
-	//
-	// Since: cosmos-sdk 0.46
-	Bech32Prefix(ctx context.Context, in *Bech32PrefixRequest, opts ...grpc.CallOption) (*Bech32PrefixResponse, error)
-	// AddressBytesToString converts Account Address bytes to string
-	//
-	// Since: cosmos-sdk 0.46
-	AddressBytesToString(ctx context.Context, in *AddressBytesToStringRequest, opts ...grpc.CallOption) (*AddressBytesToStringResponse, error)
-	// AddressStringToBytes converts Address string to bytes
-	//
-	// Since: cosmos-sdk 0.46
-	AddressStringToBytes(ctx context.Context, in *AddressStringToBytesRequest, opts ...grpc.CallOption) (*AddressStringToBytesResponse, error)
 	// AccountInfo queries account info which is common to all account types.
 	//
 	// Since: cosmos-sdk 0.47
@@ -1171,33 +867,6 @@ func (c *queryClient) ModuleAccountByName(ctx context.Context, in *QueryModuleAc
 	return out, nil
 }
 
-func (c *queryClient) Bech32Prefix(ctx context.Context, in *Bech32PrefixRequest, opts ...grpc.CallOption) (*Bech32PrefixResponse, error) {
-	out := new(Bech32PrefixResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.auth.v1beta1.Query/Bech32Prefix", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *queryClient) AddressBytesToString(ctx context.Context, in *AddressBytesToStringRequest, opts ...grpc.CallOption) (*AddressBytesToStringResponse, error) {
-	out := new(AddressBytesToStringResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.auth.v1beta1.Query/AddressBytesToString", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *queryClient) AddressStringToBytes(ctx context.Context, in *AddressStringToBytesRequest, opts ...grpc.CallOption) (*AddressStringToBytesResponse, error) {
-	out := new(AddressStringToBytesResponse)
-	err := c.cc.Invoke(ctx, "/cosmos.auth.v1beta1.Query/AddressStringToBytes", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *queryClient) AccountInfo(ctx context.Context, in *QueryAccountInfoRequest, opts ...grpc.CallOption) (*QueryAccountInfoResponse, error) {
 	out := new(QueryAccountInfoResponse)
 	err := c.cc.Invoke(ctx, "/cosmos.auth.v1beta1.Query/AccountInfo", in, out, opts...)
@@ -1230,18 +899,6 @@ type QueryServer interface {
 	ModuleAccounts(context.Context, *QueryModuleAccountsRequest) (*QueryModuleAccountsResponse, error)
 	// ModuleAccountByName returns the module account info by module name
 	ModuleAccountByName(context.Context, *QueryModuleAccountByNameRequest) (*QueryModuleAccountByNameResponse, error)
-	// Bech32Prefix queries bech32Prefix
-	//
-	// Since: cosmos-sdk 0.46
-	Bech32Prefix(context.Context, *Bech32PrefixRequest) (*Bech32PrefixResponse, error)
-	// AddressBytesToString converts Account Address bytes to string
-	//
-	// Since: cosmos-sdk 0.46
-	AddressBytesToString(context.Context, *AddressBytesToStringRequest) (*AddressBytesToStringResponse, error)
-	// AddressStringToBytes converts Address string to bytes
-	//
-	// Since: cosmos-sdk 0.46
-	AddressStringToBytes(context.Context, *AddressStringToBytesRequest) (*AddressStringToBytesResponse, error)
 	// AccountInfo queries account info which is common to all account types.
 	//
 	// Since: cosmos-sdk 0.47
@@ -1269,15 +926,6 @@ func (*UnimplementedQueryServer) ModuleAccounts(ctx context.Context, req *QueryM
 }
 func (*UnimplementedQueryServer) ModuleAccountByName(ctx context.Context, req *QueryModuleAccountByNameRequest) (*QueryModuleAccountByNameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ModuleAccountByName not implemented")
-}
-func (*UnimplementedQueryServer) Bech32Prefix(ctx context.Context, req *Bech32PrefixRequest) (*Bech32PrefixResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Bech32Prefix not implemented")
-}
-func (*UnimplementedQueryServer) AddressBytesToString(ctx context.Context, req *AddressBytesToStringRequest) (*AddressBytesToStringResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddressBytesToString not implemented")
-}
-func (*UnimplementedQueryServer) AddressStringToBytes(ctx context.Context, req *AddressStringToBytesRequest) (*AddressStringToBytesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddressStringToBytes not implemented")
 }
 func (*UnimplementedQueryServer) AccountInfo(ctx context.Context, req *QueryAccountInfoRequest) (*QueryAccountInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccountInfo not implemented")
@@ -1395,60 +1043,6 @@ func _Query_ModuleAccountByName_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Query_Bech32Prefix_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Bech32PrefixRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).Bech32Prefix(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cosmos.auth.v1beta1.Query/Bech32Prefix",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).Bech32Prefix(ctx, req.(*Bech32PrefixRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Query_AddressBytesToString_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddressBytesToStringRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).AddressBytesToString(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cosmos.auth.v1beta1.Query/AddressBytesToString",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).AddressBytesToString(ctx, req.(*AddressBytesToStringRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Query_AddressStringToBytes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddressStringToBytesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).AddressStringToBytes(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cosmos.auth.v1beta1.Query/AddressStringToBytes",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).AddressStringToBytes(ctx, req.(*AddressStringToBytesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Query_AccountInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(QueryAccountInfoRequest)
 	if err := dec(in); err != nil {
@@ -1494,18 +1088,6 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ModuleAccountByName",
 			Handler:    _Query_ModuleAccountByName_Handler,
-		},
-		{
-			MethodName: "Bech32Prefix",
-			Handler:    _Query_Bech32Prefix_Handler,
-		},
-		{
-			MethodName: "AddressBytesToString",
-			Handler:    _Query_AddressBytesToString_Handler,
-		},
-		{
-			MethodName: "AddressStringToBytes",
-			Handler:    _Query_AddressStringToBytes_Handler,
 		},
 		{
 			MethodName: "AccountInfo",
@@ -1846,179 +1428,6 @@ func (m *QueryModuleAccountByNameResponse) MarshalToSizedBuffer(dAtA []byte) (in
 	return len(dAtA) - i, nil
 }
 
-func (m *Bech32PrefixRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Bech32PrefixRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Bech32PrefixRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	return len(dAtA) - i, nil
-}
-
-func (m *Bech32PrefixResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Bech32PrefixResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Bech32PrefixResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.Bech32Prefix) > 0 {
-		i -= len(m.Bech32Prefix)
-		copy(dAtA[i:], m.Bech32Prefix)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.Bech32Prefix)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *AddressBytesToStringRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AddressBytesToStringRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddressBytesToStringRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.AddressBytes) > 0 {
-		i -= len(m.AddressBytes)
-		copy(dAtA[i:], m.AddressBytes)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.AddressBytes)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *AddressBytesToStringResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AddressBytesToStringResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddressBytesToStringResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.AddressString) > 0 {
-		i -= len(m.AddressString)
-		copy(dAtA[i:], m.AddressString)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.AddressString)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *AddressStringToBytesRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AddressStringToBytesRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddressStringToBytesRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.AddressString) > 0 {
-		i -= len(m.AddressString)
-		copy(dAtA[i:], m.AddressString)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.AddressString)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *AddressStringToBytesResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *AddressStringToBytesResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *AddressStringToBytesResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.AddressBytes) > 0 {
-		i -= len(m.AddressBytes)
-		copy(dAtA[i:], m.AddressBytes)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.AddressBytes)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *QueryAccountAddressByIDRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -2281,80 +1690,6 @@ func (m *QueryModuleAccountByNameResponse) Size() (n int) {
 	_ = l
 	if m.Account != nil {
 		l = m.Account.Size()
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	return n
-}
-
-func (m *Bech32PrefixRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	return n
-}
-
-func (m *Bech32PrefixResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Bech32Prefix)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	return n
-}
-
-func (m *AddressBytesToStringRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.AddressBytes)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	return n
-}
-
-func (m *AddressBytesToStringResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.AddressString)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	return n
-}
-
-func (m *AddressStringToBytesRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.AddressString)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	return n
-}
-
-func (m *AddressStringToBytesResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.AddressBytes)
-	if l > 0 {
 		n += 1 + l + sovQuery(uint64(l))
 	}
 	return n
@@ -3206,470 +2541,6 @@ func (m *QueryModuleAccountByNameResponse) Unmarshal(dAtA []byte) error {
 			}
 			if err := m.Account.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Bech32PrefixRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Bech32PrefixRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Bech32PrefixRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Bech32PrefixResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Bech32PrefixResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Bech32PrefixResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Bech32Prefix", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Bech32Prefix = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AddressBytesToStringRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AddressBytesToStringRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AddressBytesToStringRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AddressBytes", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.AddressBytes = append(m.AddressBytes[:0], dAtA[iNdEx:postIndex]...)
-			if m.AddressBytes == nil {
-				m.AddressBytes = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AddressBytesToStringResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AddressBytesToStringResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AddressBytesToStringResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AddressString", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.AddressString = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AddressStringToBytesRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AddressStringToBytesRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AddressStringToBytesRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AddressString", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.AddressString = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *AddressStringToBytesResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: AddressStringToBytesResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AddressStringToBytesResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AddressBytes", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.AddressBytes = append(m.AddressBytes[:0], dAtA[iNdEx:postIndex]...)
-			if m.AddressBytes == nil {
-				m.AddressBytes = []byte{}
 			}
 			iNdEx = postIndex
 		default:

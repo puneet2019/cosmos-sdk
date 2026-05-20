@@ -9,18 +9,19 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	storetypes "cosmossdk.io/store/types"
 	txsigning "cosmossdk.io/x/tx/signing"
 
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256r1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -59,6 +60,11 @@ func NewSetPubKeyDecorator(ak AccountKeeper) SetPubKeyDecorator {
 }
 
 func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	if ctx.BlockHeight() == 0 {
+		// skip the signature verification on the genesis block
+		return next(ctx, tx, simulate)
+	}
+
 	sigTx, ok := tx.(authsigning.SigVerifiableTx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid tx type")
@@ -77,10 +83,7 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	signerStrs := make([]string, len(signers))
 	for i, pk := range pubkeys {
 		var err error
-		signerStrs[i], err = spkd.ak.AddressCodec().BytesToString(signers[i])
-		if err != nil {
-			return sdk.Context{}, err
-		}
+		signerStrs[i] = sdk.AccAddress(signers[i]).String()
 
 		// PublicKey was omitted from slice since it has already been set in context
 		if pk == nil {
@@ -113,7 +116,7 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	// Also emit the following events, so that txs can be indexed by these
 	// indices:
 	// - signature (via `tx.signature='<sig_as_base64>'`),
-	// - concat(address,"/",sequence) (via `tx.acc_seq='cosmos1abc...def/42'`).
+	// - concat(address,"/",sequence) (via `tx.acc_seq='0x3e599c4946ac23b9A6Ff280c76c3d929ebB16AF9...def/42'`).
 	sigs, err := sigTx.GetSignaturesV2()
 	if err != nil {
 		return ctx, err
@@ -162,6 +165,10 @@ func NewSigGasConsumeDecorator(ak AccountKeeper, sigGasConsumer SignatureVerific
 }
 
 func (sgcd SigGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	if ctx.BlockHeight() == 0 {
+		// skip the signature verification on the genesis block
+		return next(ctx, tx, simulate)
+	}
 	sigTx, ok := tx.(authsigning.SigVerifiableTx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
@@ -251,6 +258,10 @@ func OnlyLegacyAminoSigners(sigData signing.SignatureData) bool {
 }
 
 func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	if ctx.BlockHeight() == 0 {
+		// skip the signature verification on the genesis block
+		return next(ctx, tx, simulate)
+	}
 	sigTx, ok := tx.(authsigning.Tx)
 	if !ok {
 		return ctx, errorsmod.Wrap(sdkerrors.ErrTxDecode, "invalid transaction type")
@@ -320,19 +331,24 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 				return ctx, fmt.Errorf("expected tx to implement V2AdaptableTx, got %T", tx)
 			}
 			txData := adaptableTx.GetSigningTxData()
-			err = authsigning.VerifySignature(ctx, pubKey, signerData, sig.Data, svd.signModeHandler, txData)
-			if err != nil {
-				var errMsg string
-				if OnlyLegacyAminoSigners(sig.Data) {
-					// If all signers are using SIGN_MODE_LEGACY_AMINO, we rely on VerifySignature to check account sequence number,
-					// and therefore communicate sequence number as a potential cause of error.
-					errMsg = fmt.Sprintf("signature verification failed; please verify account number (%d), sequence (%d) and chain-id (%s)", accNum, acc.GetSequence(), chainID)
-				} else {
-					errMsg = fmt.Sprintf("signature verification failed; please verify account number (%d) and chain-id (%s): (%s)", accNum, chainID, err.Error())
+			switch data := sig.Data.(type) {
+			case *signing.SingleSignatureData:
+				// if data.SignMode == signing.SignMode_SIGN_MODE_EIP_712 {
+				// 	err = authsigning.EIP712VerifySignature(ctx, signerData, tx, data.Signature, pubKey)
+				// } else {
+				// 	err = authsigning.VerifySignature(ctx, pubKey, signerData, sig.Data, svd.signModeHandler, txData)
+				// }
+				err = authsigning.EIP712VerifySignature(ctx, signerData, tx, data.Signature, pubKey)
+				if err != nil {
+					errMsg := fmt.Sprintf("signature verification failed; please verify account number (%d) and chain-id (%s): (%s), pubkeyType: %s, txData: (%+v)", accNum, chainID, err.Error(), pubKey.Type(), txData)
+					return ctx, errorsmod.Wrap(sdkerrors.ErrUnauthorized, errMsg)
 				}
-				return ctx, errorsmod.Wrap(sdkerrors.ErrUnauthorized, errMsg)
-
+			case *signing.MultiSignatureData:
+				return ctx, fmt.Errorf("multi signature is not allowed")
+			default:
+				return ctx, fmt.Errorf("unexpected SignatureData %T", sig.Data)
 			}
+
 		}
 	}
 
@@ -438,6 +454,10 @@ func DefaultSigVerificationGasConsumer(
 
 	case *secp256r1.PubKey:
 		meter.ConsumeGas(params.SigVerifyCostSecp256r1(), "ante verify: secp256r1")
+		return nil
+
+	case *ethsecp256k1.PubKey:
+		meter.ConsumeGas(params.SigVerifyCostSecp256k1, "ante verify: eth_secp256k1")
 		return nil
 
 	case multisig.PubKey:

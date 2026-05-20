@@ -52,23 +52,23 @@ func (am AppModule) AutoCLIOptions() *autocliv1.ModuleOptions {
 					Example:        fmt.Sprintf("%s q auth module-account gov", version.AppName),
 					PositionalArgs: []*autocliv1.PositionalArgDescriptor{{ProtoField: "name"}},
 				},
-				{
-					RpcMethod:      "AddressBytesToString",
-					Use:            "address-bytes-to-string [address-bytes]",
-					Short:          "Transform an address bytes to string",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{{ProtoField: "address_bytes"}},
-				},
-				{
-					RpcMethod:      "AddressStringToBytes",
-					Use:            "address-string-to-bytes [address-string]",
-					Short:          "Transform an address string to bytes",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{{ProtoField: "address_string"}},
-				},
-				{
-					RpcMethod: "Bech32Prefix",
-					Use:       "bech32-prefix",
-					Short:     "Query the chain bech32 prefix (if applicable)",
-				},
+				// {
+				// 	RpcMethod:      "AddressBytesToString",
+				// 	Use:            "address-bytes-to-string [address-bytes]",
+				// 	Short:          "Transform an address bytes to string",
+				// 	PositionalArgs: []*autocliv1.PositionalArgDescriptor{{ProtoField: "address_bytes"}},
+				// },
+				// {
+				// 	RpcMethod:      "AddressStringToBytes",
+				// 	Use:            "address-string-to-bytes [address-string]",
+				// 	Short:          "Transform an address string to bytes",
+				// 	PositionalArgs: []*autocliv1.PositionalArgDescriptor{{ProtoField: "address_string"}},
+				// },
+				// {
+				// 	RpcMethod: "Bech32Prefix",
+				// 	Use:       "bech32-prefix",
+				// 	Short:     "Query the chain bech32 prefix (if applicable)",
+				// },
 				{
 					RpcMethod: "Params",
 					Use:       "params",

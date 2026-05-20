@@ -33,10 +33,13 @@ func (s SignModeOptions) HandlerMap() (*signing.HandlerMap, error) {
 
 	aminoJSON := aminojson.NewSignModeHandler(s.AminoJSON)
 
+	eip712Handler := aminojson.NewSignModeHandler(aminojson.SignModeHandlerOptions{IsEIP712: true})
+
 	return signing.NewHandlerMap(
 		direct.SignModeHandler{},
 		txt,
 		directAux,
 		aminoJSON,
+		eip712Handler,
 	), nil
 }

@@ -2,7 +2,6 @@ package signing
 
 import (
 	"encoding/hex"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -54,7 +53,6 @@ var deeplyNestedRepeatedSigner = &testpb.DeeplyNestedRepeatedSigner{
 func TestGetGetSignersFnConcurrent(t *testing.T) {
 	ctx, err := NewContext(Options{
 		AddressCodec:          dummyAddressCodec{},
-		ValidatorAddressCodec: dummyValidatorAddressCodec{},
 	})
 	require.NoError(t, err)
 
@@ -69,7 +67,6 @@ func TestGetGetSignersFnConcurrent(t *testing.T) {
 func TestGetSigners(t *testing.T) {
 	ctx, err := NewContext(Options{
 		AddressCodec:          dummyAddressCodec{},
-		ValidatorAddressCodec: dummyValidatorAddressCodec{},
 	})
 	require.NoError(t, err)
 	tests := []struct {
@@ -195,7 +192,8 @@ func TestGetSigners(t *testing.T) {
 		{
 			name: "validator signer",
 			msg: &testpb.ValidatorSigner{
-				Signer: "val" + hex.EncodeToString([]byte("foo")),
+				Signer: hex.EncodeToString([]byte("foo")),
+				// Signer: "val" + hex.EncodeToString([]byte("foo")),
 			},
 			want: [][]byte{[]byte("foo")},
 		},
@@ -215,9 +213,8 @@ func TestGetSigners(t *testing.T) {
 
 func TestMaxRecursionDepth(t *testing.T) {
 	ctx, err := NewContext(Options{
-		AddressCodec:          dummyAddressCodec{},
-		ValidatorAddressCodec: dummyValidatorAddressCodec{},
-		MaxRecursionDepth:     1,
+		AddressCodec:      dummyAddressCodec{},
+		MaxRecursionDepth: 1,
 	})
 	require.NoError(t, err)
 
@@ -225,9 +222,8 @@ func TestMaxRecursionDepth(t *testing.T) {
 	require.ErrorContains(t, err, "maximum recursion depth exceeded")
 
 	ctx, err = NewContext(Options{
-		AddressCodec:          dummyAddressCodec{},
-		ValidatorAddressCodec: dummyValidatorAddressCodec{},
-		MaxRecursionDepth:     5,
+		AddressCodec:      dummyAddressCodec{},
+		MaxRecursionDepth: 5,
 	})
 	require.NoError(t, err)
 	_, err = ctx.GetSigners(deeplyNestedRepeatedSigner)
@@ -239,7 +235,6 @@ func TestDefineCustomGetSigners(t *testing.T) {
 	signers := [][]byte{[]byte("foo")}
 	options := Options{
 		AddressCodec:          dummyAddressCodec{},
-		ValidatorAddressCodec: dummyValidatorAddressCodec{},
 	}
 	context, err := NewContext(options)
 	require.NoError(t, err)
@@ -281,15 +276,3 @@ func (d dummyAddressCodec) BytesToString(bz []byte) (string, error) {
 }
 
 var _ address.Codec = dummyAddressCodec{}
-
-type dummyValidatorAddressCodec struct{}
-
-func (d dummyValidatorAddressCodec) StringToBytes(text string) ([]byte, error) {
-	return hex.DecodeString(strings.TrimPrefix(text, "val"))
-}
-
-func (d dummyValidatorAddressCodec) BytesToString(bz []byte) (string, error) {
-	return "val" + hex.EncodeToString(bz), nil
-}
-
-var _ address.Codec = dummyValidatorAddressCodec{}

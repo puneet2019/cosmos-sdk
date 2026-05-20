@@ -99,8 +99,7 @@ func FuzzDecode(f *testing.F) {
 	// 2. Now fuzz it.
 	cdc := new(asHexCodec)
 	signingCtx, err := signing.NewContext(signing.Options{
-		AddressCodec:          cdc,
-		ValidatorAddressCodec: cdc,
+		AddressCodec: cdc,
 	})
 	if err != nil {
 		return

@@ -41,7 +41,6 @@ func TestDecode(t *testing.T) {
 
 	signingCtx, err := signing.NewContext(signing.Options{
 		AddressCodec:          dummyAddressCodec{},
-		ValidatorAddressCodec: dummyAddressCodec{},
 	})
 	require.NoError(t, err)
 	decoder, err := decode.NewDecoder(decode.Options{
@@ -123,8 +122,7 @@ func TestDecodeTxBodyPanic(t *testing.T) {
 
 	cdc := new(dummyAddressCodec)
 	signingCtx, err := signing.NewContext(signing.Options{
-		AddressCodec:          cdc,
-		ValidatorAddressCodec: cdc,
+		AddressCodec: cdc,
 	})
 	if err != nil {
 		t.Fatal(err)

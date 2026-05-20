@@ -6,10 +6,10 @@ import (
 	"github.com/hashicorp/go-metrics"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
@@ -29,12 +29,12 @@ func NewMsgServerImpl(k keeper.AccountKeeper, bk types.BankKeeper) types.MsgServ
 var _ types.MsgServer = msgServer{}
 
 func (s msgServer) CreateVestingAccount(goCtx context.Context, msg *types.MsgCreateVestingAccount) (*types.MsgCreateVestingAccountResponse, error) {
-	from, err := s.AccountKeeper.AddressCodec().StringToBytes(msg.FromAddress)
+	from, err := sdk.AccAddressFromHexUnsafe(msg.FromAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid 'from' address: %s", err)
 	}
 
-	to, err := s.AccountKeeper.AddressCodec().StringToBytes(msg.ToAddress)
+	to, err := sdk.AccAddressFromHexUnsafe(msg.ToAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid 'to' address: %s", err)
 	}
@@ -98,12 +98,12 @@ func (s msgServer) CreateVestingAccount(goCtx context.Context, msg *types.MsgCre
 }
 
 func (s msgServer) CreatePermanentLockedAccount(goCtx context.Context, msg *types.MsgCreatePermanentLockedAccount) (*types.MsgCreatePermanentLockedAccountResponse, error) {
-	from, err := s.AccountKeeper.AddressCodec().StringToBytes(msg.FromAddress)
+	from, err := sdk.AccAddressFromHexUnsafe(msg.FromAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid 'from' address: %s", err)
 	}
 
-	to, err := s.AccountKeeper.AddressCodec().StringToBytes(msg.ToAddress)
+	to, err := sdk.AccAddressFromHexUnsafe(msg.ToAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid 'to' address: %s", err)
 	}
@@ -156,12 +156,12 @@ func (s msgServer) CreatePermanentLockedAccount(goCtx context.Context, msg *type
 }
 
 func (s msgServer) CreatePeriodicVestingAccount(goCtx context.Context, msg *types.MsgCreatePeriodicVestingAccount) (*types.MsgCreatePeriodicVestingAccountResponse, error) {
-	from, err := s.AccountKeeper.AddressCodec().StringToBytes(msg.FromAddress)
+	from, err := sdk.AccAddressFromHexUnsafe(msg.FromAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid 'from' address: %s", err)
 	}
 
-	to, err := s.AccountKeeper.AddressCodec().StringToBytes(msg.ToAddress)
+	to, err := sdk.AccAddressFromHexUnsafe(msg.ToAddress)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid 'to' address: %s", err)
 	}

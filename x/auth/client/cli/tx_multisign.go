@@ -159,12 +159,23 @@ func makeMultiSignCmd() func(cmd *cobra.Command, args []string) (err error) {
 				txData := adaptableTx.GetSigningTxData()
 
 				if !skipSigVerify {
-					err = signing.VerifySignature(cmd.Context(), sig.PubKey, txSignerData, sig.Data,
-						txCfg.SignModeHandler(), txData)
-					if err != nil {
-						addr, _ := sdk.AccAddressFromHexUnsafe(sig.PubKey.Address().String())
-						return fmt.Errorf("couldn't verify signature for address %s %w", addr, err)
+					switch data := sig.Data.(type) {
+					case *signingtypes.SingleSignatureData:
+						err = signing.EIP712VerifySignature(cmd.Context(), txSignerData, builtTx, data.Signature, sig.PubKey)
+						if err != nil {
+							return fmt.Errorf("signature verification failed; please verify account number (%d) and chain-id (%s): (%s), pubkeyType: %s, txData: (%+v)", txFactory.AccountNumber(), txFactory.ChainID(), err.Error(), pubKey.Type(), txData)
+						}
+					case *signingtypes.MultiSignatureData:
+						return fmt.Errorf("multi signature is not allowed")
+					default:
+						return fmt.Errorf("unexpected SignatureData %T", sig.Data)
 					}
+					// err = signing.VerifySignature(cmd.Context(), sig.PubKey, txSignerData, sig.Data,
+					// 	txCfg.SignModeHandler(), txData)
+					// if err != nil {
+					// 	addr, _ := sdk.AccAddressFromHexUnsafe(sig.PubKey.Address().String())
+					// 	return fmt.Errorf("couldn't verify signature for address %s %w", addr, err)
+					// }
 				}
 
 				if err := multisig.AddSignatureV2(multisigSig, sig, multisigPub.GetPubKeys()); err != nil {
@@ -337,11 +348,22 @@ func makeBatchMultisignCmd() func(cmd *cobra.Command, args []string) error {
 			txData := adaptableTx.GetSigningTxData()
 
 			for _, sig := range signatureBatch {
-				err = signing.VerifySignature(cmd.Context(), sig[i].PubKey, txSignerData, sig[i].Data,
-					txCfg.SignModeHandler(), txData)
-				if err != nil {
-					return fmt.Errorf("couldn't verify signature: %w %v", err, sig)
+				switch data := sig[i].Data.(type) {
+				case *signingtypes.SingleSignatureData:
+					err = signing.EIP712VerifySignature(cmd.Context(), txSignerData, builtTx, data.Signature, sig[i].PubKey)
+					if err != nil {
+						return fmt.Errorf("signature verification failed; please verify account number (%d) and chain-id (%s): (%s), pubkeyType: %s, txData: (%+v)", txFactory.AccountNumber(), txFactory.ChainID(), err.Error(), sig[i].PubKey.Type(), txData)
+					}
+				case *signingtypes.MultiSignatureData:
+					return fmt.Errorf("multi signature is not allowed")
+				default:
+					return fmt.Errorf("unexpected SignatureData %T", sig[i].Data)
 				}
+				// err = signing.VerifySignature(cmd.Context(), sig[i].PubKey, txSignerData, sig[i].Data,
+				// 	txCfg.SignModeHandler(), txData)
+				// if err != nil {
+				// 	return fmt.Errorf("couldn't verify signature: %w %v", err, sig)
+				// }
 
 				if err := multisig.AddSignatureV2(multisigSig, sig[i], multisigPub.GetPubKeys()); err != nil {
 					return err

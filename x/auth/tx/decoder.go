@@ -6,11 +6,11 @@ import (
 	"google.golang.org/protobuf/encoding/protowire"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/tx"
 )
 
@@ -171,4 +171,9 @@ func varintMinLength(n uint64) int {
 	default:
 		return 10
 	}
+}
+
+// UnWrapTx returns the underlying Tx.
+func UnWrapTx(tx sdk.Tx) *tx.Tx {
+	return tx.(*wrapper).tx
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
-	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 )
 
 type config struct {
@@ -62,6 +61,8 @@ var DefaultSignModes = []signingtypes.SignMode{
 	signingtypes.SignMode_SIGN_MODE_DIRECT_AUX,
 	signingtypes.SignMode_SIGN_MODE_LEGACY_AMINO_JSON,
 	// signingtypes.SignMode_SIGN_MODE_TEXTUAL is not enabled by default, as it requires a x/bank keeper or gRPC connection.
+	// For moca, we only enable EIP-712 by default.
+	signingtypes.SignMode_SIGN_MODE_EIP_712,
 }
 
 // NewTxConfig returns a new protobuf TxConfig using the provided ProtoCodec and sign modes. The
@@ -89,11 +90,7 @@ func NewTxConfig(protoCodec codec.Codec, enabledSignModes []signingtypes.SignMod
 // NewDefaultSigningOptions returns the sdk default signing options used by x/tx.  This includes account and
 // validator address prefix enabled codecs.
 func NewDefaultSigningOptions() (*txsigning.Options, error) {
-	sdkConfig := sdk.GetConfig()
-	return &txsigning.Options{
-		AddressCodec:          authcodec.NewBech32Codec(sdkConfig.GetBech32AccountAddrPrefix()),
-		ValidatorAddressCodec: authcodec.NewBech32Codec(sdkConfig.GetBech32ValidatorAddrPrefix()),
-	}, nil
+	return &txsigning.Options{}, nil
 }
 
 // NewSigningHandlerMap returns a new txsigning.HandlerMap using the provided ConfigOptions.
@@ -125,6 +122,11 @@ func NewSigningHandlerMap(configOpts ConfigOptions) (*txsigning.HandlerMap, erro
 	for i, m := range configOpts.EnabledSignModes {
 		var err error
 		switch m {
+		case signingtypes.SignMode_SIGN_MODE_EIP_712:
+			handlers[i] = aminojson.NewSignModeHandler(aminojson.SignModeHandlerOptions{
+				FileResolver: signingOpts.FileResolver,
+				TypeResolver: signingOpts.TypeResolver,
+			})
 		case signingtypes.SignMode_SIGN_MODE_DIRECT:
 			handlers[i] = &direct.SignModeHandler{}
 		case signingtypes.SignMode_SIGN_MODE_DIRECT_AUX:

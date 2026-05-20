@@ -2,9 +2,7 @@ package keeper
 
 import (
 	"context"
-	"errors"
 	"sort"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -69,7 +67,7 @@ func (s queryServer) Account(ctx context.Context, req *types.QueryAccountRequest
 		return nil, status.Error(codes.InvalidArgument, "Address cannot be empty")
 	}
 
-	addr, err := s.k.addressCodec.StringToBytes(req.Address)
+	addr, err := sdk.AccAddressFromHexUnsafe(req.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -154,58 +152,6 @@ func (s queryServer) ModuleAccountByName(c context.Context, req *types.QueryModu
 	return &types.QueryModuleAccountByNameResponse{Account: any}, nil
 }
 
-// Bech32Prefix returns the keeper internally stored bech32 prefix.
-func (s queryServer) Bech32Prefix(ctx context.Context, req *types.Bech32PrefixRequest) (*types.Bech32PrefixResponse, error) {
-	bech32Prefix, err := s.k.getBech32Prefix()
-	if err != nil {
-		return nil, err
-	}
-
-	if bech32Prefix == "" {
-		return &types.Bech32PrefixResponse{Bech32Prefix: "bech32 is not used on this chain"}, nil
-	}
-
-	return &types.Bech32PrefixResponse{Bech32Prefix: bech32Prefix}, nil
-}
-
-// AddressBytesToString converts an address from bytes to string, using the
-// keeper's bech32 prefix.
-func (s queryServer) AddressBytesToString(ctx context.Context, req *types.AddressBytesToStringRequest) (*types.AddressBytesToStringResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "empty request")
-	}
-
-	if len(req.AddressBytes) == 0 {
-		return nil, errors.New("empty address bytes is not allowed")
-	}
-
-	text, err := s.k.addressCodec.BytesToString(req.AddressBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.AddressBytesToStringResponse{AddressString: text}, nil
-}
-
-// AddressStringToBytes converts an address from string to bytes, using the
-// keeper's bech32 prefix.
-func (s queryServer) AddressStringToBytes(ctx context.Context, req *types.AddressStringToBytesRequest) (*types.AddressStringToBytesResponse, error) {
-	if req == nil {
-		return nil, status.Error(codes.InvalidArgument, "empty request")
-	}
-
-	if len(strings.TrimSpace(req.AddressString)) == 0 {
-		return nil, errors.New("empty address string is not allowed")
-	}
-
-	bz, err := s.k.addressCodec.StringToBytes(req.AddressString)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.AddressStringToBytesResponse{AddressBytes: bz}, nil
-}
-
 // AccountInfo implements the AccountInfo query.
 func (s queryServer) AccountInfo(ctx context.Context, req *types.QueryAccountInfoRequest) (*types.QueryAccountInfoResponse, error) {
 	if req == nil {
@@ -216,7 +162,7 @@ func (s queryServer) AccountInfo(ctx context.Context, req *types.QueryAccountInf
 		return nil, status.Error(codes.InvalidArgument, "address cannot be empty")
 	}
 
-	addr, err := s.k.addressCodec.StringToBytes(req.Address)
+	addr, err := sdk.AccAddressFromHexUnsafe(req.Address)
 	if err != nil {
 		return nil, err
 	}

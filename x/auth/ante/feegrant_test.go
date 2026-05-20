@@ -18,7 +18,6 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
@@ -39,11 +38,11 @@ func TestDeductFeesNoDelegation(t *testing.T) {
 		"paying with low funds": {
 			fee:   50,
 			valid: false,
-			err:   sdkerrors.ErrInsufficientFunds,
+			err:   errors.ErrInsufficientFunds,
 			malleate: func(suite *AnteTestSuite) (TestAccount, sdk.AccAddress) {
 				accs := suite.CreateTestAccounts(1)
 				// 2 calls are needed because we run the ante twice
-				suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), accs[0].acc.GetAddress(), authtypes.FeeCollectorName, gomock.Any()).Return(sdkerrors.ErrInsufficientFunds).Times(2)
+				suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), accs[0].acc.GetAddress(), authtypes.FeeCollectorName, gomock.Any()).Return(errors.ErrInsufficientFunds).Times(2)
 				return accs[0], nil
 			},
 		},
@@ -59,10 +58,10 @@ func TestDeductFeesNoDelegation(t *testing.T) {
 		"paying with no account": {
 			fee:   1,
 			valid: false,
-			err:   sdkerrors.ErrUnknownAddress,
+			err:   errors.ErrUnknownAddress,
 			malleate: func(suite *AnteTestSuite) (TestAccount, sdk.AccAddress) {
 				// Do not register the account
-				priv, _, addr := testdata.KeyTestPubAddr()
+				priv, _, addr := testdata.KeyTestPubAddrEthSecp256k1(t)
 				return TestAccount{
 					acc:  authtypes.NewBaseAccountWithAddress(addr),
 					priv: priv,
@@ -80,10 +79,10 @@ func TestDeductFeesNoDelegation(t *testing.T) {
 		"no fee with no account": {
 			fee:   0,
 			valid: false,
-			err:   sdkerrors.ErrUnknownAddress,
+			err:   errors.ErrUnknownAddress,
 			malleate: func(suite *AnteTestSuite) (TestAccount, sdk.AccAddress) {
 				// Do not register the account
-				priv, _, addr := testdata.KeyTestPubAddr()
+				priv, _, addr := testdata.KeyTestPubAddrEthSecp256k1(t)
 				return TestAccount{
 					acc:  authtypes.NewBaseAccountWithAddress(addr),
 					priv: priv,
@@ -107,12 +106,12 @@ func TestDeductFeesNoDelegation(t *testing.T) {
 		"no fee grant": {
 			fee:   2,
 			valid: false,
-			err:   sdkerrors.ErrNotFound,
+			err:   errors.ErrNotFound,
 			malleate: func(suite *AnteTestSuite) (TestAccount, sdk.AccAddress) {
 				accs := suite.CreateTestAccounts(2)
 				suite.feeGrantKeeper.EXPECT().
 					UseGrantedFees(gomock.Any(), accs[1].acc.GetAddress(), accs[0].acc.GetAddress(), gomock.Any(), gomock.Any()).
-					Return(sdkerrors.ErrNotFound.Wrap("fee-grant not found")).
+					Return(errors.ErrNotFound.Wrap("fee-grant not found")).
 					Times(2)
 				return accs[0], accs[1].acc.GetAddress()
 			},
@@ -133,11 +132,11 @@ func TestDeductFeesNoDelegation(t *testing.T) {
 		"granter cannot cover allowed fee grant": {
 			fee:   50,
 			valid: false,
-			err:   sdkerrors.ErrInsufficientFunds,
+			err:   errors.ErrInsufficientFunds,
 			malleate: func(suite *AnteTestSuite) (TestAccount, sdk.AccAddress) {
 				accs := suite.CreateTestAccounts(2)
 				suite.feeGrantKeeper.EXPECT().UseGrantedFees(gomock.Any(), accs[1].acc.GetAddress(), accs[0].acc.GetAddress(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-				suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), accs[1].acc.GetAddress(), authtypes.FeeCollectorName, gomock.Any()).Return(sdkerrors.ErrInsufficientFunds).Times(2)
+				suite.bankKeeper.EXPECT().SendCoinsFromAccountToModule(gomock.Any(), accs[1].acc.GetAddress(), authtypes.FeeCollectorName, gomock.Any()).Return(errors.ErrInsufficientFunds).Times(2)
 				return accs[0], accs[1].acc.GetAddress()
 			},
 		},
@@ -147,7 +146,7 @@ func TestDeductFeesNoDelegation(t *testing.T) {
 		tc := stc // to make scopelint happy
 		t.Run(name, func(t *testing.T) {
 			suite := SetupTestSuite(t, false)
-			protoTxCfg := tx.NewTxConfig(codec.NewProtoCodec(suite.encCfg.InterfaceRegistry), tx.DefaultSignModes)
+			protoTxCfg := tx.NewTxConfig(codec.NewProtoCodec(suite.encCfg.InterfaceRegistry), []signing.SignMode{signing.SignMode_SIGN_MODE_EIP_712})
 			// this just tests our handler
 			dfd := ante.NewDeductFeeDecorator(suite.accountKeeper, suite.bankKeeper, suite.feeGrantKeeper, nil)
 			feeAnteHandler := sdk.ChainAnteDecorators(dfd)

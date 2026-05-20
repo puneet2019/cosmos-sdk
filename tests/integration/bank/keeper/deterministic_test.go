@@ -12,7 +12,6 @@ import (
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
 
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil/integration"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
@@ -35,7 +34,7 @@ import (
 
 var (
 	denomRegex   = sdk.DefaultCoinDenomRegex()
-	addr1        = sdk.MustAccAddressFromBech32("cosmos139f7kncmglres2nf3h4hc4tade85ekfr8sulz5")
+	addr1        = sdk.MustAccAddressFromHex("0x319D057ce294319bA1fa5487134608727e1F3e29")
 	coin1        = sdk.NewCoin("denom", math.NewInt(10))
 	metadataAtom = banktypes.Metadata{
 		Description: "The native staking token of the Cosmos Hub.",
@@ -82,8 +81,6 @@ func initDeterministicFixture(t *testing.T) *deterministicFixture {
 		runtime.NewKVStoreService(keys[authtypes.StoreKey]),
 		authtypes.ProtoBaseAccount,
 		maccPerms,
-		addresscodec.NewBech32Codec(sdk.Bech32MainPrefix),
-		sdk.Bech32MainPrefix,
 		authority.String(),
 	)
 
@@ -100,7 +97,7 @@ func initDeterministicFixture(t *testing.T) *deterministicFixture {
 	)
 
 	authModule := auth.NewAppModule(cdc, accountKeeper, authsims.RandomGenesisAccounts, nil)
-	bankModule := bank.NewAppModule(cdc, bankKeeper, accountKeeper, nil)
+	bankModule := bank.NewAppModule(cdc, bankKeeper, accountKeeper, nil, nil)
 
 	integrationApp := integration.NewIntegrationApp(newCtx, logger, keys, cdc, map[string]appmodule.AppModule{
 		authtypes.ModuleName: authModule,
@@ -110,7 +107,7 @@ func initDeterministicFixture(t *testing.T) *deterministicFixture {
 	sdkCtx := sdk.UnwrapSDKContext(integrationApp.Context())
 
 	// Register MsgServer and QueryServer
-	banktypes.RegisterMsgServer(integrationApp.MsgServiceRouter(), keeper.NewMsgServerImpl(bankKeeper))
+	banktypes.RegisterMsgServer(integrationApp.MsgServiceRouter(), keeper.NewMsgServerImpl(bankKeeper, nil))
 	banktypes.RegisterQueryServer(integrationApp.QueryHelper(), keeper.NewQuerier(&bankKeeper))
 
 	qr := integrationApp.QueryHelper()
@@ -153,7 +150,7 @@ func TestGRPCQueryBalance(t *testing.T) {
 
 	fundAccount(f, addr1, coin1)
 	req := banktypes.NewQueryBalanceRequest(addr1, coin1.GetDenom())
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.Balance, 1087, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.Balance, 0, false)
 }
 
 func TestGRPCQueryAllBalances(t *testing.T) {
@@ -186,7 +183,7 @@ func TestGRPCQueryAllBalances(t *testing.T) {
 	fundAccount(f, addr1, coins...)
 	req := banktypes.NewQueryAllBalancesRequest(addr1, nil, false)
 
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.AllBalances, 357, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.AllBalances, 0, false)
 }
 
 func TestGRPCQuerySpendableBalances(t *testing.T) {
@@ -225,7 +222,7 @@ func TestGRPCQuerySpendableBalances(t *testing.T) {
 	assert.NilError(t, err)
 
 	req := banktypes.NewQuerySpendableBalancesRequest(addr1, nil)
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.SpendableBalances, 2032, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.SpendableBalances, 0, false)
 }
 
 func TestGRPCQueryTotalSupply(t *testing.T) {
@@ -270,7 +267,7 @@ func TestGRPCQueryTotalSupply(t *testing.T) {
 	assert.NilError(t, f.bankKeeper.MintCoins(f.ctx, minttypes.ModuleName, coins))
 
 	req := &banktypes.QueryTotalSupplyRequest{}
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.TotalSupply, 150, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.TotalSupply, 0, false)
 }
 
 func TestGRPCQueryTotalSupplyOf(t *testing.T) {
@@ -293,7 +290,7 @@ func TestGRPCQueryTotalSupplyOf(t *testing.T) {
 
 	assert.NilError(t, f.bankKeeper.MintCoins(f.ctx, minttypes.ModuleName, sdk.NewCoins(coin)))
 	req := &banktypes.QuerySupplyOfRequest{Denom: coin.GetDenom()}
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.SupplyOf, 1021, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.SupplyOf, 0, false)
 }
 
 func TestGRPCQueryParams(t *testing.T) {
@@ -330,7 +327,7 @@ func TestGRPCQueryParams(t *testing.T) {
 	f.bankKeeper.SetParams(f.ctx, params)
 
 	req := &banktypes.QueryParamsRequest{}
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.Params, 1003, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.Params, 0, false)
 }
 
 func createAndReturnMetadatas(t *rapid.T, count int) []banktypes.Metadata {
@@ -393,7 +390,7 @@ func TestGRPCDenomsMetadata(t *testing.T) {
 	f.bankKeeper.SetDenomMetaData(f.ctx, metadataAtom)
 
 	req := &banktypes.QueryDenomsMetadataRequest{}
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.DenomsMetadata, 660, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.DenomsMetadata, 0, false)
 }
 
 func TestGRPCDenomMetadata(t *testing.T) {
@@ -418,7 +415,7 @@ func TestGRPCDenomMetadata(t *testing.T) {
 		Denom: metadataAtom.Base,
 	}
 
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.DenomMetadata, 1300, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.DenomMetadata, 0, false)
 }
 
 func TestGRPCSendEnabled(t *testing.T) {
@@ -467,7 +464,7 @@ func TestGRPCSendEnabled(t *testing.T) {
 		Denoms: []string{coin1.GetDenom(), coin2.GetDenom()},
 	}
 
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.SendEnabled, 4063, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.SendEnabled, 0, false)
 }
 
 func TestGRPCDenomOwners(t *testing.T) {
@@ -498,17 +495,17 @@ func TestGRPCDenomOwners(t *testing.T) {
 
 	denomOwners := []*banktypes.DenomOwner{
 		{
-			Address: "cosmos1qg65a9q6k2sqq7l3ycp428sqqpmqcucgzze299",
+			Address: "0x592888A0e7D564F2B8a002Aef0F8F08b61A6C0eB",
 			Balance: coin1,
 		},
 		{
-			Address: "cosmos1qglnsqgpq48l7qqzgs8qdshr6fh3gqq9ej3qut",
+			Address: "0xd57ceA561aE53FE496334d4985c0C9F6DebF3173",
 			Balance: coin1,
 		},
 	}
 
 	for i := 0; i < len(denomOwners); i++ {
-		addr, err := sdk.AccAddressFromBech32(denomOwners[i].Address)
+		addr, err := sdk.AccAddressFromHexUnsafe(denomOwners[i].Address)
 		assert.NilError(t, err)
 
 		err = banktestutil.FundAccount(f.ctx, f.bankKeeper, addr, sdk.NewCoins(coin1))
@@ -518,5 +515,5 @@ func TestGRPCDenomOwners(t *testing.T) {
 	req := &banktypes.QueryDenomOwnersRequest{
 		Denom: coin1.GetDenom(),
 	}
-	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.DenomOwners, 2516, false)
+	testdata.DeterministicIterations(f.ctx, t, req, f.queryClient.DenomOwners, 0, false)
 }

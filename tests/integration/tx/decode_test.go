@@ -121,8 +121,7 @@ func TestDecode(t *testing.T) {
 				txBytes, err := encCfg.TxConfig.TxEncoder()(tx)
 				require.NoError(t, err)
 				signContext, err := txsigning.NewContext(txsigning.Options{
-					AddressCodec:          dummyAddressCodec{},
-					ValidatorAddressCodec: dummyAddressCodec{},
+					AddressCodec: dummyAddressCodec{},
 				})
 				require.NoError(t, err)
 				decodeCtx, err := decode.NewDecoder(decode.Options{SigningContext: signContext})

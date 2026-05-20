@@ -34,7 +34,7 @@ func TestInitGenesis(t *testing.T) {
 	assert.NilError(t, err)
 
 	bondedVal := types.Validator{
-		OperatorAddress: sdk.ValAddress(addrs[0]).String(),
+		OperatorAddress: sdk.AccAddress(addrs[0]).String(),
 		ConsensusPubkey: pk0,
 		Status:          types.Bonded,
 		Tokens:          valTokens,
@@ -60,7 +60,7 @@ func TestInitGenesis(t *testing.T) {
 
 	// initialize the validators
 	bondedVal1 := types.Validator{
-		OperatorAddress: sdk.ValAddress(addrs[1]).String(),
+		OperatorAddress: sdk.AccAddress(addrs[1]).String(),
 		ConsensusPubkey: pk1,
 		Status:          types.Bonded,
 		Tokens:          valTokens,
@@ -68,7 +68,7 @@ func TestInitGenesis(t *testing.T) {
 		Description:     types.NewDescription("hoop", "", "", "", ""),
 	}
 	bondedVal2 := types.Validator{
-		OperatorAddress: sdk.ValAddress(addrs[2]).String(),
+		OperatorAddress: sdk.AccAddress(addrs[2]).String(),
 		ConsensusPubkey: pk2,
 		Status:          types.Bonded,
 		Tokens:          valTokens,
@@ -116,11 +116,11 @@ func TestInitGenesis(t *testing.T) {
 	}
 
 	// now make sure the validators are bonded and intra-tx counters are correct
-	resVal, found := (f.stakingKeeper.GetValidator(f.sdkCtx, sdk.ValAddress(addrs[1])))
+	resVal, found := (f.stakingKeeper.GetValidator(f.sdkCtx, sdk.AccAddress(addrs[1])))
 	assert.Assert(t, found)
 	assert.Equal(t, types.Bonded, resVal.Status)
 
-	resVal, found = (f.stakingKeeper.GetValidator(f.sdkCtx, sdk.ValAddress(addrs[2])))
+	resVal, found = (f.stakingKeeper.GetValidator(f.sdkCtx, sdk.AccAddress(addrs[2])))
 	assert.Assert(t, found)
 	assert.Equal(t, types.Bonded, resVal.Status)
 
@@ -141,7 +141,7 @@ func TestInitGenesis_PoolsBalanceMismatch(t *testing.T) {
 	assert.NilError(t, err)
 
 	validator := types.Validator{
-		OperatorAddress: sdk.ValAddress("12345678901234567890").String(),
+		OperatorAddress: sdk.AccAddress("12345678901234567890").String(),
 		ConsensusPubkey: consPub,
 		Jailed:          false,
 		Tokens:          math.NewInt(10),
@@ -194,8 +194,8 @@ func TestInitGenesisLargeValidatorSet(t *testing.T) {
 
 	bondedPoolAmt := math.ZeroInt()
 	for i := range validators {
-		validators[i], err = types.NewValidator(
-			sdk.ValAddress(addrs[i]).String(),
+		validators[i], err = types.NewSimpleValidator(
+			sdk.AccAddress(addrs[i]).String(),
 			PKs[i],
 			types.NewDescription(fmt.Sprintf("#%d", i), "", "", "", ""),
 		)

@@ -18,7 +18,7 @@ import (
 )
 
 // SetupUnbondingTests creates two validators and setup mocked staking hooks for testing unbonding
-func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uint64) (bondDenom string, addrDels []sdk.AccAddress, addrVals []sdk.ValAddress) {
+func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uint64) (bondDenom string, addrDels []sdk.AccAddress, addrVals []sdk.AccAddress) {
 	// setup hooks
 	mockCtrl := gomock.NewController(t)
 	mockStackingHooks := testutil.NewMockStakingHooks(mockCtrl)
@@ -45,7 +45,7 @@ func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uin
 	f.stakingKeeper.SetHooks(types.NewMultiStakingHooks(mockStackingHooks))
 
 	addrDels = simtestutil.AddTestAddrsIncremental(f.bankKeeper, f.stakingKeeper, f.sdkCtx, 2, math.NewInt(10000))
-	addrVals = simtestutil.ConvertAddrsToValAddrs(addrDels)
+	addrVals = simtestutil.CopyAddrs(addrDels)
 
 	valTokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 10)
 	startTokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 20)
@@ -89,7 +89,7 @@ func doUnbondingDelegation(
 	ctx sdk.Context,
 	bondDenom string,
 	addrDels []sdk.AccAddress,
-	addrVals []sdk.ValAddress,
+	addrVals []sdk.AccAddress,
 	hookCalled *bool,
 ) (completionTime time.Time, bondedAmt, notBondedAmt math.Int) {
 	// UNDELEGATE
@@ -126,7 +126,7 @@ func doRedelegation(
 	stakingKeeper *stakingkeeper.Keeper,
 	ctx sdk.Context,
 	addrDels []sdk.AccAddress,
-	addrVals []sdk.ValAddress,
+	addrVals []sdk.AccAddress,
 	hookCalled *bool,
 ) (completionTime time.Time) {
 	var err error
@@ -149,7 +149,7 @@ func doValidatorUnbonding(
 	t *testing.T,
 	stakingKeeper *stakingkeeper.Keeper,
 	ctx sdk.Context,
-	addrVal sdk.ValAddress,
+	addrVal sdk.AccAddress,
 	hookCalled *bool,
 ) (validator types.Validator) {
 	validator, found := stakingKeeper.GetValidator(ctx, addrVal)

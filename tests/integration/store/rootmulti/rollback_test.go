@@ -13,6 +13,7 @@ import (
 	"cosmossdk.io/simapp"
 
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
+	sdktestutil "github.com/cosmos/cosmos-sdk/testutil"
 )
 
 func TestRollback(t *testing.T) {
@@ -27,6 +28,7 @@ func TestRollback(t *testing.T) {
 	// commit 10 blocks
 	for i := int64(1); i <= 10; i++ {
 		header := cmtproto.Header{
+			ChainID: sdktestutil.DefaultChainId,
 			Height:  ver0 + i,
 			AppHash: app.LastCommitID().Hash,
 		}
@@ -60,6 +62,7 @@ func TestRollback(t *testing.T) {
 	// commit another 5 blocks with different values
 	for i := int64(6); i <= 10; i++ {
 		header := cmtproto.Header{
+			ChainID: sdktestutil.DefaultChainId,
 			Height:  ver0 + i,
 			AppHash: app.LastCommitID().Hash,
 		}

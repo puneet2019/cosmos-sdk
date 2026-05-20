@@ -70,7 +70,7 @@ func BenchmarkGetValidatorDelegations(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		updateValidatorDelegations(f, valAddrs[0], sdk.ValAddress("val"))
+		updateValidatorDelegations(f, valAddrs[0], sdk.AccAddress("val"))
 	}
 }
 
@@ -104,11 +104,11 @@ func BenchmarkGetValidatorDelegationsLegacy(b *testing.B) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		updateValidatorDelegationsLegacy(f, valAddrs[0], sdk.ValAddress("val"))
+		updateValidatorDelegationsLegacy(f, valAddrs[0], sdk.AccAddress("val"))
 	}
 }
 
-func updateValidatorDelegationsLegacy(f *fixture, existingValAddr, newValAddr sdk.ValAddress) {
+func updateValidatorDelegationsLegacy(f *fixture, existingValAddr, newValAddr sdk.AccAddress) {
 	storeKey := f.keys[types.StoreKey]
 	cdc, k := f.cdc, f.stakingKeeper
 
@@ -119,7 +119,7 @@ func updateValidatorDelegationsLegacy(f *fixture, existingValAddr, newValAddr sd
 
 	for ; iterator.Valid(); iterator.Next() {
 		delegation := types.MustUnmarshalDelegation(cdc, iterator.Value())
-		valAddr, err := k.ValidatorAddressCodec().StringToBytes(delegation.GetValidatorAddr())
+		valAddr, err := sdk.AccAddressFromHexUnsafe(delegation.GetValidatorAddr())
 		if err != nil {
 			panic(err)
 		}
@@ -134,7 +134,7 @@ func updateValidatorDelegationsLegacy(f *fixture, existingValAddr, newValAddr sd
 	}
 }
 
-func updateValidatorDelegations(f *fixture, existingValAddr, newValAddr sdk.ValAddress) {
+func updateValidatorDelegations(f *fixture, existingValAddr, newValAddr sdk.AccAddress) {
 	storeKey := f.keys[types.StoreKey]
 	cdc, k := f.cdc, f.stakingKeeper
 

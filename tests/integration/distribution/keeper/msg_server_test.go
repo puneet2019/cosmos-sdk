@@ -5,8 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/0xPolygon/polygon-edge/bls"
 	cmtabcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/proto/tendermint/types"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 
@@ -16,9 +21,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil/integration"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -33,7 +35,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/distribution"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtestutil "github.com/cosmos/cosmos-sdk/x/staking/testutil"
@@ -42,7 +43,7 @@ import (
 
 var (
 	emptyDelAddr sdk.AccAddress
-	emptyValAddr sdk.ValAddress
+	emptyValAddr sdk.AccAddress
 )
 
 type fixture struct {
@@ -58,7 +59,7 @@ type fixture struct {
 	stakingKeeper *stakingkeeper.Keeper
 
 	addr    sdk.AccAddress
-	valAddr sdk.ValAddress
+	valAddr sdk.AccAddress
 }
 
 func initFixture(t testing.TB) *fixture {
@@ -86,8 +87,6 @@ func initFixture(t testing.TB) *fixture {
 		runtime.NewKVStoreService(keys[authtypes.StoreKey]),
 		authtypes.ProtoBaseAccount,
 		maccPerms,
-		addresscodec.NewBech32Codec(sdk.Bech32MainPrefix),
-		sdk.Bech32MainPrefix,
 		authority.String(),
 	)
 
@@ -102,20 +101,22 @@ func initFixture(t testing.TB) *fixture {
 		authority.String(),
 		log.NewNopLogger(),
 	)
+	ctrl := gomock.NewController(t)
+	authzKeeper := stakingtestutil.NewMockAuthzKeeper(ctrl)
 
-	stakingKeeper := stakingkeeper.NewKeeper(cdc, runtime.NewKVStoreService(keys[stakingtypes.StoreKey]), accountKeeper, bankKeeper, authority.String(), addresscodec.NewBech32Codec(sdk.Bech32PrefixValAddr), addresscodec.NewBech32Codec(sdk.Bech32PrefixConsAddr))
+	stakingKeeper := stakingkeeper.NewKeeper(cdc, runtime.NewKVStoreService(keys[stakingtypes.StoreKey]), accountKeeper, authzKeeper, bankKeeper, authority.String())
 
 	distrKeeper := distrkeeper.NewKeeper(
 		cdc, runtime.NewKVStoreService(keys[distrtypes.StoreKey]), accountKeeper, bankKeeper, stakingKeeper, distrtypes.ModuleName, authority.String(),
 	)
 
 	authModule := auth.NewAppModule(cdc, accountKeeper, authsims.RandomGenesisAccounts, nil)
-	bankModule := bank.NewAppModule(cdc, bankKeeper, accountKeeper, nil)
+	bankModule := bank.NewAppModule(cdc, bankKeeper, accountKeeper, nil, nil)
 	stakingModule := staking.NewAppModule(cdc, stakingKeeper, accountKeeper, bankKeeper, nil)
 	distrModule := distribution.NewAppModule(cdc, distrKeeper, accountKeeper, bankKeeper, stakingKeeper, nil)
 
 	addr := sdk.AccAddress(PKS[0].Address())
-	valAddr := sdk.ValAddress(addr)
+	valAddr := sdk.AccAddress(addr)
 	valConsAddr := sdk.ConsAddress(valConsPk0.Address())
 
 	// set proposer and vote infos
@@ -185,7 +186,11 @@ func TestMsgWithdrawDelegatorReward(t *testing.T) {
 	}
 
 	// setup staking validator
-	validator, err := stakingtypes.NewValidator(f.valAddr.String(), PKS[0], stakingtypes.Description{})
+	blsSecretKey, _ := bls.GenerateBlsKey()
+	blsKey := blsSecretKey.PublicKey().Marshal()
+
+	validator, err := stakingtypes.NewValidator(f.valAddr.String(), PKS[0], stakingtypes.Description{},
+		f.valAddr.String(), f.valAddr.String(), f.valAddr.String(), blsKey)
 	assert.NilError(t, err)
 	commission := stakingtypes.NewCommission(math.LegacyZeroDec(), math.LegacyOneDec(), math.LegacyOneDec())
 	validator, err = validator.SetInitialCommission(commission)
@@ -208,7 +213,7 @@ func TestMsgWithdrawDelegatorReward(t *testing.T) {
 	delTokens := sdk.TokensFromConsensusPower(2, sdk.DefaultPowerReduction)
 	validator, issuedShares := validator.AddTokensFromDel(delTokens)
 
-	valBz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+	valBz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	require.NoError(t, err)
 	delegation := stakingtypes.NewDelegation(delAddr.String(), validator.GetOperator(), issuedShares)
 	require.NoError(t, f.stakingKeeper.SetDelegation(f.sdkCtx, delegation))
@@ -273,7 +278,7 @@ func TestMsgWithdrawDelegatorReward(t *testing.T) {
 			name: "validator with no delegations",
 			msg: &distrtypes.MsgWithdrawDelegatorReward{
 				DelegatorAddress: delAddr.String(),
-				ValidatorAddress: sdk.ValAddress(sdk.AccAddress(PKS[2].Address())).String(),
+				ValidatorAddress: sdk.AccAddress(sdk.AccAddress(PKS[2].Address())).String(),
 			},
 			expErr:    true,
 			expErrMsg: "validator does not exist",
@@ -523,7 +528,7 @@ func TestMsgWithdrawValidatorCommission(t *testing.T) {
 		{
 			name: "validator with no commission",
 			msg: &distrtypes.MsgWithdrawValidatorCommission{
-				ValidatorAddress: sdk.ValAddress([]byte("addr1_______________")).String(),
+				ValidatorAddress: sdk.AccAddress([]byte("addr1_______________")).String(),
 			},
 			expErr:    true,
 			expErrMsg: "no validator commission to withdraw",
@@ -822,7 +827,7 @@ func TestMsgCommunityPoolSpend(t *testing.T) {
 	err := f.bankKeeper.MintCoins(f.sdkCtx, distrtypes.ModuleName, sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens)))
 	require.NoError(t, err)
 
-	recipient := sdk.AccAddress([]byte("addr1"))
+	recipient := sdk.AccAddress([]byte("addr1_______________"))
 
 	testCases := []struct {
 		name      string
@@ -848,7 +853,7 @@ func TestMsgCommunityPoolSpend(t *testing.T) {
 				Amount:    sdk.NewCoins(sdk.NewCoin("stake", math.NewInt(100))),
 			},
 			expErr:    true,
-			expErrMsg: "decoding bech32 failed",
+			expErrMsg: "invalid address hex length",
 		},
 		{
 			name: "valid message",
@@ -905,9 +910,9 @@ func TestMsgDepositValidatorRewardsPool(t *testing.T) {
 	// Set default staking params
 	require.NoError(t, f.stakingKeeper.SetParams(f.sdkCtx, stakingtypes.DefaultParams()))
 
-	addr := sdk.AccAddress("addr")
+	addr := sdk.AccAddress("0addr_______________")
 	addr1 := sdk.AccAddress(PKS[0].Address())
-	valAddr1 := sdk.ValAddress(addr1)
+	valAddr1 := sdk.AccAddress(addr1)
 
 	// send funds to val addr
 	tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, int64(1000))
@@ -954,7 +959,7 @@ func TestMsgDepositValidatorRewardsPool(t *testing.T) {
 			name: "invalid validator",
 			msg: &distrtypes.MsgDepositValidatorRewardsPool{
 				Depositor:        addr.String(),
-				ValidatorAddress: sdk.ValAddress([]byte("addr1_______________")).String(),
+				ValidatorAddress: sdk.AccAddress([]byte("addr1_______________")).String(),
 				Amount:           sdk.NewCoins(sdk.NewCoin(bondDenom, math.NewInt(100))),
 			},
 			expErr:    true,
@@ -981,11 +986,11 @@ func TestMsgDepositValidatorRewardsPool(t *testing.T) {
 				err = f.cdc.Unmarshal(res.Value, &result)
 				assert.NilError(t, err)
 
-				val, err := sdk.ValAddressFromBech32(tc.msg.ValidatorAddress)
+				val, err := sdk.AccAddressFromHexUnsafe(tc.msg.ValidatorAddress)
 				assert.NilError(t, err)
 
 				// check validator outstanding rewards
-				outstandingRewards, _ := f.distrKeeper.GetValidatorOutstandingRewards(f.sdkCtx, val)
+				outstandingRewards, _ := f.distrKeeper.GetValidatorOutstandingRewards(f.sdkCtx, sdk.AccAddress(val))
 				for _, c := range tc.msg.Amount {
 					x := outstandingRewards.Rewards.AmountOf(c.Denom)
 					assert.DeepEqual(t, x, math.LegacyNewDecFromInt(c.Amount))

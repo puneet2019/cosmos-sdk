@@ -14,7 +14,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
@@ -85,20 +84,8 @@ func (s *E2ETestSuite) TestNewWithdrawRewardsCmd() {
 		expectedResponseType []string
 	}{
 		{
-			"invalid validator address",
-			val.Address,
-			[]string{
-				fmt.Sprintf("--%s=%s", flags.FlagFrom, val.Address.String()),
-				fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
-				fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
-				fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, math.NewInt(10))).String()),
-			},
-			true, 0, nil,
-			[]string{},
-		},
-		{
 			"valid transaction",
-			sdk.ValAddress(val.Address),
+			sdk.AccAddress(val.Address),
 			[]string{
 				fmt.Sprintf("--%s=%s", flags.FlagFrom, val.Address.String()),
 				fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
@@ -108,22 +95,6 @@ func (s *E2ETestSuite) TestNewWithdrawRewardsCmd() {
 			false, 0, &sdk.TxResponse{},
 			[]string{
 				"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorRewardResponse",
-			},
-		},
-		{
-			"valid transaction (with commission)",
-			sdk.ValAddress(val.Address),
-			[]string{
-				fmt.Sprintf("--%s=%s", flags.FlagFrom, val.Address.String()),
-				fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
-				fmt.Sprintf("--%s=true", cli.FlagCommission),
-				fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
-				fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, math.NewInt(10))).String()),
-			},
-			false, 0, &sdk.TxResponse{},
-			[]string{
-				"/cosmos.distribution.v1beta1.MsgWithdrawDelegatorRewardResponse",
-				"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommissionResponse",
 			},
 		},
 	}
@@ -139,7 +110,7 @@ func (s *E2ETestSuite) TestNewWithdrawRewardsCmd() {
 			_, _ = s.network.WaitForHeightWithTimeout(10, time.Minute)
 
 			ctx := svrcmd.CreateExecuteContext(context.Background())
-			cmd := cli.NewWithdrawRewardsCmd(address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"))
+			cmd := cli.NewWithdrawRewardsCmd()
 			cmd.SetContext(ctx)
 			cmd.SetArgs(args)
 			s.Require().NoError(client.SetCmdClientContextHandler(clientCtx, cmd))
@@ -173,6 +144,81 @@ func (s *E2ETestSuite) TestNewWithdrawRewardsCmd() {
 						s.Require().True(resp.Amount.IsAllGT(sdk.NewCoins(sdk.NewCoin("stake", math.OneInt()))),
 							fmt.Sprintf("expected a positive coin value, got %v", resp.Amount))
 					case "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommissionResponse":
+						var resp distrtypes.MsgWithdrawValidatorCommissionResponse
+						// can't use unpackAny as response types are not registered.
+						err = s.cfg.Codec.Unmarshal(msgResponse.Value, &resp)
+						s.Require().NoError(err)
+						s.Require().True(resp.Amount.IsAllGT(sdk.NewCoins(sdk.NewCoin("stake", math.OneInt()))),
+							fmt.Sprintf("expected a positive coin value, got %v", resp.Amount))
+					}
+				}
+			}
+		})
+	}
+}
+
+func (s *E2ETestSuite) TestNewWithdrawCommissionCmd() {
+	val := s.network.Validators[0]
+
+	testCases := []struct {
+		name                 string
+		valAddr              fmt.Stringer
+		args                 []string
+		expectErr            bool
+		expectedCode         uint32
+		respType             proto.Message
+		expectedResponseType []string
+	}{
+		{
+			"valid transaction",
+			sdk.AccAddress(val.Address),
+			[]string{
+				fmt.Sprintf("--%s=%s", flags.FlagFrom, val.Address.String()),
+				fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+				fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
+				fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, math.NewInt(10))).String()),
+			},
+			false, 0, &sdk.TxResponse{},
+			[]string{
+				"/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommissionResponse",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+
+		s.Run(tc.name, func() {
+			clientCtx := val.ClientCtx
+			args := append([]string{tc.valAddr.String()}, tc.args...)
+
+			_, _ = s.network.WaitForHeightWithTimeout(10, time.Minute)
+
+			ctx := svrcmd.CreateExecuteContext(context.Background())
+			cmd := cli.NewWithdrawRewardsCmd()
+			cmd.SetContext(ctx)
+			cmd.SetArgs(args)
+			s.Require().NoError(client.SetCmdClientContextHandler(clientCtx, cmd))
+			out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, args)
+			if tc.expectErr {
+				s.Require().Error(err)
+			} else {
+				s.Require().NoError(err)
+				s.Require().NoError(clientCtx.Codec.UnmarshalJSON(out.Bytes(), tc.respType), out.String())
+				s.Require().NoError(s.network.WaitForNextBlock())
+
+				txResp := tc.respType.(*sdk.TxResponse)
+				s.Require().Equal(tc.expectedCode, txResp.Code)
+
+				data, err := hex.DecodeString(txResp.Data)
+				s.Require().NoError(err)
+
+				txMsgData := sdk.TxMsgData{}
+				err = s.cfg.Codec.Unmarshal(data, &txMsgData)
+				s.Require().NoError(err)
+				for responseIdx, msgResponse := range txMsgData.MsgResponses {
+					s.Require().Equal(tc.expectedResponseType[responseIdx], msgResponse.TypeUrl)
+					if msgResponse.TypeUrl == "/cosmos.distribution.v1beta1.MsgWithdrawValidatorCommissionResponse" {
 						var resp distrtypes.MsgWithdrawValidatorCommissionResponse
 						// can't use unpackAny as response types are not registered.
 						err = s.cfg.Codec.Unmarshal(msgResponse.Value, &resp)
@@ -227,7 +273,7 @@ func (s *E2ETestSuite) TestNewWithdrawAllRewardsCmd() {
 		tc := tc
 
 		s.Run(tc.name, func() {
-			cmd := cli.NewWithdrawAllRewardsCmd(address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"))
+			cmd := cli.NewWithdrawAllRewardsCmd()
 			clientCtx := val.ClientCtx
 
 			_, _ = s.network.WaitForHeightWithTimeout(10, time.Minute)
@@ -312,7 +358,7 @@ func (s *E2ETestSuite) TestNewSetWithdrawAddrCmd() {
 		tc := tc
 
 		s.Run(tc.name, func() {
-			cmd := cli.NewSetWithdrawAddrCmd(address.NewBech32Codec("cosmos"))
+			cmd := cli.NewSetWithdrawAddrCmd()
 			clientCtx := val.ClientCtx
 
 			out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, tc.args)
@@ -367,7 +413,7 @@ func (s *E2ETestSuite) TestNewFundCommunityPoolCmd() {
 		tc := tc
 
 		s.Run(tc.name, func() {
-			cmd := cli.NewFundCommunityPoolCmd(address.NewBech32Codec("cosmos"))
+			cmd := cli.NewFundCommunityPoolCmd()
 			clientCtx := val.ClientCtx
 
 			out, err := clitestutil.ExecTestCLICmd(clientCtx, cmd, tc.args)

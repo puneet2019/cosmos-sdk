@@ -47,7 +47,7 @@ func TestValidateVoteExtensions(t *testing.T) {
 
 	vals := []stakingtypes.Validator{}
 	for _, v := range privKeys {
-		valAddr := sdk.ValAddress(v.PubKey().Address())
+		valAddr := sdk.AccAddress(v.PubKey().Address())
 		simtestutil.AddTestAddrsFromPubKeys(f.bankKeeper, f.stakingKeeper, f.sdkCtx, []cryptotypes.PubKey{v.PubKey()}, math.NewInt(100000000000))
 		vals = append(vals, testutil.NewValidator(t, valAddr, v.PubKey()))
 	}
@@ -78,7 +78,7 @@ func TestValidateVoteExtensions(t *testing.T) {
 		sig, err := privKeys[i].Sign(extSignBytes)
 		assert.NilError(t, err)
 
-		valbz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(v.GetOperator())
+		valbz, err := sdk.AccAddressFromHexUnsafe(v.GetOperator())
 		assert.NilError(t, err)
 		ve := abci.ExtendedVoteInfo{
 			Validator: abci.Validator{

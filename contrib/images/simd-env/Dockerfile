@@ -1,6 +1,8 @@
-FROM golang:1.21-alpine AS build
+FROM golang:1.23.6-alpine AS build
 
-RUN apk add build-base git linux-headers
+ARG GH_TOKEN=""
+
+RUN apk add build-base git linux-headers libc-dev
 
 WORKDIR /work
 COPY go.mod go.sum /work/
@@ -13,14 +15,21 @@ COPY collections/go.mod collections/go.sum /work/collections/
 COPY store/go.mod store/go.sum /work/store/
 COPY log/go.mod log/go.sum /work/log/
 COPY x/tx/go.mod x/tx/go.sum /work/x/tx/
+
+RUN go env -w GOPRIVATE="github.com/mocachain/*"
+RUN git config --global url."https://${GH_TOKEN}@github.com".insteadOf "https://github.com"
+
 RUN go mod download
+
+ENV CGO_CFLAGS="-O -D__BLST_PORTABLE__"
+ENV CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__"
 
 COPY ./ /work
 RUN LEDGER_ENABLED=false make clean build
 
 
 FROM alpine AS run
-RUN apk add bash curl jq
+RUN apk add bash curl jq libstdc++
 EXPOSE 26656 26657
 ENTRYPOINT ["/usr/bin/wrapper.sh"]
 CMD ["start", "--log_format", "plain"]

@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/0xPolygon/polygon-edge/bls"
 	"gotest.tools/v3/assert"
 
 	"cosmossdk.io/math"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
@@ -37,16 +37,18 @@ func TestCancelUnbondingDelegation(t *testing.T) {
 
 	// accounts
 	addrs := simtestutil.AddTestAddrsIncremental(f.bankKeeper, f.stakingKeeper, ctx, 2, math.NewInt(10000))
-	valAddr := sdk.ValAddress(addrs[0])
+	valAddr := sdk.AccAddress(addrs[0])
 	delegatorAddr := addrs[1]
 
 	// setup a new validator with bonded status
-	validator, err := types.NewValidator(valAddr.String(), PKs[0], types.NewDescription("Validator", "", "", "", ""))
+	blsSecretKey, _ := bls.GenerateBlsKey()
+	blsKey := blsSecretKey.PublicKey().Marshal()
+	validator, err := types.NewValidator(valAddr.String(), PKs[0], types.NewDescription("Validator", "", "", "", ""), valAddr.String(), valAddr.String(), valAddr.String(), blsKey)
 	validator.Status = types.Bonded
 	assert.NilError(t, err)
 	assert.NilError(t, f.stakingKeeper.SetValidator(ctx, validator))
 
-	validatorAddr, err := sdk.ValAddressFromBech32(validator.OperatorAddress)
+	validatorAddr, err := sdk.AccAddressFromHexUnsafe(validator.OperatorAddress)
 	assert.NilError(t, err)
 
 	// setting the ubd entry
@@ -56,7 +58,6 @@ func TestCancelUnbondingDelegation(t *testing.T) {
 		ctx.BlockTime().Add(time.Minute*10),
 		unbondingAmount.Amount,
 		0,
-		address.NewBech32Codec("cosmosvaloper"), address.NewBech32Codec("cosmos"),
 	)
 
 	// set and retrieve a record
@@ -109,7 +110,7 @@ func TestCancelUnbondingDelegation(t *testing.T) {
 			exceptErr: true,
 			req: types.MsgCancelUnbondingDelegation{
 				DelegatorAddress: resUnbond.DelegatorAddress,
-				ValidatorAddress: sdk.ValAddress(sdk.AccAddress("asdsad")).String(),
+				ValidatorAddress: sdk.AccAddress(sdk.AccAddress("asdsad")).String(),
 				Amount:           unbondingAmount,
 				CreationHeight:   10,
 			},
@@ -124,7 +125,7 @@ func TestCancelUnbondingDelegation(t *testing.T) {
 				Amount:           unbondingAmount,
 				CreationHeight:   0,
 			},
-			expErrMsg: "decoding bech32 failed",
+			expErrMsg: "invalid address",
 		},
 		{
 			name:      "invalid amount",

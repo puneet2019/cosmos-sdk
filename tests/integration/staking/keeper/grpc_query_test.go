@@ -155,7 +155,7 @@ func TestGRPCQueryDelegatorValidators(t *testing.T) {
 				}
 			},
 			false,
-			"invalid bech32",
+			"invalid address",
 		},
 		{
 			"valid request",
@@ -286,7 +286,7 @@ func TestGRPCQueryDelegation(t *testing.T) {
 
 	addrAcc, addrAcc1 := addrs[0], addrs[1]
 	addrVal := vals[0].OperatorAddress
-	valAddr, err := sdk.ValAddressFromBech32(addrVal)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(addrVal)
 	assert.NilError(t, err)
 	delegation, found := f.stakingKeeper.GetDelegation(ctx, addrAcc, valAddr)
 	assert.Assert(t, found)
@@ -355,7 +355,7 @@ func TestGRPCQueryDelegatorDelegations(t *testing.T) {
 
 	addrAcc := addrs[0]
 	addrVal1 := vals[0].OperatorAddress
-	valAddr, err := sdk.ValAddressFromBech32(addrVal1)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(addrVal1)
 	assert.NilError(t, err)
 	delegation, found := f.stakingKeeper.GetDelegation(ctx, addrAcc, valAddr)
 	assert.Assert(t, found)
@@ -433,9 +433,9 @@ func TestGRPCQueryValidatorDelegations(t *testing.T) {
 
 	addrAcc := addrs[0]
 	addrVal1 := vals[1].OperatorAddress
-	valAddrs := simtestutil.ConvertAddrsToValAddrs(addrs)
+	valAddrs := simtestutil.CopyAddrs(addrs)
 	addrVal2 := valAddrs[4]
-	valAddr, err := sdk.ValAddressFromBech32(addrVal1)
+	valAddr, err := sdk.AccAddressFromHexUnsafe(addrVal1)
 	assert.NilError(t, err)
 	delegation, found := f.stakingKeeper.GetDelegation(ctx, addrAcc, valAddr)
 	assert.Assert(t, found)
@@ -517,7 +517,7 @@ func TestGRPCQueryUnbondingDelegation(t *testing.T) {
 	addrVal2 := vals[1].OperatorAddress
 
 	unbondingTokens := f.stakingKeeper.TokensFromConsensusPower(ctx, 2)
-	valAddr, err1 := sdk.ValAddressFromBech32(addrVal2)
+	valAddr, err1 := sdk.AccAddressFromHexUnsafe(addrVal2)
 	assert.NilError(t, err1)
 	_, _, err := f.stakingKeeper.Undelegate(ctx, addrAcc2, valAddr, math.LegacyNewDecFromInt(unbondingTokens))
 	assert.NilError(t, err)
@@ -563,17 +563,17 @@ func TestGRPCQueryUnbondingDelegation(t *testing.T) {
 			"invalid validator address",
 			func() {
 				req = &types.QueryUnbondingDelegationRequest{
-					DelegatorAddr: addrAcc2.String(), ValidatorAddr: sdk.AccAddress([]byte("invalid")).String(),
+					DelegatorAddr: addrAcc2.String(), ValidatorAddr: "invalid",
 				}
 			},
 			false,
-			"hrp does not match bech32 prefix",
+			"invalid address",
 		},
 		{
 			"delegation not found for validator",
 			func() {
 				req = &types.QueryUnbondingDelegationRequest{
-					DelegatorAddr: addrAcc2.String(), ValidatorAddr: sdk.ValAddress([]byte("invalid")).String(),
+					DelegatorAddr: addrAcc2.String(), ValidatorAddr: sdk.AccAddress([]byte("invalid")).String(),
 				}
 			},
 			false,
@@ -620,11 +620,11 @@ func TestGRPCQueryDelegatorUnbondingDelegations(t *testing.T) {
 	addrVal, addrVal2 := vals[0].OperatorAddress, vals[1].OperatorAddress
 
 	unbondingTokens := f.stakingKeeper.TokensFromConsensusPower(ctx, 2)
-	valAddr1, err1 := sdk.ValAddressFromBech32(addrVal)
+	valAddr1, err1 := sdk.AccAddressFromHexUnsafe(addrVal)
 	assert.NilError(t, err1)
 	_, _, err := f.stakingKeeper.Undelegate(ctx, addrAcc, valAddr1, math.LegacyNewDecFromInt(unbondingTokens))
 	assert.NilError(t, err)
-	valAddr2, err1 := sdk.ValAddressFromBech32(addrVal2)
+	valAddr2, err1 := sdk.AccAddressFromHexUnsafe(addrVal2)
 	assert.NilError(t, err1)
 	_, _, err = f.stakingKeeper.Undelegate(ctx, addrAcc, valAddr2, math.LegacyNewDecFromInt(unbondingTokens))
 	assert.NilError(t, err)
@@ -730,8 +730,8 @@ func TestGRPCQueryHistoricalInfo(t *testing.T) {
 	qr := f.app.QueryHelper()
 	queryClient := types.NewQueryClient(qr)
 
-	hi, found := f.stakingKeeper.GetHistoricalInfo(ctx, 5)
-	assert.Assert(t, found)
+	hi, err := f.stakingKeeper.GetHistoricalInfo(ctx, 5)
+	assert.NilError(t, err)
 
 	var req *types.QueryHistoricalInfoRequest
 	testCases := []struct {
@@ -801,7 +801,7 @@ func TestGRPCQueryRedelegations(t *testing.T) {
 	queryClient := types.NewQueryClient(qr)
 
 	addrAcc, addrAcc1 := addrs[0], addrs[1]
-	valAddrs := simtestutil.ConvertAddrsToValAddrs(addrs)
+	valAddrs := simtestutil.CopyAddrs(addrs)
 	val1, val2, val3, val4 := vals[0], vals[1], valAddrs[3], valAddrs[4]
 	delAmount := f.stakingKeeper.TokensFromConsensusPower(ctx, 1)
 	_, err := f.stakingKeeper.Delegate(ctx, addrAcc1, delAmount, types.Unbonded, val1, true)
@@ -809,9 +809,9 @@ func TestGRPCQueryRedelegations(t *testing.T) {
 	applyValidatorSetUpdates(t, ctx, f.stakingKeeper, -1)
 
 	rdAmount := f.stakingKeeper.TokensFromConsensusPower(ctx, 1)
-	val1bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(val1.GetOperator())
+	val1bz, err := sdk.AccAddressFromHexUnsafe(val1.GetOperator())
 	assert.NilError(t, err)
-	val2bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(val2.GetOperator())
+	val2bz, err := sdk.AccAddressFromHexUnsafe(val2.GetOperator())
 	assert.NilError(t, err)
 
 	_, err = f.stakingKeeper.BeginRedelegation(ctx, addrAcc1, val1bz, val2bz, math.LegacyNewDecFromInt(rdAmount))
@@ -927,7 +927,7 @@ func TestGRPCQueryValidatorUnbondingDelegations(t *testing.T) {
 
 	// undelegate
 	undelAmount := f.stakingKeeper.TokensFromConsensusPower(ctx, 2)
-	valbz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(val1.GetOperator())
+	valbz, err := sdk.AccAddressFromHexUnsafe(val1.GetOperator())
 	assert.NilError(t, err)
 	_, _, err = f.stakingKeeper.Undelegate(ctx, addrAcc1, valbz, math.LegacyNewDecFromInt(undelAmount))
 	assert.NilError(t, err)
@@ -957,7 +957,7 @@ func TestGRPCQueryValidatorUnbondingDelegations(t *testing.T) {
 				}
 			},
 			false,
-			"invalid bech32",
+			"invalid address",
 		},
 		{
 			"valid request",

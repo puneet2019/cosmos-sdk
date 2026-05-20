@@ -12,12 +12,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	errors "cosmossdk.io/errors"
 	"github.com/cosmos/cosmos-sdk/x/bank/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
@@ -113,7 +112,7 @@ func (s *E2ETestSuite) TestNewSendTxCmdGenOnly() {
 		fmt.Sprintf("--%s=true", flags.FlagGenerateOnly),
 	}
 
-	bz, err := clitestutil.MsgSendExec(clientCtx, from, to, amount, addresscodec.NewBech32Codec("cosmos"), args...)
+	bz, err := clitestutil.MsgSendExec(clientCtx, from, to, amount, args...)
 	s.Require().NoError(err)
 	tx, err := s.cfg.TxConfig.TxJSONDecoder()(bz.Bytes())
 	s.Require().NoError(err)
@@ -142,7 +141,7 @@ func (s *E2ETestSuite) TestNewSendTxCmdDryRun() {
 	r, w, _ := os.Pipe()
 	os.Stderr = w
 
-	_, err := clitestutil.MsgSendExec(clientCtx, from, to, amount, addresscodec.NewBech32Codec("cosmos"), args...)
+	_, err := clitestutil.MsgSendExec(clientCtx, from, to, amount, args...)
 	s.Require().NoError(err)
 
 	w.Close()
@@ -210,7 +209,7 @@ func (s *E2ETestSuite) TestNewSendTxCmd() {
 				fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, math.NewInt(1))).String()),
 			},
 			false,
-			sdkerrors.ErrInsufficientFee.ABCICode(),
+			errors.ErrInsufficientFee.ABCICode(),
 			&sdk.TxResponse{},
 		},
 		{
@@ -228,7 +227,7 @@ func (s *E2ETestSuite) TestNewSendTxCmd() {
 				"--gas=10",
 			},
 			false,
-			sdkerrors.ErrOutOfGas.ABCICode(),
+			errors.ErrOutOfGas.ABCICode(),
 			&sdk.TxResponse{},
 		},
 	}
@@ -240,7 +239,7 @@ func (s *E2ETestSuite) TestNewSendTxCmd() {
 		s.Run(tc.name, func() {
 			clientCtx := val.ClientCtx
 
-			bz, err := clitestutil.MsgSendExec(clientCtx, tc.from, tc.to, tc.amount, addresscodec.NewBech32Codec("cosmos"), tc.args...)
+			bz, err := clitestutil.MsgSendExec(clientCtx, tc.from, tc.to, tc.amount, tc.args...)
 			if tc.expectErr {
 				s.Require().Error(err)
 			} else {
@@ -256,7 +255,7 @@ func (s *E2ETestSuite) TestNewSendTxCmd() {
 
 func (s *E2ETestSuite) TestNewMultiSendTxCmd() {
 	val := s.network.Validators[0]
-	testAddr := sdk.AccAddress("cosmos139f7kncmglres2nf3h4hc4tade85ekfr8sulz5")
+	testAddr := sdk.AccAddress("0x319D057ce294319bA1fa5487134608727e1F3e29")
 
 	testCases := []struct {
 		name         string
@@ -345,7 +344,7 @@ func (s *E2ETestSuite) TestNewMultiSendTxCmd() {
 				fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin(s.cfg.BondDenom, math.NewInt(1))).String()),
 			},
 			false,
-			sdkerrors.ErrInsufficientFee.ABCICode(),
+			errors.ErrInsufficientFee.ABCICode(),
 			&sdk.TxResponse{},
 		},
 		{
@@ -363,7 +362,7 @@ func (s *E2ETestSuite) TestNewMultiSendTxCmd() {
 				"--gas=10",
 			},
 			false,
-			sdkerrors.ErrOutOfGas.ABCICode(),
+			errors.ErrOutOfGas.ABCICode(),
 			&sdk.TxResponse{},
 		},
 	}
@@ -403,5 +402,5 @@ func MsgMultiSendExec(clientCtx client.Context, from sdk.AccAddress, to []sdk.Ac
 	args = append(args, amount.String())
 	args = append(args, extraArgs...)
 
-	return clitestutil.ExecTestCLICmd(clientCtx, cli.NewMultiSendTxCmd(addresscodec.NewBech32Codec("cosmos")), args)
+	return clitestutil.ExecTestCLICmd(clientCtx, cli.NewMultiSendTxCmd(), args)
 }

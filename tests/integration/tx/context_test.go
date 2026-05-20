@@ -35,6 +35,7 @@ func TestDefineCustomGetSigners(t *testing.T) {
 			configurator.NewAppConfig(
 				configurator.ParamsModule(),
 				configurator.AuthModule(),
+				configurator.AuthzModule(),
 				configurator.StakingModule(),
 				configurator.BankModule(),
 				configurator.ConsensusModule(),
@@ -63,6 +64,7 @@ func TestDefineCustomGetSigners(t *testing.T) {
 			configurator.NewAppConfig(
 				configurator.ParamsModule(),
 				configurator.AuthModule(),
+				configurator.AuthzModule(),
 				configurator.StakingModule(),
 				configurator.BankModule(),
 				configurator.ConsensusModule(),

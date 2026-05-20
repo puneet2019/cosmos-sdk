@@ -338,7 +338,7 @@ func (suite *KeeperTestSuite) TestCancelProposalReq() {
 			},
 			depositor: sdk.AccAddress{},
 			expErr:    true,
-			expErrMsg: "invalid proposer address: empty address string is not allowed",
+			expErrMsg: "invalid proposer address: decoding address from hex string failed: empty address",
 		},
 		"all good": {
 			preRun: func() uint64 {
@@ -470,16 +470,6 @@ func (suite *KeeperTestSuite) TestVoteReq() {
 			metadata:  strings.Repeat("a", 300),
 			expErr:    true,
 			expErrMsg: "metadata too long",
-		},
-		"voter error": {
-			preRun: func() uint64 {
-				return proposalID
-			},
-			option:    v1.VoteOption_VOTE_OPTION_YES,
-			voter:     sdk.AccAddress(strings.Repeat("a", 300)),
-			metadata:  "",
-			expErr:    true,
-			expErrMsg: longAddressError,
 		},
 		"all good": {
 			preRun: func() uint64 {
@@ -688,16 +678,6 @@ func (suite *KeeperTestSuite) TestVoteWeightedReq() {
 			metadata:  strings.Repeat("a", 300),
 			expErr:    true,
 			expErrMsg: "metadata too long",
-		},
-		"voter error": {
-			preRun: func() uint64 {
-				return proposalID
-			},
-			option:    v1.NewNonSplitVoteOption(v1.VoteOption_VOTE_OPTION_YES),
-			voter:     sdk.AccAddress(strings.Repeat("a", 300)),
-			metadata:  "",
-			expErr:    true,
-			expErrMsg: longAddressError,
 		},
 		"all good": {
 			preRun: func() uint64 {
@@ -911,7 +891,7 @@ func (suite *KeeperTestSuite) TestLegacyMsgSubmitProposal() {
 				)
 			},
 			expErr:    true,
-			expErrMsg: "invalid proposer address: empty address string is not allowed",
+			expErrMsg: "invalid proposer address: decoding address from hex string failed: empty address",
 		},
 		"title text length > max limit allowed": {
 			preRun: func() (*v1beta1.MsgSubmitProposal, error) {
@@ -1056,16 +1036,6 @@ func (suite *KeeperTestSuite) TestLegacyMsgVote() {
 			metadata:  "",
 			expErr:    true,
 			expErrMsg: "inactive proposal",
-		},
-		"voter error": {
-			preRun: func() uint64 {
-				return proposalID
-			},
-			option:    v1beta1.OptionYes,
-			voter:     sdk.AccAddress(strings.Repeat("a", 300)),
-			metadata:  "",
-			expErr:    true,
-			expErrMsg: longAddressError,
 		},
 		"all good": {
 			preRun: func() uint64 {
@@ -1299,21 +1269,6 @@ func (suite *KeeperTestSuite) TestLegacyVoteWeighted() {
 			expErr:    true,
 			expErrMsg: "inactive proposal",
 		},
-		"voter error": {
-			preRun: func() uint64 {
-				return proposalID
-			},
-			option: v1beta1.WeightedVoteOptions{
-				v1beta1.WeightedVoteOption{
-					Option: v1beta1.OptionYes,
-					Weight: sdkmath.LegacyNewDec(1),
-				},
-			},
-			voter:     sdk.AccAddress(strings.Repeat("a", 300)),
-			metadata:  "",
-			expErr:    true,
-			expErrMsg: longAddressError,
-		},
 		"all good": {
 			preRun: func() uint64 {
 				msg, err := v1.NewMsgSubmitProposal(
@@ -1413,7 +1368,7 @@ func (suite *KeeperTestSuite) TestLegacyMsgDeposit() {
 			depositor: sdk.AccAddress{},
 			deposit:   coins,
 			expErr:    true,
-			expErrMsg: "invalid depositor address: empty address string is not allowed",
+			expErrMsg: "invalid depositor address: decoding address from hex string failed: empty address",
 		},
 		"all good": {
 			preRun: func() uint64 {

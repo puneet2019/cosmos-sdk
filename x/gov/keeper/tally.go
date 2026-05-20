@@ -27,7 +27,7 @@ func (keeper Keeper) Tally(ctx context.Context, proposal v1.Proposal) (passes, b
 
 	// fetch all the bonded validators, insert them into currValidators
 	err = keeper.sk.IterateBondedValidatorsByPower(ctx, func(index int64, validator stakingtypes.ValidatorI) (stop bool) {
-		valBz, err := keeper.sk.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+		valBz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 		if err != nil {
 			return false
 		}
@@ -48,15 +48,12 @@ func (keeper Keeper) Tally(ctx context.Context, proposal v1.Proposal) (passes, b
 	rng := collections.NewPrefixedPairRange[uint64, sdk.AccAddress](proposal.Id)
 	err = keeper.Votes.Walk(ctx, rng, func(key collections.Pair[uint64, sdk.AccAddress], vote v1.Vote) (bool, error) {
 		// if validator, just record it in the map
-		voter, err := keeper.authKeeper.AddressCodec().StringToBytes(vote.Voter)
+		voter, err := sdk.AccAddressFromHexUnsafe(vote.Voter)
 		if err != nil {
 			return false, err
 		}
 
-		valAddrStr, err := keeper.sk.ValidatorAddressCodec().BytesToString(voter)
-		if err != nil {
-			return false, err
-		}
+		valAddrStr := sdk.AccAddress(voter).String()
 		if val, ok := currValidators[valAddrStr]; ok {
 			val.Vote = vote.Options
 			currValidators[valAddrStr] = val

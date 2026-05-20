@@ -8,19 +8,17 @@ import (
 	"cosmossdk.io/collections"
 	sdkmath "cosmossdk.io/math"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 )
 
 func TestVotes(t *testing.T) {
-	govKeeper, authKeeper, bankKeeper, stakingKeeper, _, _, ctx := setupGovKeeper(t)
+	govKeeper, _, bankKeeper, stakingKeeper, _, _, ctx := setupGovKeeper(t)
 	addrs := simtestutil.AddTestAddrsIncremental(bankKeeper, stakingKeeper, ctx, 2, sdkmath.NewInt(10000000))
-	authKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	tp := TestProposal
-	proposal, err := govKeeper.SubmitProposal(ctx, tp, "", "title", "description", sdk.AccAddress("cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r"), false)
+	proposal, err := govKeeper.SubmitProposal(ctx, tp, "", "title", "description", sdk.AccAddress("0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a"), false)
 	require.NoError(t, err)
 	proposalID := proposal.Id
 	metadata := "metadata"

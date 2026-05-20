@@ -173,15 +173,15 @@ func TestParseSubmitProposal(t *testing.T) {
 	badJSON := testutil.WriteToNewTempFile(t, "bad json")
 
 	// nonexistent json
-	_, _, _, err := parseSubmitProposal(cdc, "fileDoesNotExist")
+	_, _, _, err := ParseSubmitProposal(cdc, "fileDoesNotExist")
 	require.Error(t, err)
 
 	// invalid json
-	_, _, _, err = parseSubmitProposal(cdc, badJSON.Name())
+	_, _, _, err = ParseSubmitProposal(cdc, badJSON.Name())
 	require.Error(t, err)
 
 	// ok json
-	proposal, msgs, deposit, err := parseSubmitProposal(cdc, okJSON.Name())
+	proposal, msgs, deposit, err := ParseSubmitProposal(cdc, okJSON.Name())
 	require.NoError(t, err, "unexpected error")
 	require.Equal(t, sdk.NewCoins(sdk.NewCoin("test", sdkmath.NewInt(1000))), deposit)
 	require.Equal(t, base64.StdEncoding.EncodeToString(expectedMetadata), proposal.Metadata)

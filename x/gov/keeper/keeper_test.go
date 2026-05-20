@@ -11,7 +11,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/gov/keeper"
@@ -22,7 +21,7 @@ import (
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
-var address1 = "cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r"
+var address1 = "0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a"
 
 type KeeperTestSuite struct {
 	suite.Suite
@@ -76,17 +75,12 @@ func (suite *KeeperTestSuite) reset() {
 
 	suite.legacyMsgSrvr = keeper.NewLegacyMsgServerImpl(govAcct.String(), suite.msgSrvr)
 	suite.addrs = simtestutil.AddTestAddrsIncremental(bankKeeper, stakingKeeper, ctx, 3, sdkmath.NewInt(30000000))
-
-	suite.acctKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 }
 
 func TestIncrementProposalNumber(t *testing.T) {
-	govKeeper, authKeeper, _, _, _, _, ctx := setupGovKeeper(t)
+	govKeeper, _, _, _, _, _, ctx := setupGovKeeper(t)
 
-	authKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
-
-	ac := address.NewBech32Codec("cosmos")
-	addrBz, err := ac.StringToBytes(address1)
+	addrBz, err := sdk.AccAddressFromHexUnsafe(address1)
 	require.NoError(t, err)
 
 	tp := TestProposal
@@ -107,12 +101,10 @@ func TestIncrementProposalNumber(t *testing.T) {
 }
 
 func TestProposalQueues(t *testing.T) {
-	govKeeper, authKeeper, _, _, _, _, ctx := setupGovKeeper(t)
+	govKeeper, _, _, _, _, _, ctx := setupGovKeeper(t)
 
-	ac := address.NewBech32Codec("cosmos")
-	addrBz, err := ac.StringToBytes(address1)
+	addrBz, err := sdk.AccAddressFromHexUnsafe(address1)
 	require.NoError(t, err)
-	authKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 
 	// create test proposals
 	tp := TestProposal

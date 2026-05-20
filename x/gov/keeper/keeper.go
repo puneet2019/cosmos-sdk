@@ -19,9 +19,9 @@ import (
 
 // Keeper defines the governance module Keeper
 type Keeper struct {
-	authKeeper  types.AccountKeeper
-	bankKeeper  types.BankKeeper
-	distrKeeper types.DistributionKeeper
+	authKeeper       types.AccountKeeper
+	bankKeeper       types.BankKeeper
+	distrKeeper      types.DistributionKeeper
 
 	// The reference to the DelegationSet and ValidatorSet to get information about validators and delegators
 	sk types.StakingKeeper
@@ -81,7 +81,7 @@ func NewKeeper(
 		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
 	}
 
-	if _, err := authKeeper.AddressCodec().StringToBytes(authority); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(authority); err != nil {
 		panic(fmt.Sprintf("invalid authority address: %s", authority))
 	}
 

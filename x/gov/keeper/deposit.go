@@ -8,9 +8,9 @@ import (
 	"cosmossdk.io/collections"
 	"cosmossdk.io/errors"
 	sdkmath "cosmossdk.io/math"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	disttypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
@@ -18,7 +18,7 @@ import (
 
 // SetDeposit sets a Deposit to the gov store
 func (keeper Keeper) SetDeposit(ctx context.Context, deposit v1.Deposit) error {
-	depositor, err := keeper.authKeeper.AddressCodec().StringToBytes(deposit.Depositor)
+	depositor, err := sdk.AccAddressFromHexUnsafe(deposit.Depositor)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (keeper Keeper) AddDeposit(ctx context.Context, proposalID uint64, deposito
 		)
 		for _, minDep := range minDepositAmount {
 			// calculate the threshold for this denom, and hold a list to later return a useful error message
-			threshold := sdk.NewCoin(minDep.GetDenom(), minDep.Amount.ToLegacyDec().Mul(minDepositRatio).TruncateInt())
+			threshold := sdk.NewCoin(minDep.GetDenom(), sdkmath.LegacyNewDecFromInt(minDep.Amount).Mul(minDepositRatio).TruncateInt())
 			thresholds = append(thresholds, threshold.String())
 
 			found, deposit := depositAmount.Find(minDep.Denom)
@@ -195,7 +195,7 @@ func (keeper Keeper) ChargeDeposit(ctx context.Context, proposalID uint64, destA
 	}
 
 	for _, deposit := range deposits {
-		depositerAddress, err := keeper.authKeeper.AddressCodec().StringToBytes(deposit.Depositor)
+		depositerAddress, err := sdk.AccAddressFromHexUnsafe(deposit.Depositor)
 		if err != nil {
 			return err
 		}
@@ -250,7 +250,7 @@ func (keeper Keeper) ChargeDeposit(ctx context.Context, proposalID uint64, destA
 				return err
 			}
 		default:
-			destAccAddress, err := keeper.authKeeper.AddressCodec().StringToBytes(destAddress)
+			destAccAddress, err := sdk.AccAddressFromHexUnsafe(destAddress)
 			if err != nil {
 				return err
 			}

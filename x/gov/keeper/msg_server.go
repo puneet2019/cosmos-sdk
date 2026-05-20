@@ -7,9 +7,9 @@ import (
 
 	"cosmossdk.io/errors"
 	"cosmossdk.io/math"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
@@ -36,7 +36,7 @@ func (k msgServer) SubmitProposal(goCtx context.Context, msg *v1.MsgSubmitPropos
 		return nil, errors.Wrap(sdkerrors.ErrInvalidRequest, "proposal summary cannot be empty")
 	}
 
-	proposer, err := k.authKeeper.AddressCodec().StringToBytes(msg.GetProposer())
+	proposer, err := sdk.AccAddressFromHexUnsafe(msg.GetProposer())
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid proposer address: %s", err)
 	}
@@ -89,16 +89,16 @@ func (k msgServer) SubmitProposal(goCtx context.Context, msg *v1.MsgSubmitPropos
 		return nil, err
 	}
 
-	bytes, err := proposal.Marshal()
-	if err != nil {
-		return nil, err
-	}
+	// bytes, err := proposal.Marshal()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// ref: https://github.com/cosmos/cosmos-sdk/issues/9683
-	ctx.GasMeter().ConsumeGas(
-		3*ctx.KVGasConfig().WriteCostPerByte*uint64(len(bytes)),
-		"submit proposal",
-	)
+	// ctx.GasMeter().ConsumeGas(
+	// 	3*ctx.KVGasConfig().WriteCostPerByte*uint64(len(bytes)),
+	// 	"submit proposal",
+	// )
 
 	votingStarted, err := k.Keeper.AddDeposit(ctx, proposal.Id, proposer, msg.GetInitialDeposit())
 	if err != nil {
@@ -120,7 +120,7 @@ func (k msgServer) SubmitProposal(goCtx context.Context, msg *v1.MsgSubmitPropos
 
 // CancelProposal implements the MsgServer.CancelProposal method.
 func (k msgServer) CancelProposal(goCtx context.Context, msg *v1.MsgCancelProposal) (*v1.MsgCancelProposalResponse, error) {
-	_, err := k.authKeeper.AddressCodec().StringToBytes(msg.Proposer)
+	_, err := sdk.AccAddressFromHexUnsafe(msg.Proposer)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid proposer address: %s", err)
 	}
@@ -174,7 +174,7 @@ func (k msgServer) ExecLegacyContent(goCtx context.Context, msg *v1.MsgExecLegac
 
 // Vote implements the MsgServer.Vote method.
 func (k msgServer) Vote(goCtx context.Context, msg *v1.MsgVote) (*v1.MsgVoteResponse, error) {
-	accAddr, err := k.authKeeper.AddressCodec().StringToBytes(msg.Voter)
+	accAddr, err := sdk.AccAddressFromHexUnsafe(msg.Voter)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid voter address: %s", err)
 	}
@@ -194,7 +194,7 @@ func (k msgServer) Vote(goCtx context.Context, msg *v1.MsgVote) (*v1.MsgVoteResp
 
 // VoteWeighted implements the MsgServer.VoteWeighted method.
 func (k msgServer) VoteWeighted(goCtx context.Context, msg *v1.MsgVoteWeighted) (*v1.MsgVoteWeightedResponse, error) {
-	accAddr, accErr := k.authKeeper.AddressCodec().StringToBytes(msg.Voter)
+	accAddr, accErr := sdk.AccAddressFromHexUnsafe(msg.Voter)
 	if accErr != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid voter address: %s", accErr)
 	}
@@ -239,7 +239,7 @@ func (k msgServer) VoteWeighted(goCtx context.Context, msg *v1.MsgVoteWeighted) 
 
 // Deposit implements the MsgServer.Deposit method.
 func (k msgServer) Deposit(goCtx context.Context, msg *v1.MsgDeposit) (*v1.MsgDepositResponse, error) {
-	accAddr, err := k.authKeeper.AddressCodec().StringToBytes(msg.Depositor)
+	accAddr, err := sdk.AccAddressFromHexUnsafe(msg.Depositor)
 	if err != nil {
 		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid depositor address: %s", err)
 	}
@@ -282,6 +282,18 @@ func (k msgServer) UpdateParams(goCtx context.Context, msg *v1.MsgUpdateParams) 
 	}
 
 	return &v1.MsgUpdateParamsResponse{}, nil
+}
+
+// UpdateCrossChainParams implements the MsgServer.UpdateCrossChainParams method.
+func (k msgServer) UpdateCrossChainParams(goCtx context.Context, msg *v1.MsgUpdateCrossChainParams) (*v1.MsgUpdateCrossChainParamsResponse, error) {
+	if k.authority != msg.Authority {
+		return nil, errors.Wrapf(govtypes.ErrInvalidSigner, "invalid authority; expected %s, got %s", k.authority, msg.Authority)
+	}
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	if err := k.SyncParams(ctx, sdk.ChainID(msg.DestChainId), msg.Params); err != nil {
+		return nil, err
+	}
+	return &v1.MsgUpdateCrossChainParamsResponse{}, nil
 }
 
 type legacyMsgServer struct {

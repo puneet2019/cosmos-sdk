@@ -50,6 +50,12 @@ func (keeper Keeper) SubmitProposal(ctx context.Context, messages []sdk.Msg, met
 			}
 		}
 
+		if runtimeMsg, ok := msg.(sdk.MsgWithRuntimeValidation); ok {
+			if err := runtimeMsg.ValidateRuntime(sdkCtx); err != nil {
+				return v1.Proposal{}, errorsmod.Wrap(types.ErrInvalidProposalMsg, err.Error())
+			}
+		}
+
 		signers, _, err := keeper.cdc.GetMsgV1Signers(msg)
 		if err != nil {
 			return v1.Proposal{}, err

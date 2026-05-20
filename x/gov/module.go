@@ -13,7 +13,6 @@ import (
 	"golang.org/x/exp/slices"
 
 	modulev1 "cosmossdk.io/api/cosmos/gov/module/v1"
-	"cosmossdk.io/core/address"
 	"cosmossdk.io/core/appmodule"
 	store "cosmossdk.io/core/store"
 	"cosmossdk.io/depinject"
@@ -53,7 +52,6 @@ var (
 type AppModuleBasic struct {
 	cdc                    codec.Codec
 	legacyProposalHandlers []govclient.ProposalHandler // legacy proposal handlers which live in governance cli and rest
-	ac                     address.Codec
 }
 
 // NewAppModuleBasic creates a new AppModuleBasic object
@@ -139,7 +137,7 @@ func NewAppModule(
 	ak govtypes.AccountKeeper, bk govtypes.BankKeeper, ss govtypes.ParamSubspace,
 ) AppModule {
 	return AppModule{
-		AppModuleBasic: AppModuleBasic{cdc: cdc, ac: ak.AddressCodec()},
+		AppModuleBasic: AppModuleBasic{cdc: cdc},
 		keeper:         keeper,
 		accountKeeper:  ak,
 		bankKeeper:     bk,
@@ -195,7 +193,7 @@ func ProvideModule(in ModuleInputs) ModuleOutputs {
 	// default to governance authority if not provided
 	authority := authtypes.NewModuleAddress(govtypes.ModuleName)
 	if in.Config.Authority != "" {
-		authority = authtypes.NewModuleAddressOrBech32Address(in.Config.Authority)
+		authority = authtypes.NewModuleAddressOrHexAddress(in.Config.Authority)
 	}
 
 	k := keeper.NewKeeper(
@@ -269,11 +267,7 @@ func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	msgServer := keeper.NewMsgServerImpl(am.keeper)
-	v1beta1.RegisterMsgServer(cfg.MsgServer(), keeper.NewLegacyMsgServerImpl(am.accountKeeper.GetModuleAddress(govtypes.ModuleName).String(), msgServer))
 	v1.RegisterMsgServer(cfg.MsgServer(), msgServer)
-
-	legacyQueryServer := keeper.NewLegacyQueryServer(am.keeper)
-	v1beta1.RegisterQueryServer(cfg.QueryServer(), legacyQueryServer)
 	v1.RegisterQueryServer(cfg.QueryServer(), keeper.NewQueryServer(am.keeper))
 
 	m := keeper.NewMigrator(am.keeper, am.legacySubspace)

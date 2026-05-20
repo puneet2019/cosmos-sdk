@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 
-	addresscodec "cosmossdk.io/core/address"
 	"cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -18,7 +17,6 @@ type ParamSubspace interface {
 
 // StakingKeeper expected staking keeper (Validator and Delegator sets) (noalias)
 type StakingKeeper interface {
-	ValidatorAddressCodec() addresscodec.Codec
 	// iterate through bonded validators by operator address, execute func for each validator
 	IterateBondedValidatorsByPower(
 		context.Context, func(index int64, validator stakingtypes.ValidatorI) (stop bool),
@@ -38,8 +36,6 @@ type DistributionKeeper interface {
 
 // AccountKeeper defines the expected account keeper (noalias)
 type AccountKeeper interface {
-	AddressCodec() addresscodec.Codec
-
 	GetAccount(ctx context.Context, addr sdk.AccAddress) sdk.AccountI
 
 	GetModuleAddress(name string) sdk.AccAddress

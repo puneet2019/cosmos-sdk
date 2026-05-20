@@ -26,7 +26,7 @@ func TestMsgDepositGetSignBytes(t *testing.T) {
 	res, err := pc.MarshalAminoJSON(msg)
 	require.NoError(t, err)
 
-	expected := `{"type":"cosmos-sdk/MsgDeposit","value":{"amount":[{"amount":"1000","denom":"stake"}],"depositor":"cosmos1v9jxgu33kfsgr5","proposal_id":"0"}}`
+	expected := `{"type":"cosmos-sdk/MsgDeposit","value":{"amount":[{"amount":"1000","denom":"stake"}],"depositor":"0x0000000000000000000000000000006164647231","proposal_id":"0"}}`
 	require.Equal(t, expected, string(res))
 }
 

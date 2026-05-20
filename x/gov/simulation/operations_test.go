@@ -15,6 +15,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/runtime"
+	sdktestutil "github.com/cosmos/cosmos-sdk/testutil"
 	"github.com/cosmos/cosmos-sdk/testutil/configurator"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -22,6 +23,8 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/x/auth"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
+	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
+	_ "github.com/cosmos/cosmos-sdk/x/authz/module"
 	_ "github.com/cosmos/cosmos-sdk/x/bank"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
@@ -91,7 +94,7 @@ func mockWeightedLegacyProposalContent(n int) []simtypes.WeightedProposalContent
 func TestWeightedOperations(t *testing.T) {
 	suite, ctx := createTestSuite(t, false)
 	app := suite.App
-	ctx.WithChainID("test-chain")
+	ctx.WithChainID(sdktestutil.DefaultChainId)
 	appParams := make(simtypes.AppParams)
 
 	weightesOps := simulation.WeightedOperations(appParams, suite.TxConfig, suite.AccountKeeper,
@@ -150,14 +153,14 @@ func TestSimulateMsgSubmitProposal(t *testing.T) {
 
 	// execute operation
 	op := simulation.SimulateMsgSubmitProposal(suite.TxConfig, suite.AccountKeeper, suite.BankKeeper, suite.GovKeeper, MockWeightedProposals{3}.MsgSimulatorFn())
-	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, "")
+	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, sdktestutil.DefaultChainId)
 	require.NoError(t, err)
 
 	var msg v1.MsgSubmitProposal
 	err = proto.Unmarshal(operationMsg.Msg, &msg)
 	require.NoError(t, err)
 	require.True(t, operationMsg.OK)
-	require.Equal(t, "cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r", msg.Proposer)
+	require.Equal(t, "0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a", msg.Proposer)
 	require.NotEqual(t, len(msg.InitialDeposit), 0)
 	require.Equal(t, "47841094stake", msg.InitialDeposit[0].String())
 	require.Equal(t, simulation.TypeMsgSubmitProposal, sdk.MsgTypeURL(&msg))
@@ -181,7 +184,7 @@ func TestSimulateMsgSubmitLegacyProposal(t *testing.T) {
 
 	// execute operation
 	op := simulation.SimulateMsgSubmitLegacyProposal(suite.TxConfig, suite.AccountKeeper, suite.BankKeeper, suite.GovKeeper, MockWeightedProposals{3}.ContentSimulatorFn())
-	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, "")
+	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, sdktestutil.DefaultChainId)
 	require.NoError(t, err)
 
 	var msg v1.MsgSubmitProposal
@@ -195,7 +198,7 @@ func TestSimulateMsgSubmitLegacyProposal(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, operationMsg.OK)
-	require.Equal(t, "cosmos1p8wcgrjr4pjju90xg6u9cgq55dxwq8j7u4x9a0", msg.Proposer)
+	require.Equal(t, "0x6b11EA2aF9b83C6E0BBCe6254d776F82BB6b6C13", msg.Proposer)
 	require.NotEqual(t, len(msg.InitialDeposit), 0)
 	require.Equal(t, "25166256stake", msg.InitialDeposit[0].String())
 	require.Equal(t, "title-3: ZBSpYuLyYggwexjxusrBqDOTtGTOWeLrQKjLxzIivHSlcxgdXhhuTSkuxKGLwQvuyNhYFmBZHeAerqyNEUzXPFGkqEGqiQWIXnku",
@@ -274,7 +277,7 @@ func TestSimulateMsgDeposit(t *testing.T) {
 	params, _ := suite.GovKeeper.Params.Get(ctx)
 	depositPeriod := params.MaxDepositPeriod
 
-	proposal, err := v1.NewProposal([]sdk.Msg{contentMsg}, 1, submitTime, submitTime.Add(*depositPeriod), "", "text proposal", "description", sdk.AccAddress("cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r"), false)
+	proposal, err := v1.NewProposal([]sdk.Msg{contentMsg}, 1, submitTime, submitTime.Add(*depositPeriod), "", "text proposal", "description", sdk.AccAddress("0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a"), false)
 	require.NoError(t, err)
 
 	suite.GovKeeper.SetProposal(ctx, proposal)
@@ -286,7 +289,7 @@ func TestSimulateMsgDeposit(t *testing.T) {
 
 	// execute operation
 	op := simulation.SimulateMsgDeposit(suite.TxConfig, suite.AccountKeeper, suite.BankKeeper, suite.GovKeeper)
-	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, "")
+	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, sdktestutil.DefaultChainId)
 	require.NoError(t, err)
 
 	var msg v1.MsgDeposit
@@ -294,7 +297,7 @@ func TestSimulateMsgDeposit(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, operationMsg.OK)
 	require.Equal(t, uint64(1), msg.ProposalId)
-	require.Equal(t, "cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r", msg.Depositor)
+	require.Equal(t, "0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a", msg.Depositor)
 	require.NotEqual(t, len(msg.Amount), 0)
 	require.Equal(t, "560969stake", msg.Amount[0].String())
 	require.Equal(t, simulation.TypeMsgDeposit, sdk.MsgTypeURL(&msg))
@@ -322,7 +325,7 @@ func TestSimulateMsgVote(t *testing.T) {
 	params, _ := suite.GovKeeper.Params.Get(ctx)
 	depositPeriod := params.MaxDepositPeriod
 
-	proposal, err := v1.NewProposal([]sdk.Msg{contentMsg}, 1, submitTime, submitTime.Add(*depositPeriod), "", "text proposal", "description", sdk.AccAddress("cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r"), false)
+	proposal, err := v1.NewProposal([]sdk.Msg{contentMsg}, 1, submitTime, submitTime.Add(*depositPeriod), "", "text proposal", "description", sdk.AccAddress("0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a"), false)
 	require.NoError(t, err)
 
 	suite.GovKeeper.ActivateVotingPeriod(ctx, proposal)
@@ -334,7 +337,7 @@ func TestSimulateMsgVote(t *testing.T) {
 
 	// execute operation
 	op := simulation.SimulateMsgVote(suite.TxConfig, suite.AccountKeeper, suite.BankKeeper, suite.GovKeeper)
-	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, "")
+	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, sdktestutil.DefaultChainId)
 	require.NoError(t, err)
 
 	var msg v1.MsgVote
@@ -342,7 +345,7 @@ func TestSimulateMsgVote(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, operationMsg.OK)
 	require.Equal(t, uint64(1), msg.ProposalId)
-	require.Equal(t, "cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r", msg.Voter)
+	require.Equal(t, "0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a", msg.Voter)
 	require.Equal(t, v1.OptionYes, msg.Option)
 	require.Equal(t, simulation.TypeMsgVote, sdk.MsgTypeURL(&msg))
 }
@@ -368,7 +371,7 @@ func TestSimulateMsgVoteWeighted(t *testing.T) {
 	params, _ := suite.GovKeeper.Params.Get(ctx)
 	depositPeriod := params.MaxDepositPeriod
 
-	proposal, err := v1.NewProposal([]sdk.Msg{contentMsg}, 1, submitTime, submitTime.Add(*depositPeriod), "", "text proposal", "test", sdk.AccAddress("cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r"), false)
+	proposal, err := v1.NewProposal([]sdk.Msg{contentMsg}, 1, submitTime, submitTime.Add(*depositPeriod), "", "text proposal", "test", sdk.AccAddress("0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a"), false)
 	require.NoError(t, err)
 
 	suite.GovKeeper.ActivateVotingPeriod(ctx, proposal)
@@ -380,7 +383,7 @@ func TestSimulateMsgVoteWeighted(t *testing.T) {
 
 	// execute operation
 	op := simulation.SimulateMsgVoteWeighted(suite.TxConfig, suite.AccountKeeper, suite.BankKeeper, suite.GovKeeper)
-	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, "")
+	operationMsg, _, err := op(r, app.BaseApp, ctx, accounts, sdktestutil.DefaultChainId)
 	require.NoError(t, err)
 
 	var msg v1.MsgVoteWeighted
@@ -388,7 +391,7 @@ func TestSimulateMsgVoteWeighted(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, operationMsg.OK)
 	require.Equal(t, uint64(1), msg.ProposalId)
-	require.Equal(t, "cosmos1ghekyjucln7y67ntx7cf27m9dpuxxemn4c8g4r", msg.Voter)
+	require.Equal(t, "0xd4BFb1CB895840ca474b0D15abb11Cf0f26bc88a", msg.Voter)
 	require.True(t, len(msg.Options) >= 1)
 	require.Equal(t, simulation.TypeMsgVoteWeighted, sdk.MsgTypeURL(&msg))
 }
@@ -396,6 +399,7 @@ func TestSimulateMsgVoteWeighted(t *testing.T) {
 type suite struct {
 	TxConfig           client.TxConfig
 	AccountKeeper      authkeeper.AccountKeeper
+	AuthzKeeper        authzkeeper.Keeper
 	BankKeeper         bankkeeper.Keeper
 	GovKeeper          *keeper.Keeper
 	StakingKeeper      *stakingkeeper.Keeper
@@ -411,6 +415,7 @@ func createTestSuite(t *testing.T, isCheckTx bool) (suite, sdk.Context) {
 		depinject.Configs(
 			configurator.NewAppConfig(
 				configurator.AuthModule(),
+				configurator.AuthzModule(),
 				configurator.TxModule(),
 				configurator.ParamsModule(),
 				configurator.BankModule(),
@@ -421,10 +426,10 @@ func createTestSuite(t *testing.T, isCheckTx bool) (suite, sdk.Context) {
 			),
 			depinject.Supply(log.NewNopLogger()),
 		),
-		&res.TxConfig, &res.AccountKeeper, &res.BankKeeper, &res.GovKeeper, &res.StakingKeeper, &res.DistributionKeeper)
+		&res.TxConfig, &res.AccountKeeper, &res.AuthzKeeper, &res.BankKeeper, &res.GovKeeper, &res.StakingKeeper, &res.DistributionKeeper)
 	require.NoError(t, err)
 
-	ctx := app.BaseApp.NewContext(isCheckTx)
+	ctx := app.BaseApp.NewContext(isCheckTx).WithChainID(sdktestutil.DefaultChainId)
 
 	res.App = app
 	return res, ctx

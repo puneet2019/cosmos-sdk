@@ -1,10 +1,14 @@
 package gov_test
 
 import (
+	"encoding/hex"
 	"testing"
 	"time"
 
+	"github.com/0xPolygon/polygon-edge/bls"
 	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	"github.com/cometbft/cometbft/votepool"
 	"github.com/stretchr/testify/require"
 
 	"cosmossdk.io/collections"
@@ -373,10 +377,10 @@ func TestProposalPassedEndblocker(t *testing.T) {
 				Hash:   app.LastCommitID().Hash,
 			})
 
-			valAddr := sdk.ValAddress(addrs[0])
+			valAddr := addrs[0]
 			proposer := addrs[0]
 
-			createValidators(t, stakingMsgSvr, ctx, []sdk.ValAddress{valAddr}, []int64{10})
+			createValidators(t, stakingMsgSvr, ctx, []sdk.AccAddress{valAddr}, []int64{10})
 			suite.StakingKeeper.EndBlocker(ctx)
 
 			macc := suite.GovKeeper.GetGovernanceAccount(ctx)
@@ -432,10 +436,10 @@ func TestEndBlockerProposalHandlerFailed(t *testing.T) {
 		Hash:   app.LastCommitID().Hash,
 	})
 
-	valAddr := sdk.ValAddress(addrs[0])
+	valAddr := addrs[0]
 	proposer := addrs[0]
 
-	createValidators(t, stakingMsgSvr, ctx, []sdk.ValAddress{valAddr}, []int64{10})
+	createValidators(t, stakingMsgSvr, ctx, []sdk.AccAddress{valAddr}, []int64{10})
 	suite.StakingKeeper.EndBlocker(ctx)
 
 	msg := banktypes.NewMsgSend(authtypes.NewModuleAddress(types.ModuleName), addrs[0], sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000))))
@@ -516,11 +520,11 @@ func TestExpeditedProposal_PassAndConversionToRegular(t *testing.T) {
 				Hash:   app.LastCommitID().Hash,
 			})
 
-			valAddr := sdk.ValAddress(addrs[0])
+			valAddr := sdk.AccAddress(addrs[0])
 			proposer := addrs[0]
 
 			// Create a validator so that able to vote on proposal.
-			createValidators(t, stakingMsgSvr, ctx, []sdk.ValAddress{valAddr}, []int64{10})
+			createValidators(t, stakingMsgSvr, ctx, []sdk.AccAddress{valAddr}, []int64{10})
 			suite.StakingKeeper.EndBlocker(ctx)
 
 			checkInactiveProposalsQueue(t, ctx, suite.GovKeeper)
@@ -660,15 +664,21 @@ func TestExpeditedProposal_PassAndConversionToRegular(t *testing.T) {
 	}
 }
 
-func createValidators(t *testing.T, stakingMsgSvr stakingtypes.MsgServer, ctx sdk.Context, addrs []sdk.ValAddress, powerAmt []int64) {
+func createValidators(t *testing.T, stakingMsgSvr stakingtypes.MsgServer, ctx sdk.Context, addrs []sdk.AccAddress, powerAmt []int64) {
 	require.True(t, len(addrs) <= len(pubkeys), "Not enough pubkeys specified at top of file.")
 
 	for i := 0; i < len(addrs); i++ {
 		valTokens := sdk.TokensFromConsensusPower(powerAmt[i], sdk.DefaultPowerReduction)
+		blsSecretKey, _ := bls.GenerateBlsKey()
+		blsPk := hex.EncodeToString(blsSecretKey.PublicKey().Marshal())
+		blsProofBuf, _ := blsSecretKey.Sign(tmhash.Sum(blsSecretKey.PublicKey().Marshal()), votepool.DST)
+		blsProofBts, _ := blsProofBuf.Marshal()
+		blsProof := hex.EncodeToString(blsProofBts)
 		valCreateMsg, err := stakingtypes.NewMsgCreateValidator(
 			addrs[i].String(), pubkeys[i], sdk.NewCoin(sdk.DefaultBondDenom, valTokens),
 			TestDescription, TestCommissionRates, math.OneInt(),
-		)
+			addrs[i], addrs[i],
+			addrs[i], addrs[i], blsPk, blsProof)
 		require.NoError(t, err)
 		res, err := stakingMsgSvr.CreateValidator(ctx, valCreateMsg)
 		require.NoError(t, err)

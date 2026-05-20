@@ -28,6 +28,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgDeposit{},
 		&MsgExecLegacyContent{},
 		&MsgUpdateParams{},
+		&MsgUpdateCrossChainParams{},
 	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)

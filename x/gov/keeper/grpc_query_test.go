@@ -7,7 +7,6 @@ import (
 
 	"cosmossdk.io/math"
 
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/query"
@@ -734,9 +733,8 @@ func (suite *KeeperTestSuite) TestGRPCQueryVotes() {
 					{ProposalId: proposal.Id, Voter: addrs[1].String(), Options: v1.NewNonSplitVoteOption(v1.OptionYes)},
 				}
 
-				codec := address.NewBech32Codec("cosmos")
-				accAddr1, err1 := codec.StringToBytes(votes[0].Voter)
-				accAddr2, err2 := codec.StringToBytes(votes[1].Voter)
+				accAddr1, err1 := sdk.AccAddressFromHexUnsafe(votes[0].Voter)
+				accAddr2, err2 := sdk.AccAddressFromHexUnsafe(votes[1].Voter)
 				suite.Require().NoError(err1)
 				suite.Require().NoError(err2)
 				suite.Require().NoError(suite.govKeeper.AddVote(ctx, proposal.Id, accAddr1, votes[0].Options, ""))
@@ -837,10 +835,9 @@ func (suite *KeeperTestSuite) TestLegacyGRPCQueryVotes() {
 					{ProposalId: proposal.Id, Voter: addrs[0].String(), Options: v1beta1.NewNonSplitVoteOption(v1beta1.OptionAbstain)},
 					{ProposalId: proposal.Id, Voter: addrs[1].String(), Options: v1beta1.NewNonSplitVoteOption(v1beta1.OptionYes)},
 				}
-				codec := address.NewBech32Codec("cosmos")
 
-				accAddr1, err1 := codec.StringToBytes(votes[0].Voter)
-				accAddr2, err2 := codec.StringToBytes(votes[1].Voter)
+				accAddr1, err1 := sdk.AccAddressFromHexUnsafe(votes[0].Voter)
+				accAddr2, err2 := sdk.AccAddressFromHexUnsafe(votes[1].Voter)
 				suite.Require().NoError(err1)
 				suite.Require().NoError(err2)
 				suite.Require().NoError(suite.govKeeper.AddVote(ctx, proposal.Id, accAddr1, v1.NewNonSplitVoteOption(v1.OptionAbstain), ""))

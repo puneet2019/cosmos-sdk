@@ -303,3 +303,88 @@ func TestMigrateProposalMessages(t *testing.T) {
 	require.Equal(t, "Test", content.GetTitle())
 	require.Equal(t, "description", content.GetDescription())
 }
+
+func (suite *KeeperTestSuite) TestUpdateCrossChainParams() {
+	testCases := []struct {
+		name        string
+		request     *v1.MsgUpdateCrossChainParams
+		expectedErr error
+	}{
+		{
+			name: "set invalid authority",
+			request: &v1.MsgUpdateCrossChainParams{
+				Authority: "0x76d244CE05c3De4BbC6fDd7F56379B145709ade9",
+			},
+			expectedErr: types.ErrInvalidSigner,
+		},
+		{
+			name: "reject invalid non-upgrade batch params change",
+			request: &v1.MsgUpdateCrossChainParams{
+				Authority: suite.govKeeper.GetAuthority(),
+				Params: v1.CrossChainParamsChange{
+					Key:     "batchSizeForOracle",
+					Values:  []string{"0000000000000000000000000000000000000000000000000000000000000033", "0000000000000000000000000000000000000000000000000000000000000034"},
+					Targets: []string{"0x76d244CE05c3De4BbC6fDd7F56379B145709ade9", "0x76d244CE05c3De4BbC6fDd7F56379B145709ade9"},
+				},
+			},
+			expectedErr: types.ErrExceedParamsChangeLimit,
+		},
+		{
+			name: "reject invalid upgrade addresses",
+			request: &v1.MsgUpdateCrossChainParams{
+				Authority: suite.govKeeper.GetAuthority(),
+				Params: v1.CrossChainParamsChange{
+					Key:     "upgrade",
+					Values:  []string{"not_an_hex_address"},
+					Targets: []string{"not_an_hex_address"},
+				},
+			},
+			expectedErr: types.ErrAddressNotValid,
+		},
+		{
+			name: "reject mismatched upgrade values and targets",
+			request: &v1.MsgUpdateCrossChainParams{
+				Authority: suite.govKeeper.GetAuthority(),
+				Params: v1.CrossChainParamsChange{
+					Key:     "upgrade",
+					Values:  []string{"0x76d244CE05c3De4BbC6fDd7F56379B145709ade9", "0xeAE67217D95E786a9309A363437066428b97c046"},
+					Targets: []string{"0xeAE67217D95E786a9309A363437066428b97c046"},
+				},
+			},
+			expectedErr: types.ErrAddressSizeNotMatch,
+		},
+		{
+			name: "reject valid single parameter change because crosschain sync is disabled",
+			request: &v1.MsgUpdateCrossChainParams{
+				Authority: suite.govKeeper.GetAuthority(),
+				Params: v1.CrossChainParamsChange{
+					Key:     "batchSizeForOracle",
+					Values:  []string{"0000000000000000000000000000000000000000000000000000000000000033"},
+					Targets: []string{"0x76d244CE05c3De4BbC6fDd7F56379B145709ade9"},
+				},
+			},
+			expectedErr: types.ErrCrossChainDisabled,
+		},
+		{
+			name: "reject valid upgrade change because crosschain sync is disabled",
+			request: &v1.MsgUpdateCrossChainParams{
+				Authority: suite.govKeeper.GetAuthority(),
+				Params: v1.CrossChainParamsChange{
+					Key:     "upgrade",
+					Values:  []string{"0xeAE67217D95E786a9309A363437066428b97c046"},
+					Targets: []string{"0x76d244CE05c3De4BbC6fDd7F56379B145709ade9"},
+				},
+			},
+			expectedErr: types.ErrCrossChainDisabled,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		suite.Run(tc.name, func() {
+			_, err := suite.msgSrvr.UpdateCrossChainParams(suite.ctx, tc.request)
+			suite.Require().Error(err)
+			suite.Require().True(errors.Is(err, tc.expectedErr), "got: %v, expected: %v", err, tc.expectedErr)
+		})
+	}
+}

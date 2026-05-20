@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/version"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	govutils "github.com/cosmos/cosmos-sdk/x/gov/client/utils"
 	"github.com/cosmos/cosmos-sdk/x/gov/types"
 	v1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
@@ -27,8 +28,6 @@ const (
 	flagStatus    = "status"
 	FlagMetadata  = "metadata"
 	FlagSummary   = "summary"
-	FlagExpedited = "expedited"
-
 	// Deprecated: only used for v1beta1 legacy proposals.
 	FlagProposal = "proposal"
 	// Deprecated: only used for v1beta1 legacy proposals.
@@ -135,7 +134,7 @@ metadata example:
 				return err
 			}
 
-			proposal, msgs, deposit, err := parseSubmitProposal(clientCtx.Codec, args[0])
+			proposal, msgs, deposit, err := ParseSubmitProposal(clientCtx.Codec, args[0])
 			if err != nil {
 				return err
 			}
@@ -234,10 +233,15 @@ $ %s tx gov submit-legacy-proposal --title="Test Proposal" --description="My awe
 				return fmt.Errorf("failed to create proposal content: unknown proposal type %s", proposal.Type)
 			}
 
-			msg, err := v1beta1.NewMsgSubmitProposal(content, amount, clientCtx.GetFromAddress())
+			govAcctAddress := authtypes.NewModuleAddress(types.ModuleName).String()
+			contentMsg, err := v1.NewLegacyContent(content, govAcctAddress)
 			if err != nil {
 				return fmt.Errorf("invalid message: %w", err)
 			}
+			msg, err := v1.NewMsgSubmitProposal([]sdk.Msg{contentMsg}, amount, clientCtx.GetFromAddress().String(), "", proposal.Title, proposal.Description, false)
+			// if err != nil {
+			// 	return fmt.Errorf("invalid message: %w", err)
+			// }
 
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},

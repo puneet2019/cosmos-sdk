@@ -25,4 +25,17 @@ var (
 	ErrInvalidProposal         = errors.Register(ModuleName, 21, "invalid proposal")
 	ErrSummaryTooLong          = errors.Register(ModuleName, 22, "summary too long")
 	ErrInvalidDepositDenom     = errors.Register(ModuleName, 23, "invalid deposit denom")
+
+	ErrEmptyChange = errors.Register(ModuleName, 24, "crosschain: change is empty")
+	ErrEmptyValue  = errors.Register(ModuleName, 25, "crosschain: value  is empty")
+	ErrEmptyTarget = errors.Register(ModuleName, 26, "crosschain: target is empty")
+
+	ErrAddressSizeNotMatch     = errors.Register(ModuleName, 27, "number of old address not equal to new addresses")
+	ErrAddressNotValid         = errors.Register(ModuleName, 28, "address format is not valid")
+	ErrExceedParamsChangeLimit = errors.Register(ModuleName, 29, "exceed params change limit")
+	ErrInvalidSyncParamPackage = errors.Register(ModuleName, 30, "invalid sync params package")
+	ErrInvalidValue            = errors.Register(ModuleName, 31, "decode hex value failed")
+
+	ErrChainNotSupported = errors.Register(ModuleName, 32, "crosschain: chain is not supported")
+	ErrCrossChainDisabled = errors.Register(ModuleName, 33, "crosschain params sync is disabled")
 )

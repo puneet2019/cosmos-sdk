@@ -3,13 +3,14 @@ package v1
 import (
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	sdktx "github.com/cosmos/cosmos-sdk/types/tx"
 	"github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
 var (
-	_, _, _, _, _, _, _ sdk.Msg                            = &MsgSubmitProposal{}, &MsgDeposit{}, &MsgVote{}, &MsgVoteWeighted{}, &MsgExecLegacyContent{}, &MsgUpdateParams{}, &MsgCancelProposal{}
-	_, _                codectypes.UnpackInterfacesMessage = &MsgSubmitProposal{}, &MsgExecLegacyContent{}
+	_, _, _, _, _, _, _, _ sdk.Msg                            = &MsgSubmitProposal{}, &MsgDeposit{}, &MsgVote{}, &MsgVoteWeighted{}, &MsgExecLegacyContent{}, &MsgUpdateParams{}, &MsgUpdateCrossChainParams{}, &MsgCancelProposal{}
+	_, _                   codectypes.UnpackInterfacesMessage = &MsgSubmitProposal{}, &MsgExecLegacyContent{}
 )
 
 // NewMsgSubmitProposal creates a new MsgSubmitProposal.
@@ -85,7 +86,7 @@ func NewMsgExecLegacyContent(content *codectypes.Any, authority string) *MsgExec
 
 // ValidateBasic implements the sdk.Msg interface.
 func (c MsgExecLegacyContent) ValidateBasic() error {
-	_, err := sdk.AccAddressFromBech32(c.Authority)
+	_, err := sdk.AccAddressFromHexUnsafe(c.Authority)
 	if err != nil {
 		return err
 	}
@@ -97,6 +98,20 @@ func (c MsgExecLegacyContent) ValidateBasic() error {
 func (c MsgExecLegacyContent) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	var content v1beta1.Content
 	return unpacker.UnpackAny(c.Content, &content)
+}
+
+// ValidateBasic implements the sdk.Msg interface.
+func (msg MsgUpdateCrossChainParams) ValidateBasic() error {
+	if _, err := sdk.AccAddressFromHexUnsafe(msg.Authority); err != nil {
+		return sdkerrors.ErrInvalidAddress.Wrapf("invalid authority address: %s", err)
+	}
+	return msg.Params.ValidateBasic()
+}
+
+// GetSigners returns the expected signers for a MsgUpdateCrossChainParams.
+func (msg MsgUpdateCrossChainParams) GetSigners() []sdk.AccAddress {
+	authority, _ := sdk.AccAddressFromHexUnsafe(msg.Authority)
+	return []sdk.AccAddress{authority}
 }
 
 // NewMsgCancelProposal creates a new MsgCancelProposal instance.

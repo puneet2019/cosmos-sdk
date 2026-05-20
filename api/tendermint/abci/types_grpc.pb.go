@@ -35,6 +35,7 @@ const (
 	ABCI_ExtendVote_FullMethodName          = "/tendermint.abci.ABCI/ExtendVote"
 	ABCI_VerifyVoteExtension_FullMethodName = "/tendermint.abci.ABCI/VerifyVoteExtension"
 	ABCI_FinalizeBlock_FullMethodName       = "/tendermint.abci.ABCI/FinalizeBlock"
+	ABCI_EthQuery_FullMethodName            = "/tendermint.abci.ABCI/EthQuery"
 )
 
 // ABCIClient is the client API for ABCI service.
@@ -57,6 +58,7 @@ type ABCIClient interface {
 	ExtendVote(ctx context.Context, in *RequestExtendVote, opts ...grpc.CallOption) (*ResponseExtendVote, error)
 	VerifyVoteExtension(ctx context.Context, in *RequestVerifyVoteExtension, opts ...grpc.CallOption) (*ResponseVerifyVoteExtension, error)
 	FinalizeBlock(ctx context.Context, in *RequestFinalizeBlock, opts ...grpc.CallOption) (*ResponseFinalizeBlock, error)
+	EthQuery(ctx context.Context, in *RequestEthQuery, opts ...grpc.CallOption) (*ResponseEthQuery, error)
 }
 
 type aBCIClient struct {
@@ -211,6 +213,15 @@ func (c *aBCIClient) FinalizeBlock(ctx context.Context, in *RequestFinalizeBlock
 	return out, nil
 }
 
+func (c *aBCIClient) EthQuery(ctx context.Context, in *RequestEthQuery, opts ...grpc.CallOption) (*ResponseEthQuery, error) {
+	out := new(ResponseEthQuery)
+	err := c.cc.Invoke(ctx, ABCI_EthQuery_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ABCIServer is the server API for ABCI service.
 // All implementations must embed UnimplementedABCIServer
 // for forward compatibility
@@ -231,6 +242,7 @@ type ABCIServer interface {
 	ExtendVote(context.Context, *RequestExtendVote) (*ResponseExtendVote, error)
 	VerifyVoteExtension(context.Context, *RequestVerifyVoteExtension) (*ResponseVerifyVoteExtension, error)
 	FinalizeBlock(context.Context, *RequestFinalizeBlock) (*ResponseFinalizeBlock, error)
+	EthQuery(context.Context, *RequestEthQuery) (*ResponseEthQuery, error)
 	mustEmbedUnimplementedABCIServer()
 }
 
@@ -285,6 +297,9 @@ func (UnimplementedABCIServer) VerifyVoteExtension(context.Context, *RequestVeri
 }
 func (UnimplementedABCIServer) FinalizeBlock(context.Context, *RequestFinalizeBlock) (*ResponseFinalizeBlock, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FinalizeBlock not implemented")
+}
+func (UnimplementedABCIServer) EthQuery(context.Context, *RequestEthQuery) (*ResponseEthQuery, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method EthQuery not implemented")
 }
 func (UnimplementedABCIServer) mustEmbedUnimplementedABCIServer() {}
 
@@ -587,6 +602,24 @@ func _ABCI_FinalizeBlock_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ABCI_EthQuery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestEthQuery)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ABCIServer).EthQuery(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ABCI_EthQuery_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ABCIServer).EthQuery(ctx, req.(*RequestEthQuery))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ABCI_ServiceDesc is the grpc.ServiceDesc for ABCI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -657,6 +690,10 @@ var ABCI_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FinalizeBlock",
 			Handler:    _ABCI_FinalizeBlock_Handler,
+		},
+		{
+			MethodName: "EthQuery",
+			Handler:    _ABCI_EthQuery_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

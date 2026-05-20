@@ -269,3 +269,13 @@ message Params {
   // Since: cosmos-sdk 0.50
   string min_deposit_ratio = 16 [(cosmos_proto.scalar) = "cosmos.Dec"];
 }
+
+// CrossChainParamsChange defines the parameter change or contract upgrade
+message CrossChainParamsChange {
+  // parameter to be updated or 'upgrade' for contract upgrade
+  string key = 1;
+  // values is a new parameter or slice of new contract addresses in hex format
+  repeated string values = 2;
+  // targets defines a slice of addresses string in hex format
+  repeated string targets = 3;
+}

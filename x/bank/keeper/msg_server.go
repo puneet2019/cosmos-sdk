@@ -6,24 +6,25 @@ import (
 	"github.com/hashicorp/go-metrics"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 )
 
 type msgServer struct {
 	Keeper
+	PaymentKeeper types.PaymentKeeper
 }
 
 var _ types.MsgServer = msgServer{}
 
 // NewMsgServerImpl returns an implementation of the bank MsgServer interface
 // for the provided Keeper.
-func NewMsgServerImpl(keeper Keeper) types.MsgServer {
-	return &msgServer{Keeper: keeper}
+func NewMsgServerImpl(keeper Keeper, paymentKeeper types.PaymentKeeper) types.MsgServer {
+	return &msgServer{Keeper: keeper, PaymentKeeper: paymentKeeper}
 }
 
 func (k msgServer) Send(goCtx context.Context, msg *types.MsgSend) (*types.MsgSendResponse, error) {
@@ -32,12 +33,12 @@ func (k msgServer) Send(goCtx context.Context, msg *types.MsgSend) (*types.MsgSe
 		err      error
 	)
 
-	if base, ok := k.Keeper.(BaseKeeper); ok {
-		from, err = base.ak.AddressCodec().StringToBytes(msg.FromAddress)
+	if _, ok := k.Keeper.(BaseKeeper); ok {
+		from, err = sdk.AccAddressFromHexUnsafe(msg.FromAddress)
 		if err != nil {
 			return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid from address: %s", err)
 		}
-		to, err = base.ak.AddressCodec().StringToBytes(msg.ToAddress)
+		to, err = sdk.AccAddressFromHexUnsafe(msg.ToAddress)
 		if err != nil {
 			return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid to address: %s", err)
 		}
@@ -60,6 +61,10 @@ func (k msgServer) Send(goCtx context.Context, msg *types.MsgSend) (*types.MsgSe
 
 	if k.BlockedAddr(to) {
 		return nil, errorsmod.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", msg.ToAddress)
+	}
+
+	if k.PaymentKeeper != nil && k.PaymentKeeper.IsPaymentAccount(ctx, to) {
+		return nil, errorsmod.Wrapf(sdkerrors.ErrUnauthorized, "payment account %s is not allowed to receive funds", msg.ToAddress)
 	}
 
 	err = k.SendCoins(ctx, from, to, msg.Amount)
@@ -109,14 +114,17 @@ func (k msgServer) MultiSend(goCtx context.Context, msg *types.MsgMultiSend) (*t
 	}
 
 	for _, out := range msg.Outputs {
-		if base, ok := k.Keeper.(BaseKeeper); ok {
-			accAddr, err := base.ak.AddressCodec().StringToBytes(out.Address)
+		if _, ok := k.Keeper.(BaseKeeper); ok {
+			accAddr, err := sdk.AccAddressFromHexUnsafe(out.Address)
 			if err != nil {
 				return nil, err
 			}
 
 			if k.BlockedAddr(accAddr) {
 				return nil, errorsmod.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", out.Address)
+			}
+			if k.PaymentKeeper != nil && k.PaymentKeeper.IsPaymentAccount(ctx, accAddr) {
+				return nil, errorsmod.Wrapf(sdkerrors.ErrUnauthorized, "payment account %s is not allowed to receive funds", accAddr)
 			}
 		} else {
 			return nil, sdkerrors.ErrInvalidRequest.Wrapf("invalid keeper type: %T", k.Keeper)

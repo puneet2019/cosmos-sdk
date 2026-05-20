@@ -8,7 +8,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	address "cosmossdk.io/core/address"
 	types "github.com/cosmos/cosmos-sdk/types"
 	types0 "github.com/cosmos/cosmos-sdk/x/auth/types"
 	gomock "github.com/golang/mock/gomock"
@@ -35,20 +34,6 @@ func NewMockAccountKeeper(ctrl *gomock.Controller) *MockAccountKeeper {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAccountKeeper) EXPECT() *MockAccountKeeperMockRecorder {
 	return m.recorder
-}
-
-// AddressCodec mocks base method.
-func (m *MockAccountKeeper) AddressCodec() address.Codec {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddressCodec")
-	ret0, _ := ret[0].(address.Codec)
-	return ret0
-}
-
-// AddressCodec indicates an expected call of AddressCodec.
-func (mr *MockAccountKeeperMockRecorder) AddressCodec() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddressCodec", reflect.TypeOf((*MockAccountKeeper)(nil).AddressCodec))
 }
 
 // GetAccount mocks base method.
@@ -241,4 +226,41 @@ func (m *MockAccountKeeper) ValidatePermissions(macc types.ModuleAccountI) error
 func (mr *MockAccountKeeperMockRecorder) ValidatePermissions(macc interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidatePermissions", reflect.TypeOf((*MockAccountKeeper)(nil).ValidatePermissions), macc)
+}
+
+// MockPaymentKeeper is a mock of PaymentKeeper interface.
+type MockPaymentKeeper struct {
+	ctrl     *gomock.Controller
+	recorder *MockPaymentKeeperMockRecorder
+}
+
+// MockPaymentKeeperMockRecorder is the mock recorder for MockPaymentKeeper.
+type MockPaymentKeeperMockRecorder struct {
+	mock *MockPaymentKeeper
+}
+
+// NewMockPaymentKeeper creates a new mock instance.
+func NewMockPaymentKeeper(ctrl *gomock.Controller) *MockPaymentKeeper {
+	mock := &MockPaymentKeeper{ctrl: ctrl}
+	mock.recorder = &MockPaymentKeeperMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockPaymentKeeper) EXPECT() *MockPaymentKeeperMockRecorder {
+	return m.recorder
+}
+
+// IsPaymentAccount mocks base method.
+func (m *MockPaymentKeeper) IsPaymentAccount(ctx context.Context, addr types.AccAddress) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsPaymentAccount", ctx, addr)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsPaymentAccount indicates an expected call of IsPaymentAccount.
+func (mr *MockPaymentKeeperMockRecorder) IsPaymentAccount(ctx, addr interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPaymentAccount", reflect.TypeOf((*MockPaymentKeeper)(nil).IsPaymentAccount), ctx, addr)
 }

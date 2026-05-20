@@ -22,11 +22,9 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	moduletestutil "github.com/cosmos/cosmos-sdk/types/module/testutil"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -139,7 +137,6 @@ func (suite *KeeperTestSuite) SetupTest() {
 	// gomock initializations
 	ctrl := gomock.NewController(suite.T())
 	authKeeper := banktestutil.NewMockAccountKeeper(ctrl)
-	authKeeper.EXPECT().AddressCodec().Return(address.NewBech32Codec("cosmos")).AnyTimes()
 	suite.ctx = ctx
 	suite.authKeeper = authKeeper
 	suite.bankKeeper = keeper.NewBaseKeeper(
@@ -158,7 +155,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	queryClient := banktypes.NewQueryClient(queryHelper)
 
 	suite.queryClient = queryClient
-	suite.msgServer = keeper.NewMsgServerImpl(suite.bankKeeper)
+	suite.msgServer = keeper.NewMsgServerImpl(suite.bankKeeper, nil)
 	suite.encCfg = encCfg
 }
 
@@ -324,7 +321,7 @@ func (suite *KeeperTestSuite) TestGetAuthority() {
 	}
 
 	tests := map[string]string{
-		"some random account":    "cosmos139f7kncmglres2nf3h4hc4tade85ekfr8sulz5",
+		"some random account":    "0x319D057ce294319bA1fa5487134608727e1F3e29",
 		"gov module account":     authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 		"another module account": authtypes.NewModuleAddress(minttypes.ModuleName).String(),
 	}
@@ -1250,7 +1247,7 @@ func (suite *KeeperTestSuite) TestSendCoins_Invalid_NoSpendableCoins() {
 
 	suite.authKeeper.EXPECT().GetAccount(suite.ctx, accAddrs[0]).Return(vacc)
 	e := errorsmod.Wrapf(
-		sdkerrors.ErrInsufficientFunds,
+		errorsmod.ErrInsufficientFunds,
 		"spendable balance 0stake is smaller than %s",
 		coin,
 	)
@@ -1885,14 +1882,14 @@ func (suite *KeeperTestSuite) TestBalanceTrackingEvents() {
 		case banktypes.EventTypeCoinSpent:
 			coinsSpent, err := sdk.ParseCoinsNormalized(e.Attributes[1].Value)
 			require.NoError(err)
-			spender, err := sdk.AccAddressFromBech32(e.Attributes[0].Value)
+			spender, err := sdk.AccAddressFromHexUnsafe(e.Attributes[0].Value)
 			require.NoError(err)
 			balances[spender.String()] = balances[spender.String()].Sub(coinsSpent...)
 
 		case banktypes.EventTypeCoinReceived:
 			coinsRecv, err := sdk.ParseCoinsNormalized(e.Attributes[1].Value)
 			require.NoError(err)
-			receiver, err := sdk.AccAddressFromBech32(e.Attributes[0].Value)
+			receiver, err := sdk.AccAddressFromHexUnsafe(e.Attributes[0].Value)
 			require.NoError(err)
 			balances[receiver.String()] = balances[receiver.String()].Add(coinsRecv...)
 		}

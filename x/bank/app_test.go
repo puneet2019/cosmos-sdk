@@ -13,9 +13,10 @@ import (
 	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/eth/ethsecp256k1"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
+	sdktestutil "github.com/cosmos/cosmos-sdk/testutil"
 	"github.com/cosmos/cosmos-sdk/testutil/configurator"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -23,6 +24,7 @@ import (
 	_ "github.com/cosmos/cosmos-sdk/x/auth"
 	_ "github.com/cosmos/cosmos-sdk/x/auth/tx/config"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	_ "github.com/cosmos/cosmos-sdk/x/authz/module"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -55,11 +57,12 @@ type (
 )
 
 var (
-	priv1 = secp256k1.GenPrivKey()
-	addr1 = sdk.AccAddress(priv1.PubKey().Address())
-	priv2 = secp256k1.GenPrivKey()
-	addr2 = sdk.AccAddress(priv2.PubKey().Address())
-	addr3 = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	priv1, _ = ethsecp256k1.GenPrivKey()
+	addr1    = sdk.AccAddress(priv1.PubKey().Address())
+	priv2, _ = ethsecp256k1.GenPrivKey()
+	addr2    = sdk.AccAddress(priv2.PubKey().Address())
+	priv3, _ = ethsecp256k1.GenPrivKey()
+	addr3    = sdk.AccAddress(priv3.PubKey().Address())
 
 	coins     = sdk.Coins{sdk.NewInt64Coin("foocoin", 10)}
 	halfCoins = sdk.Coins{sdk.NewInt64Coin("foocoin", 5)}
@@ -118,6 +121,7 @@ func createTestSuite(t *testing.T, genesisAccounts []authtypes.GenesisAccount) s
 			configurator.NewAppConfig(
 				configurator.ParamsModule(),
 				configurator.AuthModule(),
+				configurator.AuthzModule(),
 				configurator.StakingModule(),
 				configurator.TxModule(),
 				configurator.ConsensusModule(),
@@ -166,9 +170,9 @@ func TestSendNotEnoughBalance(t *testing.T) {
 	origSeq := res1.GetSequence()
 
 	sendMsg := types.NewMsgSend(addr1, addr2, sdk.Coins{sdk.NewInt64Coin("foocoin", 100)})
-	header := cmtproto.Header{Height: baseApp.LastBlockHeight() + 1}
+	header := cmtproto.Header{ChainID: sdktestutil.DefaultChainId, Height: baseApp.LastBlockHeight() + 1}
 	txConfig := moduletestutil.MakeTestTxConfig()
-	_, _, err = simtestutil.SignCheckDeliver(t, txConfig, baseApp, header, []sdk.Msg{sendMsg}, "", []uint64{origAccNum}, []uint64{origSeq}, false, false, priv1)
+	_, _, err = simtestutil.SignCheckDeliver(t, txConfig, baseApp, header, []sdk.Msg{sendMsg}, sdktestutil.DefaultChainId, []uint64{origAccNum}, []uint64{origSeq}, false, false, []cryptotypes.PrivKey{priv1})
 	require.Error(t, err)
 
 	checkBalance(t, baseApp, addr1, sdk.Coins{sdk.NewInt64Coin("foocoin", 67)}, s.BankKeeper)
@@ -246,9 +250,9 @@ func TestMsgMultiSendWithAccounts(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Logf("testing %s", tc.desc)
-		header := cmtproto.Header{Height: baseApp.LastBlockHeight() + 1}
+		header := cmtproto.Header{ChainID: sdktestutil.DefaultChainId, Height: baseApp.LastBlockHeight() + 1}
 		txConfig := moduletestutil.MakeTestTxConfig()
-		_, _, err := simtestutil.SignCheckDeliver(t, txConfig, baseApp, header, tc.msgs, "", tc.accNums, tc.accSeqs, tc.expSimPass, tc.expPass, tc.privKeys...)
+		_, _, err := simtestutil.SignCheckDeliver(t, txConfig, baseApp, header, tc.msgs, sdktestutil.DefaultChainId, tc.accNums, tc.accSeqs, tc.expSimPass, tc.expPass, tc.privKeys)
 		if tc.expPass {
 			require.NoError(t, err)
 		} else {
@@ -298,9 +302,9 @@ func TestMsgMultiSendMultipleOut(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		header := cmtproto.Header{Height: baseApp.LastBlockHeight() + 1}
+		header := cmtproto.Header{ChainID: sdktestutil.DefaultChainId, Height: baseApp.LastBlockHeight() + 1}
 		txConfig := moduletestutil.MakeTestTxConfig()
-		_, _, err := simtestutil.SignCheckDeliver(t, txConfig, baseApp, header, tc.msgs, "", tc.accNums, tc.accSeqs, tc.expSimPass, tc.expPass, tc.privKeys...)
+		_, _, err := simtestutil.SignCheckDeliver(t, txConfig, baseApp, header, tc.msgs, sdktestutil.DefaultChainId, tc.accNums, tc.accSeqs, tc.expSimPass, tc.expPass, tc.privKeys)
 		require.NoError(t, err)
 
 		for _, eb := range tc.expectedBalances {
@@ -353,9 +357,9 @@ func TestMsgMultiSendDependent(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		header := cmtproto.Header{Height: baseApp.LastBlockHeight() + 1}
+		header := cmtproto.Header{ChainID: sdktestutil.DefaultChainId, Height: baseApp.LastBlockHeight() + 1}
 		txConfig := moduletestutil.MakeTestTxConfig()
-		_, _, err := simtestutil.SignCheckDeliver(t, txConfig, baseApp, header, tc.msgs, "", tc.accNums, tc.accSeqs, tc.expSimPass, tc.expPass, tc.privKeys...)
+		_, _, err := simtestutil.SignCheckDeliver(t, txConfig, baseApp, header, tc.msgs, sdktestutil.DefaultChainId, tc.accNums, tc.accSeqs, tc.expSimPass, tc.expPass, tc.privKeys)
 		require.NoError(t, err)
 
 		for _, eb := range tc.expectedBalances {
@@ -399,7 +403,7 @@ func TestMsgSetSendEnabled(t *testing.T) {
 			accSeqs: []uint64{0},
 			expInError: []string{
 				"invalid authority",
-				"cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn",
+				govAddr,
 				addr1Str,
 				"expected gov account as only signer for proposal message",
 			},
@@ -433,9 +437,9 @@ func TestMsgSetSendEnabled(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(tt *testing.T) {
-			header := cmtproto.Header{Height: s.App.LastBlockHeight() + 1}
+			header := cmtproto.Header{ChainID: sdktestutil.DefaultChainId, Height: s.App.LastBlockHeight() + 1}
 			txGen := moduletestutil.MakeTestTxConfig()
-			_, _, err = simtestutil.SignCheckDeliver(tt, txGen, s.App.BaseApp, header, tc.msgs, "", []uint64{0}, tc.accSeqs, tc.expSimPass, tc.expPass, priv1)
+			_, _, err = simtestutil.SignCheckDeliver(tt, txGen, s.App.BaseApp, header, tc.msgs, sdktestutil.DefaultChainId, []uint64{0}, tc.accSeqs, tc.expSimPass, tc.expPass, []cryptotypes.PrivKey{priv1})
 			if len(tc.expInError) > 0 {
 				require.Error(tt, err)
 				for _, exp := range tc.expInError {

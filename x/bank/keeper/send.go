@@ -7,13 +7,13 @@ import (
 	"cosmossdk.io/collections"
 	"cosmossdk.io/core/store"
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
@@ -79,7 +79,7 @@ func NewBaseSendKeeper(
 	authority string,
 	logger log.Logger,
 ) BaseSendKeeper {
-	if _, err := ak.AddressCodec().StringToBytes(authority); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(authority); err != nil {
 		panic(fmt.Errorf("invalid bank authority address: %w", err))
 	}
 
@@ -147,7 +147,7 @@ func (k BaseSendKeeper) InputOutputCoins(ctx context.Context, input types.Input,
 		return err
 	}
 
-	inAddress, err := k.ak.AddressCodec().StringToBytes(input.Address)
+	inAddress, err := sdk.AccAddressFromHexUnsafe(input.Address)
 	if err != nil {
 		return err
 	}
@@ -167,7 +167,7 @@ func (k BaseSendKeeper) InputOutputCoins(ctx context.Context, input types.Input,
 
 	var outAddress sdk.AccAddress
 	for _, out := range outputs {
-		outAddress, err = k.ak.AddressCodec().StringToBytes(out.Address)
+		outAddress, err = sdk.AccAddressFromHexUnsafe(out.Address)
 		if err != nil {
 			return err
 		}
@@ -233,7 +233,7 @@ func (k BaseSendKeeper) SendCoins(ctx context.Context, fromAddr, toAddr sdk.AccA
 		k.ak.SetAccount(ctx, k.ak.NewAccountWithAddress(ctx, toAddr))
 	}
 
-	// bech32 encoding is expensive! Only do it once for fromAddr
+	// encoding is expensive! Only do it once for fromAddr
 	fromAddrString := fromAddr.String()
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sdkCtx.EventManager().EmitEvents(sdk.Events{

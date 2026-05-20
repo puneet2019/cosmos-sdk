@@ -6,12 +6,12 @@ import (
 
 	"cosmossdk.io/core/store"
 	errorsmod "cosmossdk.io/errors"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"cosmossdk.io/log"
 	"cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/query"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -89,7 +89,7 @@ func NewBaseKeeper(
 	authority string,
 	logger log.Logger,
 ) BaseKeeper {
-	if _, err := ak.AddressCodec().StringToBytes(authority); err != nil {
+	if _, err := sdk.AccAddressFromHexUnsafe(authority); err != nil {
 		panic(fmt.Errorf("invalid bank authority address: %w", err))
 	}
 

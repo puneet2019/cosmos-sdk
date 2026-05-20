@@ -13,7 +13,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 	"github.com/cosmos/cosmos-sdk/testutil"
@@ -50,7 +49,7 @@ func (s *CLITestSuite) SetupSuite() {
 
 func (s *CLITestSuite) TestSendTxCmd() {
 	accounts := testutil.CreateKeyringAccounts(s.T(), s.kr, 1)
-	cmd := cli.NewSendTxCmd(address.NewBech32Codec("cosmos"))
+	cmd := cli.NewSendTxCmd()
 	cmd.SetOutput(io.Discard)
 
 	extraArgs := []string{
@@ -58,7 +57,7 @@ func (s *CLITestSuite) TestSendTxCmd() {
 		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
 		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
 		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin("photon", sdkmath.NewInt(10))).String()),
-		fmt.Sprintf("--%s=test-chain", flags.FlagChainID),
+		fmt.Sprintf("--%s=moca_1000000-1", flags.FlagChainID),
 	}
 
 	testCases := []struct {
@@ -95,7 +94,7 @@ func (s *CLITestSuite) TestSendTxCmd() {
 				sdk.NewCoin("photon", sdkmath.NewInt(40)),
 			),
 			extraArgs,
-			"empty address string is not allowed",
+			"empty address",
 		},
 		{
 			"invalid coins",
@@ -136,7 +135,7 @@ func (s *CLITestSuite) TestSendTxCmd() {
 func (s *CLITestSuite) TestMultiSendTxCmd() {
 	accounts := testutil.CreateKeyringAccounts(s.T(), s.kr, 3)
 
-	cmd := cli.NewMultiSendTxCmd(address.NewBech32Codec("cosmos"))
+	cmd := cli.NewMultiSendTxCmd()
 	cmd.SetOutput(io.Discard)
 
 	extraArgs := []string{
@@ -144,7 +143,7 @@ func (s *CLITestSuite) TestMultiSendTxCmd() {
 		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
 		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
 		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin("photon", sdkmath.NewInt(10))).String()),
-		fmt.Sprintf("--%s=test-chain", flags.FlagChainID),
+		fmt.Sprintf("--%s=moca_1000000-1", flags.FlagChainID),
 	}
 
 	testCases := []struct {
@@ -205,7 +204,7 @@ func (s *CLITestSuite) TestMultiSendTxCmd() {
 				sdk.NewCoin("photon", sdkmath.NewInt(40)),
 			),
 			extraArgs,
-			"invalid bech32 string",
+			"invalid address",
 		},
 		{
 			"invalid amount",

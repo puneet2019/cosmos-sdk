@@ -26,7 +26,7 @@ func (k BaseKeeper) InitGenesis(ctx context.Context, genState *types.GenesisStat
 
 	for _, balance := range genState.Balances {
 		addr := balance.GetAddress()
-		bz, err := k.ak.AddressCodec().StringToBytes(addr)
+		bz, err := sdk.AccAddressFromHexUnsafe(addr)
 		if err != nil {
 			panic(err)
 		}

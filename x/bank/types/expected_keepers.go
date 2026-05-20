@@ -3,8 +3,6 @@ package types
 import (
 	context "context"
 
-	"cosmossdk.io/core/address"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
 )
@@ -12,8 +10,6 @@ import (
 // AccountKeeper defines the account contract that must be fulfilled when
 // creating a x/bank keeper.
 type AccountKeeper interface {
-	AddressCodec() address.Codec
-
 	NewAccount(context.Context, sdk.AccountI) sdk.AccountI
 	NewAccountWithAddress(ctx context.Context, addr sdk.AccAddress) sdk.AccountI
 
@@ -32,4 +28,11 @@ type AccountKeeper interface {
 	GetModuleAccount(ctx context.Context, moduleName string) sdk.ModuleAccountI
 	SetModuleAccount(ctx context.Context, macc sdk.ModuleAccountI)
 	GetModulePermissions() map[string]types.PermissionsForAddress
+}
+
+type PaymentKeeper interface {
+	IsPaymentAccount(
+		ctx context.Context,
+		addr sdk.AccAddress,
+	) bool
 }

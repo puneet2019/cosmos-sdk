@@ -19,7 +19,7 @@ func TestMsgSendGetSignBytes(t *testing.T) {
 	res, err := codec.NewProtoCodec(types.NewInterfaceRegistry()).MarshalAminoJSON(msg)
 	require.NoError(t, err)
 
-	expected := `{"type":"cosmos-sdk/MsgSend","value":{"amount":[{"amount":"10","denom":"atom"}],"from_address":"cosmos1d9h8qat57ljhcm","to_address":"cosmos1da6hgur4wsmpnjyg"}}`
+	expected := `{"type":"cosmos-sdk/MsgSend","value":{"amount":[{"amount":"10","denom":"atom"}],"from_address":"0x000000000000000000000000000000696e707574","to_address":"0x00000000000000000000000000006F7574707574"}}`
 	require.Equal(t, expected, string(res))
 }
 
@@ -47,7 +47,7 @@ func TestInputValidation(t *testing.T) {
 		{"", NewInput(addr2, multiCoins)},
 		{"", NewInput(addrLong, someCoins)},
 
-		{"invalid input address: empty address string is not allowed: invalid address", NewInput(addrEmpty, someCoins)},
+		{"invalid input address: decoding address from hex string failed: empty address: invalid address", NewInput(addrEmpty, someCoins)},
 		{": invalid coins", NewInput(addr1, emptyCoins)},                // invalid coins
 		{": invalid coins", NewInput(addr1, emptyCoins2)},               // invalid coins
 		{"10eth,0atom: invalid coins", NewInput(addr1, someEmptyCoins)}, // invalid coins
@@ -88,7 +88,7 @@ func TestOutputValidation(t *testing.T) {
 		{"", NewOutput(addr2, multiCoins)},
 		{"", NewOutput(addrLong, someCoins)},
 
-		{"invalid output address: empty address string is not allowed: invalid address", NewOutput(addrEmpty, someCoins)},
+		{"invalid output address: decoding address from hex string failed: empty address: invalid address", NewOutput(addrEmpty, someCoins)},
 		{": invalid coins", NewOutput(addr1, emptyCoins)},                // invalid coins
 		{": invalid coins", NewOutput(addr1, emptyCoins2)},               // invalid coins
 		{"10eth,0atom: invalid coins", NewOutput(addr1, someEmptyCoins)}, // invalid coins
@@ -116,7 +116,7 @@ func TestMsgMultiSendGetSignBytes(t *testing.T) {
 	res, err := codec.NewProtoCodec(types.NewInterfaceRegistry()).MarshalAminoJSON(msg)
 	require.NoError(t, err)
 
-	expected := `{"type":"cosmos-sdk/MsgMultiSend","value":{"inputs":[{"address":"cosmos1d9h8qat57ljhcm","coins":[{"amount":"10","denom":"atom"}]}],"outputs":[{"address":"cosmos1da6hgur4wsmpnjyg","coins":[{"amount":"10","denom":"atom"}]}]}}`
+	expected := `{"type":"cosmos-sdk/MsgMultiSend","value":{"inputs":[{"address":"0x000000000000000000000000000000696e707574","coins":[{"amount":"10","denom":"atom"}]}],"outputs":[{"address":"0x00000000000000000000000000006F7574707574","coins":[{"amount":"10","denom":"atom"}]}]}}`
 	require.Equal(t, expected, string(res))
 }
 

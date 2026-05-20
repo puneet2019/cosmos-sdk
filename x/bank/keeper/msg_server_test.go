@@ -116,7 +116,7 @@ func (suite *KeeperTestSuite) TestMsgSend() {
 				Amount:      origCoins,
 			},
 			expErr:    true,
-			expErrMsg: "empty address string is not allowed",
+			expErrMsg: "empty address",
 		},
 		{
 			name: "invalid to address: empty address string is not allowed: invalid address",
@@ -126,7 +126,7 @@ func (suite *KeeperTestSuite) TestMsgSend() {
 				Amount:      origCoins,
 			},
 			expErr:    true,
-			expErrMsg: "empty address string is not allowed",
+			expErrMsg: "empty address",
 		},
 		{
 			name: "all good",

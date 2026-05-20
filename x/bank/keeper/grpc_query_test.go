@@ -44,7 +44,7 @@ func (suite *KeeperTestSuite) TestQueryBalance() {
 		{
 			"empty address",
 			types.NewQueryBalanceRequest(sdk.AccAddress{}, barDenom),
-			"empty address string is not allowed",
+			"empty address",
 			nil,
 		},
 		{

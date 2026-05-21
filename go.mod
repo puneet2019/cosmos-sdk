@@ -211,6 +211,16 @@ require (
 
 // Below are the long-lived replace of the Cosmos SDK
 replace (
+	// moca-patched in-tree SDK submodules (store gas metering, eth keys/api,
+	// signing). core/errors/depinject are NOT replaced — taken from upstream v0.53.
+	cosmossdk.io/api => ./api
+	cosmossdk.io/client/v2 => ./client/v2
+	cosmossdk.io/math => ./math
+	cosmossdk.io/simapp => ./simapp
+	cosmossdk.io/store => ./store
+	cosmossdk.io/x/circuit => ./x/circuit
+	cosmossdk.io/x/nft => ./x/nft
+	cosmossdk.io/x/tx => ./x/tx
 	// eth-key / BLS dependency pins required by moca's crypto/keys/eth
 	github.com/0xPolygon/polygon-edge => github.com/0xPolygon/polygon-edge v1.3.3
 	// use cosmos fork of keyring
@@ -221,6 +231,8 @@ replace (
 	// --- moca additions ---
 	// moca-cometbft fork (v0.38.12-based; carries x/crosschain votepool package)
 	github.com/cometbft/cometbft => github.com/mocachain/moca-cometbft v1.2.0-rc0.0.20260320015437-83994359d443
+	// moca redirects the legacy client path to the in-tree implementation
+	github.com/cosmos/cosmos-sdk/client => ./client
 	// dgrijalva/jwt-go is deprecated and doesn't receive security updates.
 	// TODO: remove it: https://github.com/cosmos/cosmos-sdk/issues/13134
 	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.4.2

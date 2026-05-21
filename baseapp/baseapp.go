@@ -24,7 +24,6 @@ import (
 	storemetrics "cosmossdk.io/store/metrics"
 	"cosmossdk.io/store/snapshots"
 	storetypes "cosmossdk.io/store/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"github.com/cosmos/cosmos-sdk/baseapp/oe"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -32,6 +31,7 @@ import (
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/types/mempool"
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
 )
@@ -158,7 +158,7 @@ type BaseApp struct {
 	// ResponseCommit.RetainHeight value during ABCI Commit. A value of 0 indicates
 	// that no blocks should be pruned.
 	//
-	// Note: CometBFT block pruning is dependent on this parameter in conjunction
+	// Note: CometBFT block pruning is dependant on this parameter in conjunction
 	// with the unbonding (safety threshold) period, state pruning and state sync
 	// snapshot parameters to determine the correct minimum value of
 	// ResponseCommit.RetainHeight.
@@ -508,7 +508,7 @@ func (app *BaseApp) IsSealed() bool { return app.sealed }
 func (app *BaseApp) IsIavlStore() bool { return !app.enablePlainStore && !app.fauxMerkleMode }
 
 // setState sets the BaseApp's state for the corresponding mode with a branched
-// multi-store (i.e., a CacheMultiStore) and a new Context with the same
+// multi-store (i.e. a CacheMultiStore) and a new Context with the same
 // multi-store branch, and provided header.
 func (app *BaseApp) setState(mode execMode, h cmtproto.Header) {
 	ms := app.cms.CacheMultiStore()
@@ -697,6 +697,7 @@ func (app *BaseApp) getState(mode execMode) *state {
 	}
 }
 
+// GetCheckState returns the BaseApp's checkState.
 func (app *BaseApp) GetCheckState() *state {
 	return app.checkState
 }
@@ -800,7 +801,7 @@ func (app *BaseApp) beginBlock(_ *abci.RequestFinalizeBlock) (sdk.BeginBlock, er
 		for i, event := range resp.Events {
 			resp.Events[i].Attributes = append(
 				event.Attributes,
-				abci.EventAttribute{Key: "mode", Value: `"BeginBlock"`},
+				abci.EventAttribute{Key: "mode", Value: "BeginBlock"},
 			)
 		}
 
@@ -821,7 +822,6 @@ func (app *BaseApp) deliverTx(tx []byte) *abci.ExecTxResult {
 		telemetry.IncrCounter(1, "tx", resultStr)
 		telemetry.SetGauge(float32(gInfo.GasUsed), "tx", "gas", "used")
 		telemetry.SetGauge(float32(gInfo.GasWanted), "tx", "gas", "wanted")
-		telemetry.SetGauge(float32(gInfo.GasWanted), "tx", "gas", "rwused")
 	}()
 
 	gInfo, result, anteEvents, err := app.runTx(execModeFinalize, tx, nil)
@@ -863,7 +863,7 @@ func (app *BaseApp) endBlock(_ context.Context) (sdk.EndBlock, error) {
 		for i, event := range eb.Events {
 			eb.Events[i].Attributes = append(
 				event.Attributes,
-				abci.EventAttribute{Key: "mode", Value: `"EndBlock"`},
+				abci.EventAttribute{Key: "mode", Value: "EndBlock"},
 			)
 		}
 
@@ -912,7 +912,7 @@ func (app *BaseApp) runTx(mode execMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.G
 
 	// consumeBlockGas makes sure block gas is consumed at most once. It must
 	// happen after tx processing, and must be executed even if tx processing
-	// fails. Hence, its execution is deferred.
+	// fails. Hence, it's execution is deferred.
 	consumeBlockGas := func() {
 		if !blockGasConsumed {
 			blockGasConsumed = true
@@ -923,10 +923,10 @@ func (app *BaseApp) runTx(mode execMode, txBytes []byte, tx sdk.Tx) (gInfo sdk.G
 	}
 
 	// If BlockGasMeter() panics it will be caught by the above recover and will
-	// return an error - in any case, BlockGasMeter will consume gas past the limit.
+	// return an error - in any case BlockGasMeter will consume gas past the limit.
 	//
 	// NOTE: consumeBlockGas must exist in a separate defer function from the
-	// general deferred recovery function to recover from consumeBlockGas, as it'll
+	// general deferred recovery function to recover from consumeBlockGas as it'll
 	// be executed first (deferred statements are executed as stack).
 	if mode == execModeFinalize {
 		defer consumeBlockGas()
@@ -1143,8 +1143,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, msgsV2 []protov2.Me
 }
 
 // makeABCIData generates the Data field to be sent to ABCI Check/DeliverTx.
-func makeABCIData(msgResponses []*codectypes.Any, extraDate []byte) ([]byte, error) {
-	return proto.Marshal(&sdk.TxMsgData{MsgResponses: msgResponses, ExtraData: extraDate})
+func makeABCIData(msgResponses []*codectypes.Any, extraData []byte) ([]byte, error) {
+	return proto.Marshal(&sdk.TxMsgData{MsgResponses: msgResponses, ExtraData: extraData})
 }
 
 func createEvents(cdc codec.Codec, events sdk.Events, msg sdk.Msg, msgV2 protov2.Message) (sdk.Events, error) {

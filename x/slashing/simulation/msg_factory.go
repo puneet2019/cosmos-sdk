@@ -8,6 +8,7 @@ import (
 	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/testutil/simsx"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	"github.com/cosmos/cosmos-sdk/x/slashing/types"
 )
@@ -34,7 +35,7 @@ func MsgUnjailFactory(k keeper.Keeper, sk types.StakingKeeper) simsx.SimMsgFacto
 			reporter.Skip(err.Error())
 			return nil, nil, nil
 		}
-		valOperBz := must(sk.ValidatorAddressCodec().StringToBytes(validator.GetOperator()))
+		valOperBz := must(sdk.AccAddressFromHexUnsafe(validator.GetOperator()))
 		valOper := testData.GetAccountbyAccAddr(reporter, valOperBz)
 		if reporter.IsSkipped() {
 			return nil, nil, nil

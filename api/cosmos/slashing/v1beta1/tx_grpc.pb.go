@@ -70,8 +70,9 @@ func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts 
 }
 
 func (c *msgClient) Impeach(ctx context.Context, in *MsgImpeach, opts ...grpc.CallOption) (*MsgImpeachResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MsgImpeachResponse)
-	err := c.cc.Invoke(ctx, Msg_Impeach_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Msg_Impeach_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}

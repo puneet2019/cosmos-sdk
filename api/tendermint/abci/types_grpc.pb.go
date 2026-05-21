@@ -230,8 +230,9 @@ func (c *aBCIClient) FinalizeBlock(ctx context.Context, in *RequestFinalizeBlock
 }
 
 func (c *aBCIClient) EthQuery(ctx context.Context, in *RequestEthQuery, opts ...grpc.CallOption) (*ResponseEthQuery, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResponseEthQuery)
-	err := c.cc.Invoke(ctx, ABCI_EthQuery_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, ABCI_EthQuery_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}

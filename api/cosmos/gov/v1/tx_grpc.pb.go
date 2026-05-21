@@ -134,8 +134,9 @@ func (c *msgClient) CancelProposal(ctx context.Context, in *MsgCancelProposal, o
 }
 
 func (c *msgClient) UpdateCrossChainParams(ctx context.Context, in *MsgUpdateCrossChainParams, opts ...grpc.CallOption) (*MsgUpdateCrossChainParamsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MsgUpdateCrossChainParamsResponse)
-	err := c.cc.Invoke(ctx, Msg_UpdateCrossChainParams_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Msg_UpdateCrossChainParams_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}

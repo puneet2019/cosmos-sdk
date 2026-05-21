@@ -17,6 +17,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
@@ -56,7 +57,7 @@ func (s *CLITestSuite) SetupSuite() {
 		WithClient(clitestutil.MockCometRPC{Client: rpcclientmock.Client{}}).
 		WithAccountRetriever(client.MockAccountRetriever{}).
 		WithOutput(io.Discard).
-		WithChainID(testutil.DefaultChainId)
+		WithChainID("test-chain")
 
 	s.commonFlags = []string{
 		fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
@@ -88,7 +89,7 @@ func (s *CLITestSuite) SetupSuite() {
 		s.clientCtx,
 		val.Address,
 		account,
-		sdk.NewCoins(sdk.NewCoin("stake", sdkmath.NewInt(2000))), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
+		sdk.NewCoins(sdk.NewCoin("stake", sdkmath.NewInt(2000))), address.NewBech32Codec("cosmos"), fmt.Sprintf("--%s=true", flags.FlagSkipConfirmation),
 		fmt.Sprintf("--%s=%s", flags.FlagBroadcastMode, flags.BroadcastSync),
 		fmt.Sprintf("--%s=%s", flags.FlagFees, sdk.NewCoins(sdk.NewCoin("stake", sdkmath.NewInt(10))).String()),
 	)
@@ -129,7 +130,7 @@ func (s *CLITestSuite) TestTxCreateGroup() {
 	accounts := testutil.CreateKeyringAccounts(s.T(), s.kr, 1)
 
 	cmd := groupcli.MsgCreateGroupCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	validMembers := fmt.Sprintf(`{"members": [{
 		"address": "%s",
@@ -164,6 +165,20 @@ func (s *CLITestSuite) TestTxCreateGroup() {
 			expectErrMsg: "",
 		},
 		{
+			"with amino-json",
+			append(
+				[]string{
+					accounts[0].Address.String(),
+					"",
+					validMembersFile.Name(),
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				s.commonFlags...,
+			),
+			fmt.Sprintf("%s %s %s", accounts[0].Address.String(), "", validMembersFile.Name()),
+			"",
+		},
+		{
 			"invalid members weight",
 			append(
 				[]string{
@@ -192,8 +207,6 @@ func (s *CLITestSuite) TestTxCreateGroup() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 			cmd.SetContext(ctx)
@@ -221,14 +234,14 @@ func (s *CLITestSuite) TestTxUpdateGroupAdmin() {
 	accounts := testutil.CreateKeyringAccounts(s.T(), s.kr, 2)
 
 	cmd := groupcli.MsgUpdateGroupAdminCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	ctx := svrcmd.CreateExecuteContext(context.Background())
 	cmd.SetContext(ctx)
 	s.Require().NoError(client.SetCmdClientContextHandler(s.baseCtx, cmd))
 
 	groupIDs := make([]string, 2)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		validMembers := fmt.Sprintf(`{"members": [{
 	  "address": "%s",
 		"weight": "1",
@@ -277,6 +290,27 @@ func (s *CLITestSuite) TestTxUpdateGroupAdmin() {
 			"",
 		},
 		{
+			"with amino-json",
+			func() client.Context {
+				bz, _ := s.encCfg.Codec.Marshal(&sdk.TxResponse{})
+				c := clitestutil.NewMockCometRPC(abci.ResponseQuery{
+					Value: bz,
+				})
+				return s.baseCtx.WithClient(c)
+			},
+			append(
+				[]string{
+					accounts[0].Address.String(),
+					groupIDs[1],
+					accounts[1].Address.String(),
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				s.commonFlags...,
+			),
+			fmt.Sprintf("%s %s %s --%s=%s", accounts[0].Address.String(), groupIDs[1], accounts[1].Address.String(), flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+			"",
+		},
+		{
 			"group id invalid",
 			func() client.Context {
 				bz, _ := s.encCfg.Codec.Marshal(&sdk.TxResponse{})
@@ -299,8 +333,6 @@ func (s *CLITestSuite) TestTxUpdateGroupAdmin() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -330,7 +362,7 @@ func (s *CLITestSuite) TestTxUpdateGroupMetadata() {
 	accounts := testutil.CreateKeyringAccounts(s.T(), s.kr, 1)
 
 	cmd := groupcli.MsgUpdateGroupMetadataCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	testCases := []struct {
 		name         string
@@ -349,6 +381,20 @@ func (s *CLITestSuite) TestTxUpdateGroupMetadata() {
 				s.commonFlags...,
 			),
 			fmt.Sprintf("%s %s %s", accounts[0].Address.String(), "1", validMetadata),
+			"",
+		},
+		{
+			"with amino-json",
+			append(
+				[]string{
+					accounts[0].Address.String(),
+					"1",
+					validMetadata,
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				s.commonFlags...,
+			),
+			fmt.Sprintf("%s %s %s --%s=%s", accounts[0].Address.String(), "1", validMetadata, flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
 			"",
 		},
 		{
@@ -380,8 +426,6 @@ func (s *CLITestSuite) TestTxUpdateGroupMetadata() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -412,7 +456,7 @@ func (s *CLITestSuite) TestTxUpdateGroupMembers() {
 	groupPolicyAddress := accounts[2]
 
 	cmd := groupcli.MsgUpdateGroupMembersCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	groupID := "1"
 
@@ -453,6 +497,20 @@ func (s *CLITestSuite) TestTxUpdateGroupMembers() {
 			"",
 		},
 		{
+			"with amino-json",
+			append(
+				[]string{
+					accounts[0].Address.String(),
+					groupID,
+					validUpdatedMembersFileName,
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				s.commonFlags...,
+			),
+			fmt.Sprintf("%s %s %s --%s=%s", accounts[0].Address.String(), groupID, validUpdatedMembersFileName, flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+			"",
+		},
+		{
 			"group id invalid",
 			append(
 				[]string{
@@ -481,8 +539,6 @@ func (s *CLITestSuite) TestTxUpdateGroupMembers() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -512,7 +568,7 @@ func (s *CLITestSuite) TestTxCreateGroupWithPolicy() {
 	accounts := testutil.CreateKeyringAccounts(s.T(), s.kr, 1)
 
 	cmd := groupcli.MsgCreateGroupWithPolicyCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	validMembers := fmt.Sprintf(`{"members": [{
 		"address": "%s",
@@ -568,6 +624,23 @@ func (s *CLITestSuite) TestTxCreateGroupWithPolicy() {
 			fmt.Sprintf("%s %s %s %s %s --%s=%v", accounts[0].Address.String(), validMetadata, validMetadata, validMembersFile.Name(), thresholdDecisionPolicyFile.Name(), groupcli.FlagGroupPolicyAsAdmin, true),
 		},
 		{
+			"with amino-json",
+			append(
+				[]string{
+					accounts[0].Address.String(),
+					validMetadata,
+					validMetadata,
+					validMembersFile.Name(),
+					thresholdDecisionPolicyFile.Name(),
+					fmt.Sprintf("--%s=%v", groupcli.FlagGroupPolicyAsAdmin, false),
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				s.commonFlags...,
+			),
+			"",
+			fmt.Sprintf("%s %s %s %s %s --%s=%v --%s=%s", accounts[0].Address.String(), validMetadata, validMetadata, validMembersFile.Name(), thresholdDecisionPolicyFile.Name(), groupcli.FlagGroupPolicyAsAdmin, false, flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+		},
+		{
 			"invalid members weight",
 			append(
 				[]string{
@@ -585,8 +658,6 @@ func (s *CLITestSuite) TestTxCreateGroupWithPolicy() {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -625,7 +696,7 @@ func (s *CLITestSuite) TestTxCreateGroupPolicy() {
 	invalidPercentageDecisionPolicyFile := testutil.WriteToNewTempFile(s.T(), `{"@type":"/cosmos.group.v1.PercentageDecisionPolicy", "percentage":"2", "windows":{"voting_period":"1s"}}`)
 
 	cmd := groupcli.MsgCreateGroupPolicyCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	testCases := []struct {
 		name         string
@@ -660,6 +731,21 @@ func (s *CLITestSuite) TestTxCreateGroupPolicy() {
 			),
 			"",
 			fmt.Sprintf("%s %s %s %s", val.Address.String(), fmt.Sprintf("%v", groupID), validMetadata, percentageDecisionPolicyFile.Name()),
+		},
+		{
+			"with amino-json",
+			append(
+				[]string{
+					val.Address.String(),
+					fmt.Sprintf("%v", groupID),
+					validMetadata,
+					thresholdDecisionPolicyFile.Name(),
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				s.commonFlags...,
+			),
+			"",
+			fmt.Sprintf("%s %s %s %s --%s=%s", val.Address.String(), fmt.Sprintf("%v", groupID), validMetadata, thresholdDecisionPolicyFile.Name(), flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
 		},
 		{
 			"wrong admin",
@@ -706,8 +792,6 @@ func (s *CLITestSuite) TestTxCreateGroupPolicy() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -743,7 +827,7 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyAdmin() {
 	commonFlags = append(commonFlags, fmt.Sprintf("--%s=%d", flags.FlagGas, 300000))
 
 	cmd := groupcli.MsgUpdateGroupPolicyAdminCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	testCases := []struct {
 		name         string
@@ -762,6 +846,20 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyAdmin() {
 				commonFlags...,
 			),
 			fmt.Sprintf("%s %s %s", groupPolicyAdmin.Address.String(), groupPolicyAddress.Address.String(), newAdmin.Address.String()),
+			"",
+		},
+		{
+			"with amino-json",
+			append(
+				[]string{
+					groupPolicyAdmin.Address.String(),
+					groupPolicyAddress.Address.String(),
+					newAdmin.Address.String(),
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				commonFlags...,
+			),
+			fmt.Sprintf("%s %s %s --%s=%s", groupPolicyAdmin.Address.String(), groupPolicyAddress.Address.String(), newAdmin.Address.String(), flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
 			"",
 		},
 		{
@@ -793,8 +891,6 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyAdmin() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -832,8 +928,8 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyDecisionPolicy() {
 	thresholdDecisionPolicy := testutil.WriteToNewTempFile(s.T(), `{"@type":"/cosmos.group.v1.ThresholdDecisionPolicy", "threshold":"1", "windows":{"voting_period":"40000s"}}`)
 	percentageDecisionPolicy := testutil.WriteToNewTempFile(s.T(), `{"@type":"/cosmos.group.v1.PercentageDecisionPolicy", "percentage":"0.5", "windows":{"voting_period":"40000s"}}`)
 
-	cmd := groupcli.MsgUpdateGroupPolicyDecisionPolicyCmd()
-	cmd.SetOutput(io.Discard)
+	cmd := groupcli.MsgUpdateGroupPolicyDecisionPolicyCmd(address.NewBech32Codec("cosmos"))
+	cmd.SetOut(io.Discard)
 
 	testCases := []struct {
 		name         string
@@ -868,6 +964,20 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyDecisionPolicy() {
 			"",
 		},
 		{
+			"with amino-json",
+			append(
+				[]string{
+					groupPolicyAdmin.Address.String(),
+					groupPolicyAddress.Address.String(),
+					thresholdDecisionPolicy.Name(),
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				commonFlags...,
+			),
+			fmt.Sprintf("%s %s %s --%s=%s", groupPolicyAdmin.Address.String(), groupPolicyAddress.Address.String(), thresholdDecisionPolicy.Name(), flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+			"",
+		},
+		{
 			"wrong admin",
 			append(
 				[]string{
@@ -878,13 +988,11 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyDecisionPolicy() {
 				commonFlags...,
 			),
 			fmt.Sprintf("%s %s %s", newAdmin.Address.String(), "invalid", thresholdDecisionPolicy.Name()),
-			"invalid address",
+			"decoding bech32 failed",
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -919,7 +1027,7 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyMetadata() {
 	commonFlags = append(commonFlags, fmt.Sprintf("--%s=%d", flags.FlagGas, 300000))
 
 	cmd := groupcli.MsgUpdateGroupPolicyMetadataCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	testCases := []struct {
 		name         string
@@ -941,6 +1049,20 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyMetadata() {
 			"",
 		},
 		{
+			"with amino-json",
+			append(
+				[]string{
+					groupPolicyAdmin.String(),
+					groupPolicyAddress.String(),
+					validMetadata,
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				commonFlags...,
+			),
+			fmt.Sprintf("%s %s %s --%s=%s", groupPolicyAdmin.String(), groupPolicyAddress.String(), validMetadata, flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+			"",
+		},
+		{
 			"wrong admin",
 			append(
 				[]string{
@@ -956,8 +1078,6 @@ func (s *CLITestSuite) TestTxUpdateGroupPolicyMetadata() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -998,7 +1118,7 @@ func (s *CLITestSuite) TestTxSubmitProposal() {
 	proposalFile := testutil.WriteToNewTempFile(s.T(), string(bz))
 
 	cmd := groupcli.MsgSubmitProposalCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	testCases := []struct {
 		name         string
@@ -1041,11 +1161,21 @@ func (s *CLITestSuite) TestTxSubmitProposal() {
 			fmt.Sprintf("%s --%s=try", proposalFile.Name(), groupcli.FlagExec),
 			"",
 		},
+		{
+			"with amino-json",
+			append(
+				[]string{
+					proposalFile.Name(),
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				s.commonFlags...,
+			),
+			fmt.Sprintf("%s --%s=%s", proposalFile.Name(), flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+			"",
+		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -1075,10 +1205,10 @@ func (s *CLITestSuite) TestTxVote() {
 	accounts := testutil.CreateKeyringAccounts(s.T(), s.kr, 4)
 
 	cmd := groupcli.MsgVoteCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	ids := make([]string, 4)
-	for i := 0; i < len(ids); i++ {
+	for i := range ids {
 		ids[i] = fmt.Sprint(i + 1)
 	}
 
@@ -1131,11 +1261,24 @@ func (s *CLITestSuite) TestTxVote() {
 			fmt.Sprintf("%s %s %s %s --%s=try", ids[1], accounts[0].Address.String(), "VOTE_OPTION_YES", "", groupcli.FlagExec),
 			"",
 		},
+		{
+			"with amino-json",
+			append(
+				[]string{
+					ids[3],
+					accounts[0].Address.String(),
+					"VOTE_OPTION_YES",
+					"",
+					fmt.Sprintf("--%s=%s", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+				},
+				s.commonFlags...,
+			),
+			fmt.Sprintf("%s %s %s %s --%s=%s", ids[3], accounts[0].Address.String(), "VOTE_OPTION_YES", "", flags.FlagSignMode, flags.SignModeLegacyAminoJSON),
+			"",
+		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 
@@ -1165,7 +1308,7 @@ func (s *CLITestSuite) TestTxWithdrawProposal() {
 	accounts := testutil.CreateKeyringAccounts(s.T(), s.kr, 1)
 
 	cmd := groupcli.MsgWithdrawProposalCmd()
-	cmd.SetOutput(io.Discard)
+	cmd.SetOut(io.Discard)
 
 	ids := make([]string, 2)
 	ids[0] = "1"
@@ -1216,8 +1359,6 @@ func (s *CLITestSuite) TestTxWithdrawProposal() {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		s.Run(tc.name, func() {
 			ctx := svrcmd.CreateExecuteContext(context.Background())
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 	"gotest.tools/v3/assert"
 
 	"cosmossdk.io/math"
@@ -18,7 +18,9 @@ import (
 )
 
 // SetupUnbondingTests creates two validators and setup mocked staking hooks for testing unbonding
-func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uint64) (bondDenom string, addrDels []sdk.AccAddress, addrVals []sdk.AccAddress) {
+func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uint64) (bondDenom string, addrDels []sdk.AccAddress, addrVals []sdk.ValAddress) {
+	t.Helper()
+
 	// setup hooks
 	mockCtrl := gomock.NewController(t)
 	mockStackingHooks := testutil.NewMockStakingHooks(mockCtrl)
@@ -45,7 +47,7 @@ func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uin
 	f.stakingKeeper.SetHooks(types.NewMultiStakingHooks(mockStackingHooks))
 
 	addrDels = simtestutil.AddTestAddrsIncremental(f.bankKeeper, f.stakingKeeper, f.sdkCtx, 2, math.NewInt(10000))
-	addrVals = simtestutil.CopyAddrs(addrDels)
+	addrVals = simtestutil.ConvertAddrsToValAddrs(addrDels)
 
 	valTokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 10)
 	startTokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 20)
@@ -89,9 +91,11 @@ func doUnbondingDelegation(
 	ctx sdk.Context,
 	bondDenom string,
 	addrDels []sdk.AccAddress,
-	addrVals []sdk.AccAddress,
+	addrVals []sdk.ValAddress,
 	hookCalled *bool,
 ) (completionTime time.Time, bondedAmt, notBondedAmt math.Int) {
+	t.Helper()
+
 	// UNDELEGATE
 	// Save original bonded and unbonded amounts
 	bondedAmt1 := bankKeeper.GetBalance(ctx, stakingKeeper.GetBondedPool(ctx).GetAddress(), bondDenom).Amount
@@ -126,9 +130,11 @@ func doRedelegation(
 	stakingKeeper *stakingkeeper.Keeper,
 	ctx sdk.Context,
 	addrDels []sdk.AccAddress,
-	addrVals []sdk.AccAddress,
+	addrVals []sdk.ValAddress,
 	hookCalled *bool,
 ) (completionTime time.Time) {
+	t.Helper()
+
 	var err error
 	completionTime, err = stakingKeeper.BeginRedelegation(ctx, addrDels[0], addrVals[0], addrVals[1], math.LegacyNewDec(1))
 	assert.NilError(t, err)
@@ -149,9 +155,11 @@ func doValidatorUnbonding(
 	t *testing.T,
 	stakingKeeper *stakingkeeper.Keeper,
 	ctx sdk.Context,
-	addrVal sdk.AccAddress,
+	addrVal sdk.ValAddress,
 	hookCalled *bool,
 ) (validator types.Validator) {
+	t.Helper()
+
 	validator, found := stakingKeeper.GetValidator(ctx, addrVal)
 	assert.Assert(t, found)
 	// Check that status is bonded

@@ -5,13 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/0xPolygon/polygon-edge/bls"
 	cmtabcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/proto/tendermint/types"
-	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
-	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"gotest.tools/v3/assert"
 
@@ -21,6 +16,9 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
+	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
+	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/testutil/integration"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -35,6 +33,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/distribution"
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtestutil "github.com/cosmos/cosmos-sdk/x/staking/testutil"
@@ -43,7 +42,7 @@ import (
 
 var (
 	emptyDelAddr sdk.AccAddress
-	emptyValAddr sdk.AccAddress
+	emptyValAddr sdk.ValAddress
 )
 
 type fixture struct {
@@ -59,16 +58,17 @@ type fixture struct {
 	stakingKeeper *stakingkeeper.Keeper
 
 	addr    sdk.AccAddress
-	valAddr sdk.AccAddress
+	valAddr sdk.ValAddress
 }
 
-func initFixture(t testing.TB) *fixture {
+func initFixture(tb testing.TB) *fixture {
+	tb.Helper()
 	keys := storetypes.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, distrtypes.StoreKey, stakingtypes.StoreKey,
 	)
 	cdc := moduletestutil.MakeTestEncodingConfig(auth.AppModuleBasic{}, distribution.AppModuleBasic{}).Codec
 
-	logger := log.NewTestLogger(t)
+	logger := log.NewTestLogger(tb)
 	cms := integration.CreateMultiStore(keys, logger)
 
 	newCtx := sdk.NewContext(cms, types.Header{}, true, logger)
@@ -87,6 +87,8 @@ func initFixture(t testing.TB) *fixture {
 		runtime.NewKVStoreService(keys[authtypes.StoreKey]),
 		authtypes.ProtoBaseAccount,
 		maccPerms,
+		addresscodec.NewBech32Codec(sdk.Bech32MainPrefix),
+		sdk.Bech32MainPrefix,
 		authority.String(),
 	)
 
@@ -101,22 +103,20 @@ func initFixture(t testing.TB) *fixture {
 		authority.String(),
 		log.NewNopLogger(),
 	)
-	ctrl := gomock.NewController(t)
-	authzKeeper := stakingtestutil.NewMockAuthzKeeper(ctrl)
 
-	stakingKeeper := stakingkeeper.NewKeeper(cdc, runtime.NewKVStoreService(keys[stakingtypes.StoreKey]), accountKeeper, authzKeeper, bankKeeper, authority.String())
+	stakingKeeper := stakingkeeper.NewKeeper(cdc, runtime.NewKVStoreService(keys[stakingtypes.StoreKey]), accountKeeper, bankKeeper, authority.String(), addresscodec.NewBech32Codec(sdk.Bech32PrefixValAddr), addresscodec.NewBech32Codec(sdk.Bech32PrefixConsAddr))
 
 	distrKeeper := distrkeeper.NewKeeper(
 		cdc, runtime.NewKVStoreService(keys[distrtypes.StoreKey]), accountKeeper, bankKeeper, stakingKeeper, distrtypes.ModuleName, authority.String(),
 	)
 
 	authModule := auth.NewAppModule(cdc, accountKeeper, authsims.RandomGenesisAccounts, nil)
-	bankModule := bank.NewAppModule(cdc, bankKeeper, accountKeeper, nil, nil)
+	bankModule := bank.NewAppModule(cdc, bankKeeper, accountKeeper, nil)
 	stakingModule := staking.NewAppModule(cdc, stakingKeeper, accountKeeper, bankKeeper, nil)
 	distrModule := distribution.NewAppModule(cdc, distrKeeper, accountKeeper, bankKeeper, stakingKeeper, nil)
 
 	addr := sdk.AccAddress(PKS[0].Address())
-	valAddr := sdk.AccAddress(addr)
+	valAddr := sdk.ValAddress(addr)
 	valConsAddr := sdk.ConsAddress(valConsPk0.Address())
 
 	// set proposer and vote infos
@@ -138,7 +138,7 @@ func initFixture(t testing.TB) *fixture {
 	})
 
 	sdkCtx := sdk.UnwrapSDKContext(integrationApp.Context())
-	require.NoError(t, stakingKeeper.SetParams(sdkCtx, stakingtypes.DefaultParams()))
+	require.NoError(tb, stakingKeeper.SetParams(sdkCtx, stakingtypes.DefaultParams()))
 
 	stakingKeeper.SetHooks(
 		stakingtypes.NewMultiStakingHooks(
@@ -149,6 +149,7 @@ func initFixture(t testing.TB) *fixture {
 	// Register MsgServer and QueryServer
 	distrtypes.RegisterMsgServer(integrationApp.MsgServiceRouter(), distrkeeper.NewMsgServerImpl(distrKeeper))
 	distrtypes.RegisterQueryServer(integrationApp.QueryHelper(), distrkeeper.NewQuerier(distrKeeper))
+
 	stakingtypes.RegisterMsgServer(integrationApp.MsgServiceRouter(), stakingkeeper.NewMsgServerImpl(stakingKeeper))
 
 	return &fixture{
@@ -186,11 +187,7 @@ func TestMsgWithdrawDelegatorReward(t *testing.T) {
 	}
 
 	// setup staking validator
-	blsSecretKey, _ := bls.GenerateBlsKey()
-	blsKey := blsSecretKey.PublicKey().Marshal()
-
-	validator, err := stakingtypes.NewValidator(f.valAddr.String(), PKS[0], stakingtypes.Description{},
-		f.valAddr.String(), f.valAddr.String(), f.valAddr.String(), blsKey)
+	validator, err := stakingtypes.NewValidator(f.valAddr.String(), PKS[0], stakingtypes.Description{})
 	assert.NilError(t, err)
 	commission := stakingtypes.NewCommission(math.LegacyZeroDec(), math.LegacyOneDec(), math.LegacyOneDec())
 	validator, err = validator.SetInitialCommission(commission)
@@ -213,7 +210,7 @@ func TestMsgWithdrawDelegatorReward(t *testing.T) {
 	delTokens := sdk.TokensFromConsensusPower(2, sdk.DefaultPowerReduction)
 	validator, issuedShares := validator.AddTokensFromDel(delTokens)
 
-	valBz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
+	valBz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
 	require.NoError(t, err)
 	delegation := stakingtypes.NewDelegation(delAddr.String(), validator.GetOperator(), issuedShares)
 	require.NoError(t, f.stakingKeeper.SetDelegation(f.sdkCtx, delegation))
@@ -278,7 +275,7 @@ func TestMsgWithdrawDelegatorReward(t *testing.T) {
 			name: "validator with no delegations",
 			msg: &distrtypes.MsgWithdrawDelegatorReward{
 				DelegatorAddress: delAddr.String(),
-				ValidatorAddress: sdk.AccAddress(sdk.AccAddress(PKS[2].Address())).String(),
+				ValidatorAddress: sdk.ValAddress(sdk.AccAddress(PKS[2].Address())).String(),
 			},
 			expErr:    true,
 			expErrMsg: "validator does not exist",
@@ -298,7 +295,6 @@ func TestMsgWithdrawDelegatorReward(t *testing.T) {
 	assert.Equal(t, proposerAddr.Empty(), true)
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			res, err := f.app.RunMsg(
 				tc.msg,
@@ -446,7 +442,6 @@ func TestMsgSetWithdrawAddress(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			tc.preRun()
 			res, err := f.app.RunMsg(
@@ -528,7 +523,7 @@ func TestMsgWithdrawValidatorCommission(t *testing.T) {
 		{
 			name: "validator with no commission",
 			msg: &distrtypes.MsgWithdrawValidatorCommission{
-				ValidatorAddress: sdk.AccAddress([]byte("addr1_______________")).String(),
+				ValidatorAddress: sdk.ValAddress([]byte("addr1_______________")).String(),
 			},
 			expErr:    true,
 			expErrMsg: "no validator commission to withdraw",
@@ -543,7 +538,6 @@ func TestMsgWithdrawValidatorCommission(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			res, err := f.app.RunMsg(
 				tc.msg,
@@ -576,7 +570,6 @@ func TestMsgWithdrawValidatorCommission(t *testing.T) {
 				}, remainder.Commission)
 			}
 		})
-
 	}
 }
 
@@ -645,7 +638,6 @@ func TestMsgFundCommunityPool(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			res, err := f.app.RunMsg(
 				tc.msg,
@@ -679,7 +671,6 @@ func TestMsgUpdateParams(t *testing.T) {
 
 	// default params
 	communityTax := math.LegacyNewDecWithPrec(2, 2) // 2%
-	withdrawAddrEnabled := true
 
 	testCases := []struct {
 		name      string
@@ -693,7 +684,7 @@ func TestMsgUpdateParams(t *testing.T) {
 				Authority: "invalid",
 				Params: distrtypes.Params{
 					CommunityTax:        math.LegacyNewDecWithPrec(2, 0),
-					WithdrawAddrEnabled: withdrawAddrEnabled,
+					WithdrawAddrEnabled: true,
 					BaseProposerReward:  math.LegacyZeroDec(),
 					BonusProposerReward: math.LegacyZeroDec(),
 				},
@@ -707,7 +698,7 @@ func TestMsgUpdateParams(t *testing.T) {
 				Authority: f.distrKeeper.GetAuthority(),
 				Params: distrtypes.Params{
 					CommunityTax:        math.LegacyDec{},
-					WithdrawAddrEnabled: withdrawAddrEnabled,
+					WithdrawAddrEnabled: true,
 					BaseProposerReward:  math.LegacyZeroDec(),
 					BonusProposerReward: math.LegacyZeroDec(),
 				},
@@ -721,7 +712,7 @@ func TestMsgUpdateParams(t *testing.T) {
 				Authority: f.distrKeeper.GetAuthority(),
 				Params: distrtypes.Params{
 					CommunityTax:        math.LegacyNewDecWithPrec(2, 0),
-					WithdrawAddrEnabled: withdrawAddrEnabled,
+					WithdrawAddrEnabled: true,
 					BaseProposerReward:  math.LegacyZeroDec(),
 					BonusProposerReward: math.LegacyZeroDec(),
 				},
@@ -735,7 +726,7 @@ func TestMsgUpdateParams(t *testing.T) {
 				Authority: f.distrKeeper.GetAuthority(),
 				Params: distrtypes.Params{
 					CommunityTax:        math.LegacyNewDecWithPrec(-2, 1),
-					WithdrawAddrEnabled: withdrawAddrEnabled,
+					WithdrawAddrEnabled: true,
 					BaseProposerReward:  math.LegacyZeroDec(),
 					BonusProposerReward: math.LegacyZeroDec(),
 				},
@@ -751,7 +742,7 @@ func TestMsgUpdateParams(t *testing.T) {
 					CommunityTax:        communityTax,
 					BaseProposerReward:  math.LegacyNewDecWithPrec(1, 2),
 					BonusProposerReward: math.LegacyZeroDec(),
-					WithdrawAddrEnabled: withdrawAddrEnabled,
+					WithdrawAddrEnabled: true,
 				},
 			},
 			expErr:    true,
@@ -765,7 +756,7 @@ func TestMsgUpdateParams(t *testing.T) {
 					CommunityTax:        communityTax,
 					BaseProposerReward:  math.LegacyZeroDec(),
 					BonusProposerReward: math.LegacyNewDecWithPrec(1, 2),
-					WithdrawAddrEnabled: withdrawAddrEnabled,
+					WithdrawAddrEnabled: true,
 				},
 			},
 			expErr:    true,
@@ -779,7 +770,7 @@ func TestMsgUpdateParams(t *testing.T) {
 					CommunityTax:        communityTax,
 					BaseProposerReward:  math.LegacyZeroDec(),
 					BonusProposerReward: math.LegacyZeroDec(),
-					WithdrawAddrEnabled: withdrawAddrEnabled,
+					WithdrawAddrEnabled: true,
 				},
 			},
 			expErr: false,
@@ -787,7 +778,6 @@ func TestMsgUpdateParams(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			res, err := f.app.RunMsg(
 				tc.msg,
@@ -827,7 +817,7 @@ func TestMsgCommunityPoolSpend(t *testing.T) {
 	err := f.bankKeeper.MintCoins(f.sdkCtx, distrtypes.ModuleName, sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, initTokens)))
 	require.NoError(t, err)
 
-	recipient := sdk.AccAddress([]byte("addr1_______________"))
+	recipient := sdk.AccAddress([]byte("addr1"))
 
 	testCases := []struct {
 		name      string
@@ -853,7 +843,7 @@ func TestMsgCommunityPoolSpend(t *testing.T) {
 				Amount:    sdk.NewCoins(sdk.NewCoin("stake", math.NewInt(100))),
 			},
 			expErr:    true,
-			expErrMsg: "invalid address hex length",
+			expErrMsg: "decoding bech32 failed",
 		},
 		{
 			name: "valid message",
@@ -866,7 +856,6 @@ func TestMsgCommunityPoolSpend(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			res, err := f.app.RunMsg(
 				tc.msg,
@@ -910,9 +899,9 @@ func TestMsgDepositValidatorRewardsPool(t *testing.T) {
 	// Set default staking params
 	require.NoError(t, f.stakingKeeper.SetParams(f.sdkCtx, stakingtypes.DefaultParams()))
 
-	addr := sdk.AccAddress("0addr_______________")
+	addr := sdk.AccAddress("addr")
 	addr1 := sdk.AccAddress(PKS[0].Address())
-	valAddr1 := sdk.AccAddress(addr1)
+	valAddr1 := sdk.ValAddress(addr1)
 
 	// send funds to val addr
 	tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, int64(1000))
@@ -959,7 +948,7 @@ func TestMsgDepositValidatorRewardsPool(t *testing.T) {
 			name: "invalid validator",
 			msg: &distrtypes.MsgDepositValidatorRewardsPool{
 				Depositor:        addr.String(),
-				ValidatorAddress: sdk.AccAddress([]byte("addr1_______________")).String(),
+				ValidatorAddress: sdk.ValAddress([]byte("addr1_______________")).String(),
 				Amount:           sdk.NewCoins(sdk.NewCoin(bondDenom, math.NewInt(100))),
 			},
 			expErr:    true,
@@ -968,7 +957,6 @@ func TestMsgDepositValidatorRewardsPool(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			res, err := f.app.RunMsg(
 				tc.msg,
@@ -986,11 +974,11 @@ func TestMsgDepositValidatorRewardsPool(t *testing.T) {
 				err = f.cdc.Unmarshal(res.Value, &result)
 				assert.NilError(t, err)
 
-				val, err := sdk.AccAddressFromHexUnsafe(tc.msg.ValidatorAddress)
+				val, err := sdk.ValAddressFromBech32(tc.msg.ValidatorAddress)
 				assert.NilError(t, err)
 
 				// check validator outstanding rewards
-				outstandingRewards, _ := f.distrKeeper.GetValidatorOutstandingRewards(f.sdkCtx, sdk.AccAddress(val))
+				outstandingRewards, _ := f.distrKeeper.GetValidatorOutstandingRewards(f.sdkCtx, val)
 				for _, c := range tc.msg.Amount {
 					x := outstandingRewards.Rewards.AmountOf(c.Denom)
 					assert.DeepEqual(t, x, math.LegacyNewDecFromInt(c.Amount))

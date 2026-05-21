@@ -19,9 +19,9 @@ import (
 
 // Keeper defines the governance module Keeper
 type Keeper struct {
-	authKeeper       types.AccountKeeper
-	bankKeeper       types.BankKeeper
-	distrKeeper      types.DistributionKeeper
+	authKeeper  types.AccountKeeper
+	bankKeeper  types.BankKeeper
+	distrKeeper types.DistributionKeeper
 
 	// The reference to the DelegationSet and ValidatorSet to get information about validators and delegators
 	sk types.StakingKeeper

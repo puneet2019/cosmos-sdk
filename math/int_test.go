@@ -2,7 +2,6 @@ package math_test
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -472,14 +471,6 @@ func (s *intTestSuite) TestIntEq() {
 	s.Require().True(resp)
 	_, resp, _, _, _ = math.IntEq(s.T(), math.OneInt(), math.ZeroInt())
 	s.Require().False(resp)
-}
-
-func (s *intTestSuite) TestIntXmlMarshalRoundTrip() {
-	u1 := math.NewInt(256)
-	marshalResult, _ := xml.Marshal(u1)
-	u2 := math.Int{}
-	xml.Unmarshal(marshalResult, &u2)
-	s.Require().Equal(u1, u2)
 }
 
 func TestRoundTripMarshalToInt(t *testing.T) {

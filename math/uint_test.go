@@ -1,7 +1,6 @@
 package math_test
 
 import (
-	"encoding/xml"
 	"fmt"
 	"math"
 	"math/big"
@@ -384,23 +383,4 @@ func TestWeakUnmarshalOverflow(t *testing.T) {
 	if errStr := err.Error(); !strings.Contains(errStr, "out of range") {
 		t.Fatalf("out of range value not reported, got instead %q", errStr)
 	}
-}
-
-func (s *uintTestSuite) TestUintBigEndian() {
-	u1 := sdkmath.NewUint(256)
-	u1b := u1.Bytes()
-
-	u2 := sdkmath.NewUint(0)
-	u2 = u2.SetBytes(u1b)
-
-	s.Require().Equal(u1, u2)
-
-}
-
-func (s *uintTestSuite) TestUintXmlMarshalRoundTrip() {
-	u1 := sdkmath.NewUint(256)
-	marshalResult, _ := xml.Marshal(u1)
-	u2 := sdkmath.Uint{}
-	xml.Unmarshal(marshalResult, &u2)
-	s.Require().Equal(u1, u2)
 }

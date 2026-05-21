@@ -5,7 +5,6 @@
 //
 //	mockgen -source=x/distribution/types/expected_keepers.go -package testutil -destination x/distribution/testutil/expected_keepers_mocks.go
 //
-
 // Package testutil is a generated GoMock package.
 package testutil
 
@@ -22,7 +21,6 @@ import (
 type MockAccountKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockAccountKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockAccountKeeperMockRecorder is the mock recorder for MockAccountKeeper.
@@ -100,7 +98,6 @@ func (mr *MockAccountKeeperMockRecorder) SetModuleAccount(arg0, arg1 any) *gomoc
 type MockBankKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockBankKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockBankKeeperMockRecorder is the mock recorder for MockBankKeeper.
@@ -208,7 +205,6 @@ func (mr *MockBankKeeperMockRecorder) SpendableCoins(ctx, addr any) *gomock.Call
 type MockStakingKeeper struct {
 	ctrl     *gomock.Controller
 	recorder *MockStakingKeeperMockRecorder
-	isgomock struct{}
 }
 
 // MockStakingKeeperMockRecorder is the mock recorder for MockStakingKeeper.
@@ -350,7 +346,6 @@ func (mr *MockStakingKeeperMockRecorder) ValidatorByConsAddr(arg0, arg1 any) *go
 type MockStakingHooks struct {
 	ctrl     *gomock.Controller
 	recorder *MockStakingHooksMockRecorder
-	isgomock struct{}
 }
 
 // MockStakingHooksMockRecorder is the mock recorder for MockStakingHooks.

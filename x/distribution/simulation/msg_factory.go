@@ -8,6 +8,7 @@ import (
 	sdkmath "cosmossdk.io/math"
 
 	"github.com/cosmos/cosmos-sdk/testutil/simsx"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	"github.com/cosmos/cosmos-sdk/x/distribution/types"
 )
@@ -44,7 +45,7 @@ func MsgWithdrawDelegatorRewardFactory(k keeper.Keeper, sk types.StakingKeeper) 
 		}
 		delegation := delegations[testData.Rand().Intn(len(delegations))]
 
-		valAddr, err := sk.ValidatorAddressCodec().StringToBytes(delegation.GetValidatorAddr())
+		valAddr, err := sdk.AccAddressFromHexUnsafe(delegation.GetValidatorAddr())
 		if err != nil {
 			reporter.Skip(err.Error())
 			return nil, nil
@@ -88,7 +89,7 @@ func MsgWithdrawValidatorCommissionFactory(k keeper.Keeper, sk types.StakingKeep
 			return nil, nil
 		}
 		val := simsx.OneOf(testData.Rand(), allVals)
-		valAddrBz, err := sk.ValidatorAddressCodec().StringToBytes(val.GetOperator())
+		valAddrBz, err := sdk.AccAddressFromHexUnsafe(val.GetOperator())
 		if err != nil {
 			reporter.Skip(err.Error())
 			return nil, nil

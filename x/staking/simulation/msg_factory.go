@@ -2,8 +2,13 @@ package simulation
 
 import (
 	"context"
+	"encoding/hex"
 	"slices"
 	"time"
+
+	"github.com/0xPolygon/polygon-edge/bls"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	"github.com/cometbft/cometbft/votepool"
 
 	"cosmossdk.io/math"
 
@@ -18,7 +23,7 @@ func MsgCreateValidatorFactory(k *keeper.Keeper) simsx.SimMsgFactoryFn[*types.Ms
 	return func(ctx context.Context, testData *simsx.ChainDataSource, reporter simsx.SimulationReporter) ([]simsx.SimAccount, *types.MsgCreateValidator) {
 		r := testData.Rand()
 		withoutValidators := simsx.SimAccountFilterFn(func(a simsx.SimAccount) bool {
-			_, err := k.GetValidator(ctx, sdk.ValAddress(a.Address))
+			_, err := k.GetValidator(ctx, a.Address)
 			return err != nil
 		})
 		withoutConsAddrUsed := simsx.SimAccountFilterFn(func(a simsx.SimAccount) bool {
@@ -55,8 +60,19 @@ func MsgCreateValidatorFactory(k *keeper.Keeper) simsx.SimMsgFactoryFn[*types.Ms
 			r.DecN(maxCommission),
 		)
 
-		addr := must(k.ValidatorAddressCodec().BytesToString(valOper.Address))
-		msg, err := types.NewMsgCreateValidator(addr, newPubKey, selfDelegation, description, commission, math.OneInt())
+		addr := sdk.AccAddress(valOper.Address)
+
+		blsSecretKey, _ := bls.GenerateBlsKey()
+		blsPk := hex.EncodeToString(blsSecretKey.PublicKey().Marshal())
+		blsProofBuf, _ := blsSecretKey.Sign(tmhash.Sum(blsSecretKey.PublicKey().Marshal()), votepool.DST)
+		blsProofBts, _ := blsProofBuf.Marshal()
+		blsProof := hex.EncodeToString(blsProofBts)
+
+		msg, err := types.NewMsgCreateValidator(
+			addr.String(), newPubKey,
+			selfDelegation, description, commission, math.OneInt(),
+			addr, addr, addr, addr, blsPk, blsProof,
+		)
 		if err != nil {
 			reporter.Skip(err.Error())
 			return nil, nil
@@ -95,7 +111,7 @@ func MsgUndelegateFactory(k *keeper.Keeper) simsx.SimMsgFactoryFn[*types.MsgUnde
 		}
 
 		// select delegator and amount for undelegate
-		valAddr := must(k.ValidatorAddressCodec().StringToBytes(val.GetOperator()))
+		valAddr := must(sdk.AccAddressFromHexUnsafe(val.GetOperator()))
 		delegations := must(k.GetValidatorDelegations(ctx, valAddr))
 		if delegations == nil {
 			reporter.Skip("no delegation entries")
@@ -137,11 +153,11 @@ func MsgEditValidatorFactory(k *keeper.Keeper) simsx.SimMsgFactoryFn[*types.MsgE
 			reporter.Skip("invalid commission rate")
 			return nil, nil
 		}
-		valOpAddrBz := must(k.ValidatorAddressCodec().StringToBytes(val.GetOperator()))
+		valOpAddrBz := must(sdk.AccAddressFromHexUnsafe(val.GetOperator()))
 		valOper := testData.GetAccountbyAccAddr(reporter, valOpAddrBz)
 		d := types.NewDescription(r.StringN(10), r.StringN(10), r.StringN(10), r.StringN(10), r.StringN(10))
 
-		msg := types.NewMsgEditValidator(val.GetOperator(), d, &newCommissionRate, nil)
+		msg := types.NewMsgEditValidator(val.GetOperator(), d, &newCommissionRate, nil, val.GetOperator(), val.GetOperator(), "", "")
 		return []simsx.SimAccount{valOper}, msg
 	}
 }
@@ -162,7 +178,7 @@ func MsgBeginRedelegateFactory(k *keeper.Keeper) simsx.SimMsgFactoryFn[*types.Ms
 			return nil, nil
 		}
 		srcVal := simsx.OneOf(r, vals)
-		srcValOpAddrBz := must(k.ValidatorAddressCodec().StringToBytes(srcVal.GetOperator()))
+		srcValOpAddrBz := must(sdk.AccAddressFromHexUnsafe(srcVal.GetOperator()))
 		delegations := must(k.GetValidatorDelegations(ctx, srcValOpAddrBz))
 		if delegations == nil {
 			reporter.Skip("no delegations")
@@ -194,7 +210,7 @@ func MsgBeginRedelegateFactory(k *keeper.Keeper) simsx.SimMsgFactoryFn[*types.Ms
 
 		// pick a random delegator
 		delAddr := delegation.GetDelegatorAddr()
-		delAddrBz := must(testData.AddressCodec().StringToBytes(delAddr))
+		delAddrBz := must(sdk.AccAddressFromHexUnsafe(delAddr))
 		if hasRecRedel := must(k.HasReceivingRedelegation(ctx, delAddrBz, srcValOpAddrBz)); hasRecRedel {
 			reporter.Skip("receiving redelegation is not allowed")
 			return nil, nil
@@ -214,7 +230,7 @@ func MsgBeginRedelegateFactory(k *keeper.Keeper) simsx.SimMsgFactoryFn[*types.Ms
 			return nil, nil
 		}
 
-		destAddrBz := must(k.ValidatorAddressCodec().StringToBytes(destVal.GetOperator()))
+		destAddrBz := must(sdk.AccAddressFromHexUnsafe(destVal.GetOperator()))
 		if hasMaxRedel := must(k.HasMaxRedelegationEntries(ctx, delAddrBz, srcValOpAddrBz, destAddrBz)); hasMaxRedel {
 			reporter.Skip("maximum redelegation entries reached")
 			return nil, nil
@@ -239,7 +255,7 @@ func MsgCancelUnbondingDelegationFactory(k *keeper.Keeper) simsx.SimMsgFactoryFn
 			reporter.Skip("validator is jailed")
 			return nil, nil
 		}
-		valOpAddrBz := must(k.ValidatorAddressCodec().StringToBytes(val.GetOperator()))
+		valOpAddrBz := must(sdk.AccAddressFromHexUnsafe(val.GetOperator()))
 		valOper := testData.GetAccountbyAccAddr(reporter, valOpAddrBz)
 		unbondingDelegation, err := k.GetUnbondingDelegation(ctx, valOper.Address, valOpAddrBz)
 		if err != nil {

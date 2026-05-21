@@ -345,7 +345,7 @@ func MsgUpdateGroupPolicyDecisionPolicyFactory(k keeper.Keeper, s *SharedState) 
 			return nil, nil
 		}
 		r := testData.Rand()
-		policyAddr, err := k.AddressCodec().StringToBytes(groupPolicy.Address)
+		policyAddr, err := sdk.AccAddressFromHexUnsafe(groupPolicy.Address)
 		if err != nil {
 			reporter.Skip(err.Error())
 			return nil, nil

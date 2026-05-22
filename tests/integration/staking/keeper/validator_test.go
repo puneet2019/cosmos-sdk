@@ -18,14 +18,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-func newMonikerValidator(tb testing.TB, operator sdk.ValAddress, pubKey cryptotypes.PubKey, moniker string) types.Validator {
+func newMonikerValidator(tb testing.TB, operator sdk.AccAddress, pubKey cryptotypes.PubKey, moniker string) types.Validator {
 	tb.Helper()
-	v, err := types.NewValidator(operator.String(), pubKey, types.Description{Moniker: moniker})
+	v, err := types.NewSimpleValidator(operator.String(), pubKey, types.Description{Moniker: moniker})
 	assert.NilError(tb, err)
 	return v
 }
 
-func bootstrapValidatorTest(tb testing.TB, power int64, numAddrs int) (*fixture, []sdk.AccAddress, []sdk.ValAddress) {
+func bootstrapValidatorTest(tb testing.TB, power int64, numAddrs int) (*fixture, []sdk.AccAddress, []sdk.AccAddress) {
 	tb.Helper()
 
 	f := initFixture(tb)
@@ -48,7 +48,7 @@ func bootstrapValidatorTest(tb testing.TB, power int64, numAddrs int) (*fixture,
 	return f, addrDels, addrVals
 }
 
-func initValidators(tb testing.TB, power int64, numAddrs int, powers []int64) (*fixture, []sdk.AccAddress, []sdk.ValAddress, []types.Validator) {
+func initValidators(tb testing.TB, power int64, numAddrs int, powers []int64) (*fixture, []sdk.AccAddress, []sdk.AccAddress, []types.Validator) {
 	tb.Helper()
 
 	f, addrs, valAddrs := bootstrapValidatorTest(tb, power, numAddrs)
@@ -56,7 +56,7 @@ func initValidators(tb testing.TB, power int64, numAddrs int, powers []int64) (*
 
 	vs := make([]types.Validator, len(powers))
 	for i, power := range powers {
-		vs[i] = testutil.NewValidator(tb, sdk.ValAddress(addrs[i]), pks[i])
+		vs[i] = testutil.NewValidator(tb, sdk.AccAddress(addrs[i]), pks[i])
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
 		vs[i], _ = vs[i].AddTokensFromDel(tokens)
 	}
@@ -117,7 +117,7 @@ func TestUpdateBondedValidatorsDecreaseCliff(t *testing.T) {
 	// require all the validators have their respective statuses
 	for valIdx, status := range expectedValStatus {
 		valAddr := validators[valIdx].OperatorAddress
-		addr, err := sdk.ValAddressFromBech32(valAddr)
+		addr, err := sdk.AccAddressFromHexUnsafe(valAddr)
 		assert.NilError(t, err)
 		val, _ := f.stakingKeeper.GetValidator(f.sdkCtx, addr)
 
@@ -175,7 +175,7 @@ func TestGetValidatorSortingUnmixed(t *testing.T) {
 	n := len(amts)
 	var validators [5]types.Validator
 	for i, amt := range amts {
-		validators[i] = testutil.NewValidator(t, sdk.ValAddress(addrs[i]), PKs[i])
+		validators[i] = testutil.NewValidator(t, sdk.AccAddress(addrs[i]), PKs[i])
 		validators[i].Status = types.Bonded
 		validators[i].Tokens = amt
 		validators[i].DelegatorShares = math.LegacyNewDecFromInt(amt)
@@ -280,22 +280,22 @@ func TestGetValidatorSortingMixed(t *testing.T) {
 
 	var validators [5]types.Validator
 	for i, amt := range amts {
-		validators[i] = testutil.NewValidator(t, sdk.ValAddress(addrs[i]), PKs[i])
+		validators[i] = testutil.NewValidator(t, sdk.AccAddress(addrs[i]), PKs[i])
 		validators[i].DelegatorShares = math.LegacyNewDecFromInt(amt)
 		validators[i].Status = types.Bonded
 		validators[i].Tokens = amt
 		keeper.TestingUpdateValidator(f.stakingKeeper, f.sdkCtx, validators[i], true)
 	}
 
-	val0, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.ValAddress(addrs[0]))
+	val0, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.AccAddress(addrs[0]))
 	assert.Assert(t, found)
-	val1, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.ValAddress(addrs[1]))
+	val1, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.AccAddress(addrs[1]))
 	assert.Assert(t, found)
-	val2, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.ValAddress(addrs[2]))
+	val2, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.AccAddress(addrs[2]))
 	assert.Assert(t, found)
-	val3, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.ValAddress(addrs[3]))
+	val3, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.AccAddress(addrs[3]))
 	assert.Assert(t, found)
-	val4, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.ValAddress(addrs[4]))
+	val4, found := f.stakingKeeper.GetValidator(f.sdkCtx, sdk.AccAddress(addrs[4]))
 	assert.Assert(t, found)
 	assert.Equal(t, types.Bonded, val0.Status)
 	assert.Equal(t, types.Unbonding, val1.Status)
@@ -330,7 +330,7 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 	var validators [4]types.Validator
 	for i, power := range powers {
 		moniker := fmt.Sprintf("val#%d", int64(i))
-		validators[i] = newMonikerValidator(t, sdk.ValAddress(addrs[i]), PKs[i], moniker)
+		validators[i] = newMonikerValidator(t, sdk.AccAddress(addrs[i]), PKs[i], moniker)
 
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
 		validators[i], _ = validators[i].AddTokensFromDel(tokens)
@@ -381,7 +381,7 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 	// validator 3 enters bonded validator set
 	f.sdkCtx = f.sdkCtx.WithBlockHeight(40)
 
-	valbz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[3].GetOperator())
+	valbz, err := sdk.AccAddressFromHexUnsafe(validators[3].GetOperator())
 	assert.NilError(t, err)
 
 	validators[3], err = f.stakingKeeper.GetValidator(f.sdkCtx, valbz)
@@ -446,9 +446,9 @@ func TestValidatorBondHeight(t *testing.T) {
 
 	// initialize some validators into the state
 	var validators [3]types.Validator
-	validators[0] = testutil.NewValidator(t, sdk.ValAddress(PKs[0].Address().Bytes()), PKs[0])
-	validators[1] = testutil.NewValidator(t, sdk.ValAddress(addrs[1]), PKs[1])
-	validators[2] = testutil.NewValidator(t, sdk.ValAddress(addrs[2]), PKs[2])
+	validators[0] = testutil.NewValidator(t, sdk.AccAddress(PKs[0].Address().Bytes()), PKs[0])
+	validators[1] = testutil.NewValidator(t, sdk.AccAddress(addrs[1]), PKs[1])
+	validators[2] = testutil.NewValidator(t, sdk.AccAddress(addrs[2]), PKs[2])
 
 	tokens0 := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 200)
 	tokens1 := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 100)
@@ -497,13 +497,13 @@ func TestFullValidatorSetPowerChange(t *testing.T) {
 	powers := []int64{0, 100, 400, 400, 200}
 	var validators [5]types.Validator
 	for i, power := range powers {
-		validators[i] = testutil.NewValidator(t, sdk.ValAddress(addrs[i]), PKs[i])
+		validators[i] = testutil.NewValidator(t, sdk.AccAddress(addrs[i]), PKs[i])
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
 		validators[i], _ = validators[i].AddTokensFromDel(tokens)
 		keeper.TestingUpdateValidator(f.stakingKeeper, f.sdkCtx, validators[i], true)
 	}
 	for i := range powers {
-		valbz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[i].GetOperator())
+		valbz, err := sdk.AccAddressFromHexUnsafe(validators[i].GetOperator())
 		assert.NilError(t, err)
 
 		validators[i], err = f.stakingKeeper.GetValidator(f.sdkCtx, valbz)
@@ -539,7 +539,7 @@ func TestApplyAndReturnValidatorSetUpdatesAllNone(t *testing.T) {
 	var validators [2]types.Validator
 	for i, power := range powers {
 		valPubKey := PKs[i+1]
-		valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
+		valAddr := sdk.AccAddress(valPubKey.Address().Bytes())
 
 		validators[i] = testutil.NewValidator(t, valAddr, valPubKey)
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
@@ -555,9 +555,9 @@ func TestApplyAndReturnValidatorSetUpdatesAllNone(t *testing.T) {
 	assert.NilError(t, f.stakingKeeper.SetValidatorByPowerIndex(f.sdkCtx, validators[1]))
 
 	updates := applyValidatorSetUpdates(t, f.sdkCtx, f.stakingKeeper, 2)
-	val0bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[0].GetOperator())
+	val0bz, err := sdk.AccAddressFromHexUnsafe(validators[0].GetOperator())
 	assert.NilError(t, err)
-	val1bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[1].GetOperator())
+	val1bz, err := sdk.AccAddressFromHexUnsafe(validators[1].GetOperator())
 	assert.NilError(t, err)
 	validators[0], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val0bz)
 	validators[1], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val1bz)
@@ -571,7 +571,7 @@ func TestApplyAndReturnValidatorSetUpdatesIdentical(t *testing.T) {
 	powers := []int64{10, 20}
 	var validators [2]types.Validator
 	for i, power := range powers {
-		validators[i] = testutil.NewValidator(t, sdk.ValAddress(addrs[i]), PKs[i])
+		validators[i] = testutil.NewValidator(t, sdk.AccAddress(addrs[i]), PKs[i])
 
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
 		validators[i], _ = validators[i].AddTokensFromDel(tokens)
@@ -594,7 +594,7 @@ func TestApplyAndReturnValidatorSetUpdatesSingleValueChange(t *testing.T) {
 	powers := []int64{10, 20}
 	var validators [2]types.Validator
 	for i, power := range powers {
-		validators[i] = testutil.NewValidator(t, sdk.ValAddress(addrs[i]), PKs[i])
+		validators[i] = testutil.NewValidator(t, sdk.AccAddress(addrs[i]), PKs[i])
 
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
 		validators[i], _ = validators[i].AddTokensFromDel(tokens)
@@ -650,7 +650,7 @@ func TestApplyAndReturnValidatorSetUpdatesInserted(t *testing.T) {
 	assert.NilError(t, f.stakingKeeper.SetValidator(f.sdkCtx, validators[2]))
 	assert.NilError(t, f.stakingKeeper.SetValidatorByPowerIndex(f.sdkCtx, validators[2]))
 	updates := applyValidatorSetUpdates(t, f.sdkCtx, f.stakingKeeper, 1)
-	val2bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[2].GetOperator())
+	val2bz, err := sdk.AccAddressFromHexUnsafe(validators[2].GetOperator())
 	assert.NilError(t, err)
 	validators[2], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val2bz)
 	assert.DeepEqual(t, validators[2].ABCIValidatorUpdate(f.stakingKeeper.PowerReduction(f.sdkCtx)), updates[0])
@@ -660,7 +660,7 @@ func TestApplyAndReturnValidatorSetUpdatesInserted(t *testing.T) {
 	assert.NilError(t, f.stakingKeeper.SetValidator(f.sdkCtx, validators[3]))
 	assert.NilError(t, f.stakingKeeper.SetValidatorByPowerIndex(f.sdkCtx, validators[3]))
 	updates = applyValidatorSetUpdates(t, f.sdkCtx, f.stakingKeeper, 1)
-	val3bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[3].GetOperator())
+	val3bz, err := sdk.AccAddressFromHexUnsafe(validators[3].GetOperator())
 	assert.NilError(t, err)
 	validators[3], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val3bz)
 	assert.DeepEqual(t, validators[3].ABCIValidatorUpdate(f.stakingKeeper.PowerReduction(f.sdkCtx)), updates[0])
@@ -670,7 +670,7 @@ func TestApplyAndReturnValidatorSetUpdatesInserted(t *testing.T) {
 	assert.NilError(t, f.stakingKeeper.SetValidator(f.sdkCtx, validators[4]))
 	assert.NilError(t, f.stakingKeeper.SetValidatorByPowerIndex(f.sdkCtx, validators[4]))
 	updates = applyValidatorSetUpdates(t, f.sdkCtx, f.stakingKeeper, 1)
-	val4bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[4].GetOperator())
+	val4bz, err := sdk.AccAddressFromHexUnsafe(validators[4].GetOperator())
 	assert.NilError(t, err)
 	validators[4], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val4bz)
 	assert.DeepEqual(t, validators[4].ABCIValidatorUpdate(f.stakingKeeper.PowerReduction(f.sdkCtx)), updates[0])
@@ -685,7 +685,7 @@ func TestApplyAndReturnValidatorSetUpdatesWithCliffValidator(t *testing.T) {
 	powers := []int64{10, 20, 5}
 	var validators [5]types.Validator
 	for i, power := range powers {
-		validators[i] = testutil.NewValidator(t, sdk.ValAddress(addrs[i]), PKs[i])
+		validators[i] = testutil.NewValidator(t, sdk.AccAddress(addrs[i]), PKs[i])
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
 		validators[i], _ = validators[i].AddTokensFromDel(tokens)
 	}
@@ -707,7 +707,7 @@ func TestApplyAndReturnValidatorSetUpdatesWithCliffValidator(t *testing.T) {
 	assert.NilError(t, f.stakingKeeper.SetValidator(f.sdkCtx, validators[2]))
 	assert.NilError(t, f.stakingKeeper.SetValidatorByPowerIndex(f.sdkCtx, validators[2]))
 	updates := applyValidatorSetUpdates(t, f.sdkCtx, f.stakingKeeper, 2)
-	val2bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[2].GetOperator())
+	val2bz, err := sdk.AccAddressFromHexUnsafe(validators[2].GetOperator())
 	assert.NilError(t, err)
 	validators[2], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val2bz)
 	assert.DeepEqual(t, validators[0].ABCIValidatorUpdateZero(), updates[1])
@@ -728,7 +728,7 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 	// initialize some validators into the state
 	for i, power := range powers {
 		valPubKey := PKs[i+1]
-		valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
+		valAddr := sdk.AccAddress(valPubKey.Address().Bytes())
 
 		validators[i] = testutil.NewValidator(t, valAddr, valPubKey)
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
@@ -741,9 +741,9 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 	// verify initial CometBFT updates are correct
 	updates := applyValidatorSetUpdates(t, f.sdkCtx, f.stakingKeeper, len(validators))
 
-	val0bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[0].GetOperator())
+	val0bz, err := sdk.AccAddressFromHexUnsafe(validators[0].GetOperator())
 	assert.NilError(t, err)
-	val1bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[1].GetOperator())
+	val1bz, err := sdk.AccAddressFromHexUnsafe(validators[1].GetOperator())
 	assert.NilError(t, err)
 	validators[0], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val0bz)
 	validators[1], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val1bz)
@@ -766,7 +766,7 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 	// add a new validator that goes from zero power, to non-zero power, back to
 	// zero power
 	valPubKey := PKs[len(validators)+1]
-	valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
+	valAddr := sdk.AccAddress(valPubKey.Address().Bytes())
 	amt := math.NewInt(100)
 
 	validator := testutil.NewValidator(t, valAddr, valPubKey)
@@ -780,7 +780,7 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 
 	// add a new validator that increases in power
 	valPubKey = PKs[len(validators)+2]
-	valAddr = sdk.ValAddress(valPubKey.Address().Bytes())
+	valAddr = sdk.AccAddress(valPubKey.Address().Bytes())
 
 	validator = testutil.NewValidator(t, valAddr, valPubKey)
 	tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 500)
@@ -790,7 +790,7 @@ func TestApplyAndReturnValidatorSetUpdatesNewValidator(t *testing.T) {
 
 	// verify initial CometBFT updates are correct
 	updates = applyValidatorSetUpdates(t, f.sdkCtx, f.stakingKeeper, len(validators)+1)
-	valbz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+	valbz, err := sdk.AccAddressFromHexUnsafe(validator.GetOperator())
 	assert.NilError(t, err)
 	validator, _ = f.stakingKeeper.GetValidator(f.sdkCtx, valbz)
 	validators[0], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val0bz)
@@ -815,7 +815,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 	for i, power := range powers {
 		moniker := fmt.Sprintf("%d", i)
 		valPubKey := PKs[i+1]
-		valAddr := sdk.ValAddress(valPubKey.Address().Bytes())
+		valAddr := sdk.AccAddress(valPubKey.Address().Bytes())
 
 		validators[i] = newMonikerValidator(t, valAddr, valPubKey, moniker)
 		tokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, power)
@@ -826,9 +826,9 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 
 	// verify initial CometBFT updates are correct
 	updates := applyValidatorSetUpdates(t, f.sdkCtx, f.stakingKeeper, 2)
-	val1bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[1].GetOperator())
+	val1bz, err := sdk.AccAddressFromHexUnsafe(validators[1].GetOperator())
 	assert.NilError(t, err)
-	val2bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[2].GetOperator())
+	val2bz, err := sdk.AccAddressFromHexUnsafe(validators[2].GetOperator())
 	assert.NilError(t, err)
 	validators[2], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val2bz)
 	validators[1], _ = f.stakingKeeper.GetValidator(f.sdkCtx, val1bz)
@@ -840,7 +840,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 	// delegate to validator with lowest power but not enough to bond
 	f.sdkCtx = f.sdkCtx.WithBlockHeight(1)
 
-	val0bz, err := f.stakingKeeper.ValidatorAddressCodec().StringToBytes(validators[0].GetOperator())
+	val0bz, err := sdk.AccAddressFromHexUnsafe(validators[0].GetOperator())
 	assert.NilError(t, err)
 	validators[0], err = f.stakingKeeper.GetValidator(f.sdkCtx, val0bz)
 	assert.NilError(t, err)

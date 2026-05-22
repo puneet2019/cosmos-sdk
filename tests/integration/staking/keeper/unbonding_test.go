@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"go.uber.org/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"gotest.tools/v3/assert"
 
 	"cosmossdk.io/math"
@@ -18,7 +18,7 @@ import (
 )
 
 // SetupUnbondingTests creates two validators and setup mocked staking hooks for testing unbonding
-func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uint64) (bondDenom string, addrDels []sdk.AccAddress, addrVals []sdk.ValAddress) {
+func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uint64) (bondDenom string, addrDels []sdk.AccAddress, addrVals []sdk.AccAddress) {
 	t.Helper()
 
 	// setup hooks
@@ -47,7 +47,7 @@ func SetupUnbondingTests(t *testing.T, f *fixture, hookCalled *bool, ubdeID *uin
 	f.stakingKeeper.SetHooks(types.NewMultiStakingHooks(mockStackingHooks))
 
 	addrDels = simtestutil.AddTestAddrsIncremental(f.bankKeeper, f.stakingKeeper, f.sdkCtx, 2, math.NewInt(10000))
-	addrVals = simtestutil.ConvertAddrsToValAddrs(addrDels)
+	addrVals = simtestutil.CopyAddrs(addrDels)
 
 	valTokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 10)
 	startTokens := f.stakingKeeper.TokensFromConsensusPower(f.sdkCtx, 20)
@@ -91,7 +91,7 @@ func doUnbondingDelegation(
 	ctx sdk.Context,
 	bondDenom string,
 	addrDels []sdk.AccAddress,
-	addrVals []sdk.ValAddress,
+	addrVals []sdk.AccAddress,
 	hookCalled *bool,
 ) (completionTime time.Time, bondedAmt, notBondedAmt math.Int) {
 	t.Helper()
@@ -130,7 +130,7 @@ func doRedelegation(
 	stakingKeeper *stakingkeeper.Keeper,
 	ctx sdk.Context,
 	addrDels []sdk.AccAddress,
-	addrVals []sdk.ValAddress,
+	addrVals []sdk.AccAddress,
 	hookCalled *bool,
 ) (completionTime time.Time) {
 	t.Helper()
@@ -155,7 +155,7 @@ func doValidatorUnbonding(
 	t *testing.T,
 	stakingKeeper *stakingkeeper.Keeper,
 	ctx sdk.Context,
-	addrVal sdk.ValAddress,
+	addrVal sdk.AccAddress,
 	hookCalled *bool,
 ) (validator types.Validator) {
 	t.Helper()

@@ -35,18 +35,18 @@ func getTestProposal() []sdk.Msg {
 	}
 }
 
-func createValidators(t *testing.T, f *fixture, powers []int64) ([]sdk.AccAddress, []sdk.ValAddress) {
+func createValidators(t *testing.T, f *fixture, powers []int64) ([]sdk.AccAddress, []sdk.AccAddress) {
 	t.Helper()
 
 	addrs := simtestutil.AddTestAddrsIncremental(f.bankKeeper, f.stakingKeeper, f.ctx, 5, math.NewInt(30000000))
-	valAddrs := simtestutil.ConvertAddrsToValAddrs(addrs)
+	valAddrs := simtestutil.CopyAddrs(addrs)
 	pks := simtestutil.CreateTestPubKeys(5)
 
-	val1, err := stakingtypes.NewValidator(valAddrs[0].String(), pks[0], stakingtypes.Description{})
+	val1, err := stakingtypes.NewSimpleValidator(valAddrs[0].String(), pks[0], stakingtypes.Description{})
 	assert.NilError(t, err)
-	val2, err := stakingtypes.NewValidator(valAddrs[1].String(), pks[1], stakingtypes.Description{})
+	val2, err := stakingtypes.NewSimpleValidator(valAddrs[1].String(), pks[1], stakingtypes.Description{})
 	assert.NilError(t, err)
-	val3, err := stakingtypes.NewValidator(valAddrs[2].String(), pks[2], stakingtypes.Description{})
+	val3, err := stakingtypes.NewSimpleValidator(valAddrs[2].String(), pks[2], stakingtypes.Description{})
 	assert.NilError(t, err)
 
 	assert.NilError(t, f.stakingKeeper.SetValidator(f.ctx, val1))

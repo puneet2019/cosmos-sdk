@@ -26,7 +26,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/tendermint/go-amino v0.16.0
-	go.uber.org/mock v0.6.0
+	go.uber.org/mock v0.6.0 // indirect
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.10
 	gotest.tools/v3 v3.5.2
@@ -276,7 +276,7 @@ replace (
 	github.com/btcsuite/btcd => github.com/btcsuite/btcd v0.22.1
 	github.com/btcsuite/btcd/btcec/v2 => github.com/btcsuite/btcd/btcec/v2 v2.3.4
 	// moca-cometbft fork (carries the votepool package)
-	github.com/cometbft/cometbft => github.com/mocachain/moca-cometbft v1.2.0-rc0.0.20260320015437-83994359d443
+	github.com/cometbft/cometbft => github.com/mocachain/moca-cometbft v1.2.0-rc0.0.20260522043823-e86182950736
 	// We always want to test against the latest version of the SDK.
 	github.com/cosmos/cosmos-sdk => ../.
 	// moca redirects the legacy client path to the in-tree implementation

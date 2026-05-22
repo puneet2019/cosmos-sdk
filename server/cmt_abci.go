@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 
@@ -71,12 +70,4 @@ func (w cometABCIWrapper) LoadSnapshotChunk(_ context.Context, req *abci.Request
 
 func (w cometABCIWrapper) ApplySnapshotChunk(_ context.Context, req *abci.RequestApplySnapshotChunk) (*abci.ResponseApplySnapshotChunk, error) {
 	return w.app.ApplySnapshotChunk(req)
-}
-
-// EthQuery is a no-op stub. The custom EthQuery ABCI surface was dropped from
-// this SDK fork, but the pinned moca-cometbft Application interface still
-// mandates the method. Remove this stub once moca-cometbft drops
-// RequestEthQuery/ResponseEthQuery (tracked as a separate moca-cometbft task).
-func (w cometABCIWrapper) EthQuery(_ context.Context, _ *abci.RequestEthQuery) (*abci.ResponseEthQuery, error) {
-	return nil, errors.New("EthQuery ABCI method is not supported")
 }

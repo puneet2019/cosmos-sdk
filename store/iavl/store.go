@@ -38,6 +38,9 @@ type Store struct {
 	tree    Tree
 	logger  log.Logger
 	metrics metrics.StoreMetrics
+	// diff, when non-nil, records every key written/deleted on this store.
+	// Used by moca's bank<->payment store reconciliation.
+	diff map[string]struct{}
 }
 
 // LoadStore returns an IAVL Store as a CommitKVStore. Internally, it will load the
@@ -193,6 +196,21 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 	return cachekv.NewStore(tracekv.NewStore(st, w, tc))
 }
 
+// EnableDiff starts recording the set of keys written/deleted on this store.
+func (st *Store) EnableDiff() {
+	st.diff = map[string]struct{}{}
+}
+
+// GetDiff returns the set of keys written/deleted since the last EnableDiff/ResetDiff.
+func (st *Store) GetDiff() map[string]struct{} {
+	return st.diff
+}
+
+// ResetDiff clears the recorded diff set (recording stays enabled).
+func (st *Store) ResetDiff() {
+	st.diff = map[string]struct{}{}
+}
+
 // Implements types.KVStore.
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidKey(key)
@@ -200,6 +218,10 @@ func (st *Store) Set(key, value []byte) {
 	_, err := st.tree.Set(key, value)
 	if err != nil && st.logger != nil {
 		st.logger.Error("iavl set error", "error", err.Error())
+	}
+
+	if st.diff != nil {
+		st.diff[string(key)] = struct{}{}
 	}
 }
 
@@ -229,6 +251,10 @@ func (st *Store) Delete(key []byte) {
 	_, _, err := st.tree.Remove(key)
 	if err != nil {
 		panic(err)
+	}
+
+	if st.diff != nil {
+		st.diff[string(key)] = struct{}{}
 	}
 }
 

@@ -128,7 +128,8 @@ func NewInterfaceRegistry() InterfaceRegistry {
 	registry, err := NewInterfaceRegistryWithOptions(InterfaceRegistryOptions{
 		ProtoFiles:     proto.HybridResolver,
 		SigningOptions: signing.Options{
-			AddressCodec: failingAddressCodec{},
+			AddressCodec:          failingAddressCodec{},
+			ValidatorAddressCodec: failingAddressCodec{},
 		},
 	})
 	if err != nil {
